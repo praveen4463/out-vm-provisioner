@@ -1,0 +1,12 @@
+target/
+*settings.xml
+*.iml
+*.idea
+*.jar
+
+#Eclipse metadata
+.classpath
+.settings
+.project
+
+.DS_Store
