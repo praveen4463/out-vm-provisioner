@@ -1,4 +1,5 @@
 <?xml version="1.0"?>
+<!-- The added parent has java 1.8 runtime, thus not mentioning it explicitly. -->
 <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
     xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
@@ -8,8 +9,10 @@
   <name>zl-wzgp</name>
   <url>http://maven.apache.org</url>
   <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jre.version>1.8</jre.version>
+    <junit-jupiter.version>5.5.1</junit-jupiter.version>
+    <mockito.version>3.0.0</mockito.version>
+    <stackdriver.logback.version>0.102.0-alpha</stackdriver.logback.version>
+    <guava.version>28.0-jre</guava.version>
     <skipUTests>false</skipUTests>
     <skipITTests>true</skipITTests>
   </properties>
@@ -18,29 +21,60 @@
 	<artifactId>spring-boot-starter-parent</artifactId>
 	<version>2.1.6.RELEASE</version>
   </parent>
-  <dependencies><!-- note that since we've spring boot parent, there's no need to include jnuit -->
-    <dependency><!-- and mockito dependencies, its already there. -->
+  <dependencies>
+    <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-logging</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <version>28.0-jre</version>
+      <version>${guava.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-logging-logback</artifactId>
+      <version>${stackdriver.logback.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.apis</groupId>
+      <artifactId>google-api-services-compute</artifactId>
+      <version>v1-rev20190624-1.30.1</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.auth</groupId>
+      <artifactId>google-auth-library-oauth2-http</artifactId>
+      <version>0.16.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <version>${junit-jupiter.version}</version><!--$NO-MVN-MAN-VER$-->
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-params</artifactId>
+      <version>${junit-jupiter.version}</version><!--$NO-MVN-MAN-VER$-->
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <version>${junit-jupiter.version}</version><!--$NO-MVN-MAN-VER$-->
+      <scope>test</scope>
     </dependency>
   </dependencies>
   <build>
     <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <source>${jre.version}</source>
-          <target>${jre.version}</target>
-          <encoding>UTF-8</encoding>
-          <forceJavacCompilerUse>true</forceJavacCompilerUse>
-        </configuration>
-      </plugin>
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>

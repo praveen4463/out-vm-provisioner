@@ -1,0 +1,19 @@
+---
+api-core:
+  project-id: zl-win-nodes
+  short-version: beta
+  gcp-api: https://www.googleapis.com/compute/v1/projects
+  grid-default:
+    machine-type: n1-standard-2
+    network: zl-default-vpc
+    service-account: zl-selenium-grid@zl-win-nodes.iam.gserviceaccount.com
+    tags:
+      - elasticsearch-client
+    labels:
+      platform: windows
+      is-production-instance: true
+      zl-selenium-grid: true
+    metadata:
+      time-zone-with-dst: Greenwich Standard Time
+---
+spring.profiles.active=production
