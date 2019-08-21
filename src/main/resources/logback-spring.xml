@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-
+<!-- Spring uses commons logging, which is an adapter to a plugged in logging implementation. By
+using Logback, we're plugging in Logback to be used by spring internal and our app.
+Note that we should configure log levels for spring internal logs. -->
   <springProfile name="production">
     <property name="STACKDRIVER_LOG_PATTERN" value="%d %-5p ${PID:- } [%t] %-40.40logger{39}: %m %ex%n"/>
     <property name="STACKDRIVER_LOG_NAME" value="app-zl-wzgp.log"/>

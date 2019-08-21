@@ -1,10 +1,11 @@
-package com.zylitics.wzgp.model;
+package com.zylitics.wzgp.http;
 
 public class ResponseGridCreate extends AbstractResponse {
 
   private String gridInternalIP;
   private String gridId;
   private String gridName;
+  private String zone;
   
   public String getGridInternalIP() {
     return gridInternalIP;
@@ -28,5 +29,13 @@ public class ResponseGridCreate extends AbstractResponse {
   
   public void setGridName(String gridName) {
     this.gridName = gridName;
+  }
+  
+  public String getZone() {
+    return zone;
+  }
+  
+  public void setZone(String zone) {
+    this.zone = zone;
   }
 }

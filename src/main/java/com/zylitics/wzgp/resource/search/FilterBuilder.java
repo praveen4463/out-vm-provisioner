@@ -1,6 +1,13 @@
-package com.zylitics.wzgp.service;
+package com.zylitics.wzgp.resource.search;
 
-public final class GCPFilterBuilder {
+import org.springframework.util.Assert;
+
+/**
+ * Builds filter per GCP compute guidelines.
+ * @author Praveen Tiwari
+ *
+ */
+public final class FilterBuilder {
   
   private static final String SEARCH_TMPL = "(L O R)";
   
@@ -24,10 +31,12 @@ public final class GCPFilterBuilder {
   
   private StringBuilder builder = new StringBuilder();
   
-  public <T> GCPFilterBuilder addCondition(String key
+  public <T> FilterBuilder addCondition(String key
       , T value
       , Class<T> valueClazz
       , Operator operator) {
+    Assert.hasText(key, "key can't be empty");
+    Assert.notNull(value, "value can't be null");
     
     String formattedValue = (String) value;
     if (valueClazz.getClass().getName().equals(String.class.getName())) {
@@ -37,13 +46,11 @@ public final class GCPFilterBuilder {
         .replace("L", key)
         .replace("O", operator.symbol)
         .replace("R", formattedValue));
-    builder.append(" "); // white space after each expression
     return this;
   }
   
-  public GCPFilterBuilder addConditionalExpr(ConditionalExpr conditionalExpr) {
-    builder.append(conditionalExpr.name());
-    builder.append(" ");
+  public FilterBuilder addConditionalExpr(ConditionalExpr conditionalExpr) {
+    builder.append(" " + conditionalExpr.name() + " ");
     return this;
   }
   

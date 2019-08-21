@@ -1,9 +1,10 @@
-package com.zylitics.wzgp.model;
+package com.zylitics.wzgp.http;
 
 public abstract class AbstractResponse {
 
   private String status;
   private String error;
+  private int httpErrorStatusCode;
   
   public String getStatus() {
     return status;
@@ -19,5 +20,13 @@ public abstract class AbstractResponse {
   
   public void setError(String error) {
     this.error = error;
+  }
+
+  public int getHttpErrorStatusCode() {
+    return httpErrorStatusCode;
+  }
+
+  public void setHttpErrorStatusCode(int httpErrorStatusCode) {
+    this.httpErrorStatusCode = httpErrorStatusCode;
   }
 }

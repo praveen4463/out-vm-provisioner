@@ -1,0 +1,70 @@
+package com.zylitics.wzgp.resource.util;
+
+import java.util.Collections;
+import java.util.Map;
+
+import com.google.api.services.compute.Compute;
+import com.google.api.services.compute.ComputeScopes;
+import com.google.api.services.compute.model.InstancesSetLabelsRequest;
+import com.google.api.services.compute.model.InstancesSetMachineTypeRequest;
+import com.google.api.services.compute.model.InstancesSetServiceAccountRequest;
+import com.google.api.services.compute.model.Metadata;
+import com.google.api.services.compute.model.Operation;
+import com.zylitics.wzgp.config.SharedDependencies;
+import com.zylitics.wzgp.resource.executor.ResourceExecutor;
+
+public class ComputeCalls {
+
+  private final ResourceExecutor executor;
+  private final Compute compute;
+  private final String project;
+  private final String zone;
+  public ComputeCalls(SharedDependencies sharedDep, ResourceExecutor executor) {
+    this.executor = executor;
+    this.compute = sharedDep.compute();
+    this.project = sharedDep.apiCoreProps().getProjectId();
+    this.zone = sharedDep.zone();
+  }
+  
+  public Operation startInstance(String instanceName) throws Exception {
+    Compute.Instances.Start startInstance = compute.instances().start(project, zone, instanceName);
+    return executor.executeWithReattempt(startInstance);
+  }
+  
+  public Operation setMachineType(String instanceName, String machineType) throws Exception {
+    InstancesSetMachineTypeRequest machineTypeReq = new InstancesSetMachineTypeRequest();
+    machineTypeReq.setMachineType(String.format("zones/%s/machineTypes/%s"
+        , zone, machineType));
+    Compute.Instances.SetMachineType setMachineType =
+        compute.instances().setMachineType(project, zone, instanceName, machineTypeReq);
+    return executor.executeWithReattempt(setMachineType);
+  }
+  
+  public Operation setServiceAccount(String instanceName, String email) throws Exception {
+    InstancesSetServiceAccountRequest servAccReq = new InstancesSetServiceAccountRequest();
+    servAccReq.setEmail(email);
+    servAccReq.setScopes(Collections.singletonList(ComputeScopes.CLOUD_PLATFORM));
+    Compute.Instances.SetServiceAccount setServAcc =
+        compute.instances().setServiceAccount(project, zone, instanceName, servAccReq);
+    return executor.executeWithReattempt(setServAcc);
+  }
+  
+  public Operation setLabels(String instanceName, Map<String, String> labels) throws Exception {
+    InstancesSetLabelsRequest labelReq = new InstancesSetLabelsRequest();
+    labelReq.setLabels(labels);
+    Compute.Instances.SetLabels setLabels =
+        compute.instances().setLabels(project, zone, instanceName, labelReq);
+    return executor.executeWithReattempt(setLabels);
+  }
+  
+  public Operation setMetadata(String instanceName, Map<String, String> metadata) throws Exception {
+    Metadata md = new Metadata();
+    metadata.entrySet()
+        .forEach(entry -> md.set(entry.getKey(), entry.getValue()));
+    Compute.Instances.SetMetadata setMetadata =
+        compute.instances().setMetadata(project, zone, instanceName, md);
+    return executor.executeWithReattempt(setMetadata);
+  }
+  
+  
+}
