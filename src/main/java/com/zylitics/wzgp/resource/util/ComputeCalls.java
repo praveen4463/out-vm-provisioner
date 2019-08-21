@@ -5,6 +5,10 @@ import java.util.Map;
 
 import com.google.api.services.compute.Compute;
 import com.google.api.services.compute.ComputeScopes;
+import com.google.api.services.compute.model.Image;
+import com.google.api.services.compute.model.ImageList;
+import com.google.api.services.compute.model.Instance;
+import com.google.api.services.compute.model.InstanceList;
 import com.google.api.services.compute.model.InstancesSetLabelsRequest;
 import com.google.api.services.compute.model.InstancesSetMachineTypeRequest;
 import com.google.api.services.compute.model.InstancesSetServiceAccountRequest;
@@ -66,5 +70,36 @@ public class ComputeCalls {
     return executor.executeWithReattempt(setMetadata);
   }
   
+  public Operation getZoneOperation(String operationName) throws Exception {
+    Compute.ZoneOperations.Get getZOp = compute.zoneOperations().get(project, zone, operationName);
+    return executor.executeWithReattempt(getZOp);
+  }
   
+  public Image getImageFromFamily(String imageFamily) throws Exception {
+    Compute.Images.GetFromFamily getFromFamily =
+        compute.images().getFromFamily(project, imageFamily);
+    return executor.executeWithReattempt(getFromFamily);
+  }
+  
+  public java.util.List<Image> listImages(String filter, long maxResults) throws Exception {
+    Compute.Images.List listBuilder = compute.images().list(project);
+    listBuilder.setMaxResults(maxResults);
+    listBuilder.setFilter(filter);
+    ImageList list = executor.executeWithReattempt(listBuilder); 
+    return list.getItems();
+  }
+  
+  public java.util.List<Instance> listInstances(String filter, long maxResults) throws Exception {
+    Compute.Instances.List listBuilder = compute.instances().list(project, zone);
+    listBuilder.setMaxResults(maxResults);
+    listBuilder.setFilter(filter);
+    InstanceList list = executor.executeWithReattempt(listBuilder);
+    return list.getItems();
+  }
+  
+  public Instance getInstance(String instanceName, String instanceZone) throws Exception {
+    Compute.Instances.Get getInstance =
+        compute.instances().get(project, instanceZone, instanceName);
+    return executor.executeWithReattempt(getInstance);
+  }
 }

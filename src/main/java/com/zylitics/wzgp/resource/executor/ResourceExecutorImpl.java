@@ -20,9 +20,9 @@ import com.google.api.services.compute.model.Operation;
 import com.google.cloud.GcpLaunchStage.Alpha;
 import com.zylitics.wzgp.config.SharedDependencies;
 import com.zylitics.wzgp.resource.APICoreProperties;
-import com.zylitics.wzgp.resource.AbstractResource;
 import com.zylitics.wzgp.resource.BuildProperty;
 import com.zylitics.wzgp.resource.CompletedOperation;
+import com.zylitics.wzgp.resource.util.ResourceUtil;
 
 /**
  * This class is designed in a way that one object in a program can be used multiple times.
@@ -40,8 +40,7 @@ import com.zylitics.wzgp.resource.CompletedOperation;
  * build lot of re-attempt code around general http exceptions.
  */
 @Alpha
-public class ResourceExecutorImpl extends AbstractResource
-    implements ResourceExecutor, ResourceReattempter {
+public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempter {
   
   private static final Logger LOG = LoggerFactory.getLogger(ResourceExecutorImpl.class);
   
@@ -77,8 +76,9 @@ public class ResourceExecutorImpl extends AbstractResource
       V out = objToExecute.setOauthToken(sharedDep.token()).execute();
       if (out == null) {
         // Shouldn't happen but still log.
-        LOG.error("Got null while inoking execute() on " 
-            + objToExecute.toString() + addToException(buildProp));
+        LOG.error("Got null while inoking execute() on {} {}" 
+            , objToExecute.toString()
+            , buildProp.toString());
       }
       return out;
     } catch(IOException io) {
@@ -86,12 +86,17 @@ public class ResourceExecutorImpl extends AbstractResource
       // Log messages for debugging the issue.
       try {
         HttpResponseException httpExp = (HttpResponseException) io;
-        LOG.error("An IOException occurred while inoking execute() on " + objToExecute.toString()
-            + "From inner HttpResponseException: Status code= " + httpExp.getStatusCode() 
-            + ", Status message= " + httpExp.getStatusMessage() + addToException(buildProp));
+        LOG.error("An IOException occurred while inoking execute() on {}. From inner"
+            + " HttpResponseException: Status code= {}, Status message= {} {}"
+            , objToExecute.toString()
+            , httpExp.getStatusCode()
+            , httpExp.getStatusMessage()
+            , buildProp.toString());
       } catch (ClassCastException cce) {
-        LOG.error("An IOException occurred while inoking execute() on " + objToExecute.toString()
-            + "HttpResponseException isn't found wrapped." + addToException(buildProp));
+        LOG.error("An IOException occurred while inoking execute() on {}, HttpResponseException"
+            + " isn't found wrapped. {}"
+            , objToExecute.toString()
+            , buildProp.toString());
       }
       // re-throw exception for handlers.
       throw io;
@@ -122,7 +127,7 @@ public class ResourceExecutorImpl extends AbstractResource
     // Now we've the Operation, let's wait for it's completion and see how it goes.
     operation = blockUntilComplete(operation);
     
-    if (isOperationSuccess(operation)) {
+    if (ResourceUtil.isOperationSuccess(operation)) {
       return new CompletedOperation(operation);
     }
 
@@ -136,8 +141,9 @@ public class ResourceExecutorImpl extends AbstractResource
     // Reaching here means before invoking handler, we've to quit because the error codes don't
     // match the ones we already know. Log and return the first Operation.
     LOG.error("After waiting for Operation completion, the returned error codes aren't matched the"
-        + " ones we have. Reattempt couldn't happen. Returned codes: " 
-        + String.join(",", operationErrorsToCodes(operation)) + addToException(buildProp));
+        + " ones we have. Reattempt couldn't happen. Returned codes: {} {}" 
+        , String.join(",", operationErrorsToCodes(operation))
+        , buildProp.toString());
     return new CompletedOperation(operation);
   }
   
@@ -167,25 +173,29 @@ public class ResourceExecutorImpl extends AbstractResource
       operation = executeWithReattempt(objToExecute);
       operation = blockUntilComplete(operation);
       
-      if (isOperationSuccess(operation)) {
+      if (ResourceUtil.isOperationSuccess(operation)) {
         LOG.debug("Operation {} succeeded on attempt # {}"
-            , operation.toPrettyString(), (attempts + 1));
+            , operation.toPrettyString()
+            , (attempts + 1));
         return new CompletedOperation(operation);
       }
       
       for (Operation.Error.Errors err : operation.getError().getErrors()) {
         if (err.getCode() == null 
             || !sharedDep.apiCoreProps().getGceZonalReattemptErrors().contains(err.getCode())) {
-          LOG.error("During reattempt # " + (attempts + 1)  + ", the returned error codes aren't"
-              + " matched the ones we have. Returned codes: " 
-              + String.join(",", operationErrorsToCodes(operation)) + addToException(buildProp));
+          LOG.error("During reattempt # {}, the returned error codes aren't matched the ones we"
+              + " have. Returned codes: {} {}"
+              , (attempts + 1)
+              , String.join(",", operationErrorsToCodes(operation))
+              , buildProp.toString());
           return new CompletedOperation(operation);
         }
       }
       attempts++;
     }
-    LOG.error("maximum re-attempts reached for operation " 
-        + operation.toPrettyString() + addToException(buildProp));
+    LOG.error("maximum re-attempts reached for operation {} {}" 
+        , operation.toPrettyString()
+        , buildProp.toString());
     return new CompletedOperation(operation);
   }
   
@@ -193,7 +203,6 @@ public class ResourceExecutorImpl extends AbstractResource
   public Operation blockUntilComplete(Operation operation) throws Exception {
     Assert.notNull(operation, "Operation can't be null");
     
-    String projectId = sharedDep.apiCoreProps().getProjectId();
     long start = System.currentTimeMillis();
     long pollInterval = 10 * 1000;
     
@@ -208,12 +217,17 @@ public class ResourceExecutorImpl extends AbstractResource
       Thread.sleep(pollInterval);
       long elapsed = System.currentTimeMillis() - start;
       if (elapsed >= sharedDep.apiCoreProps().getGceTimeoutMillis()) {
-        throw new TimeoutException("Timed out waiting for Operation to complete. Operation: "
-            + operation.toPrettyString() + addToException(buildProp));
+        throw new TimeoutException(String.format("Timed out waiting for Operation to complete."
+            + " Operation: %s %s"
+            , operation.toPrettyString()
+            , buildProp.toString()));
       }
       
-      Compute.ZoneOperations.Get get =
-          sharedDep.compute().zoneOperations().get(projectId, zone, opId);
+      // Won't use ComputeCalls here.
+      Compute.ZoneOperations.Get get = sharedDep.compute().zoneOperations().get(
+          sharedDep.apiCoreProps().getProjectId()
+          , zone
+          , opId);
       operation = executeWithReattempt(get);
       status = operation.getStatus();
     }

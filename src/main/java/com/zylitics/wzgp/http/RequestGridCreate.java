@@ -57,6 +57,11 @@ public class RequestGridCreate {
     public void setBuildId(String buildId) {
       this.buildId = buildId;
     }
+
+    @Override
+    public String toString() {
+      return "BuildProperties [buildId=" + buildId + "]";
+    }
   }
 
   public static final class ResourceSearchParams implements ResourceSearchParam {

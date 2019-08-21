@@ -4,8 +4,7 @@ import java.util.Optional;
 
 import com.google.api.services.compute.model.Image;
 import com.google.api.services.compute.model.Instance;
-import com.zylitics.wzgp.config.SharedDependencies;
-import com.zylitics.wzgp.resource.executor.ResourceExecutor;
+import com.zylitics.wzgp.resource.util.ComputeCalls;
 
 public interface ResourceSearch {
 
@@ -19,8 +18,6 @@ public interface ResourceSearch {
       return new ResourceSearchImpl.Factory();
     }
     
-    ResourceSearch create(SharedDependencies sharedDep
-      , ResourceSearchParam searchParam
-      , ResourceExecutor executor);
+    ResourceSearch create(ResourceSearchParam searchParam, ComputeCalls computeCalls);
   }
 }

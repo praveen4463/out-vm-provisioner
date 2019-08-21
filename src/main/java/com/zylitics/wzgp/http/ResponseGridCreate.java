@@ -1,9 +1,11 @@
 package com.zylitics.wzgp.http;
 
+import java.math.BigInteger;
+
 public class ResponseGridCreate extends AbstractResponse {
 
   private String gridInternalIP;
-  private String gridId;
+  private BigInteger gridId;
   private String gridName;
   private String zone;
   
@@ -15,11 +17,11 @@ public class ResponseGridCreate extends AbstractResponse {
     this.gridInternalIP = gridInternalIP;
   }
   
-  public String getGridId() {
+  public BigInteger getGridId() {
     return gridId;
   }
   
-  public void setGridId(String gridId) {
+  public void setGridId(BigInteger gridId) {
     this.gridId = gridId;
   }
   

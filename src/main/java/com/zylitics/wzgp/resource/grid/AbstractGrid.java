@@ -4,11 +4,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.zylitics.wzgp.config.SharedDependencies;
-import com.zylitics.wzgp.resource.AbstractResource;
 import com.zylitics.wzgp.resource.APICoreProperties.GridDefault;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 
-public abstract class AbstractGrid extends AbstractResource {
+public abstract class AbstractGrid {
   
   protected final SharedDependencies sharedDep;
   protected final GridProperty gridProp;

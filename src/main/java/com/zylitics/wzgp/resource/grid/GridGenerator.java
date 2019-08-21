@@ -132,6 +132,7 @@ public class GridGenerator extends AbstractGrid {
     instance.setLabels(labels);
     
     // Complete instance build
+    // Won't use ComputeCalls here.
     try {
       return sharedDep.compute().instances().insert(
           sharedDep.apiCoreProps().getProjectId(), gridZone, instance);

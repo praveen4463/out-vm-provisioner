@@ -7,40 +7,24 @@ import static com.zylitics.wzgp.resource.search.FilterBuilder.Operator.EQ;
 import java.util.List;
 import java.util.Optional;
 
-import com.google.api.services.compute.Compute.Images;
-import com.google.api.services.compute.Compute.Instances;
 import com.google.api.services.compute.model.Image;
-import com.google.api.services.compute.model.ImageList;
 import com.google.api.services.compute.model.Instance;
-import com.google.api.services.compute.model.InstanceList;
-import com.zylitics.wzgp.config.SharedDependencies;
-import com.zylitics.wzgp.resource.AbstractResource;
-import com.zylitics.wzgp.resource.executor.ResourceExecutor;
+import com.zylitics.wzgp.resource.util.ComputeCalls;
 
-public class ResourceSearchImpl extends AbstractResource implements ResourceSearch {
+public class ResourceSearchImpl implements ResourceSearch {
   
-  private final SharedDependencies sharedDep;
   private final ResourceSearchParam searchParam;
-  private final String project;
-  private final ResourceExecutor executor;
+  protected final ComputeCalls computeCalls;
 
-  private ResourceSearchImpl(SharedDependencies sharedDep
-      , ResourceSearchParam searchParam
-      , ResourceExecutor executor) {
-    this.sharedDep = sharedDep;
+  private ResourceSearchImpl(ResourceSearchParam searchParam, ComputeCalls computeCalls) {
     this.searchParam = searchParam;
-    this.executor = executor;
-    this.project = sharedDep.apiCoreProps().getProjectId();
+    this.computeCalls = computeCalls;
   }
   
   @Override
   public Optional<Image> searchImage() throws Exception {
     String filter = buildCommonFilter(searchParam);
-    Images.List listBuilder = sharedDep.compute().images().list(project);
-    listBuilder.setMaxResults(1L);
-    listBuilder.setFilter(filter);
-    ImageList list = executor.executeWithReattempt(listBuilder); 
-    List<Image> images = list.getItems();
+    List<Image> images = computeCalls.listImages(filter, 1L);
     return images != null && images.size() > 0
         ? Optional.of(images.get(0))
         : Optional.empty();
@@ -62,11 +46,7 @@ public class ResourceSearchImpl extends AbstractResource implements ResourceSear
         .build();
     filter += filterBuilder.addConditionalExpr(AND).build() + buildCommonFilter(searchParam);
     
-    Instances.List listBuilder = sharedDep.compute().instances().list(project, sharedDep.zone());
-    listBuilder.setMaxResults(1L);
-    listBuilder.setFilter(filter);
-    InstanceList list = executor.executeWithReattempt(listBuilder);
-    List<Instance> instances = list.getItems();
+    List<Instance> instances = computeCalls.listInstances(filter, 1L);
     return instances != null && instances.size() > 0
         ? Optional.of(instances.get(0))
         : Optional.empty();
@@ -98,10 +78,8 @@ public class ResourceSearchImpl extends AbstractResource implements ResourceSear
   public static class Factory implements ResourceSearch.Factory {
     
     @Override
-    public ResourceSearch create(SharedDependencies sharedDep
-        , ResourceSearchParam searchParam,
-        ResourceExecutor executor) {
-      return new ResourceSearchImpl(sharedDep, searchParam, executor);
+    public ResourceSearch create(ResourceSearchParam searchParam, ComputeCalls computeCalls) {
+      return new ResourceSearchImpl(searchParam, computeCalls);
     }
   }
 }

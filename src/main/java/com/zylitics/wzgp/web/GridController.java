@@ -86,14 +86,16 @@ public class GridController {
       , @RequestParam(defaultValue="false") boolean noRush
       , @RequestParam(required=false) String sourceImageFamily) {
     SharedDependencies sharedDep = getSharedDependencies(zone);
+    
+    
     if (!Strings.isNullOrEmpty(sourceImageFamily)) {
       // when sourceImageFamily is given, we'll create a new instance straight away without checking
       // anything else.
       
     }
     
-    // since sourceImageFamily is not supplied, we'll require to search instances
-    // , first validate that we got search parameters in requests as they need manual validation.
+    // since sourceImageFamily is not supplied, we'll require to search instances, first validate
+    // that we got search parameters in requests as they need manual validation.
     gridCreateReq.getResourceSearchParams().validate();
     
     
