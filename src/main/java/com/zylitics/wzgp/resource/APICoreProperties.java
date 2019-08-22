@@ -9,7 +9,7 @@ public interface APICoreProperties {
   
   String getShortVersion();
   
-  String getGcpApiUrl();
+  String getGceApiUrl();
   
   long getGceTimeoutMillis();
   

@@ -38,7 +38,7 @@ public class APICorePropertiesImpl implements APICoreProperties {
   private String shortVersion;
   
   @NotBlank
-  private String gcpApiUrl;
+  private String gceApiUrl;
   
   @Min(60000)
   private long gceTimeoutMillis;
@@ -72,12 +72,12 @@ public class APICorePropertiesImpl implements APICoreProperties {
   }
   
   @Override
-  public String getGcpApiUrl() {
-    return gcpApiUrl;
+  public String getGceApiUrl() {
+    return gceApiUrl;
   }
   
-  public void setGcpApiUrl(String gcpApiUrl) {
-    this.gcpApiUrl = gcpApiUrl;
+  public void setGceApiUrl(String gceApiUrl) {
+    this.gceApiUrl = gceApiUrl;
   }
   
   @Override

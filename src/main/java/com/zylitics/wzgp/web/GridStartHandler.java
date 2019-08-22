@@ -9,20 +9,21 @@ import org.springframework.http.ResponseEntity;
 
 import com.google.api.services.compute.model.Instance;
 import com.google.api.services.compute.model.Operation;
-import com.zylitics.wzgp.config.SharedDependencies;
 import com.zylitics.wzgp.http.RequestGridCreate;
 import com.zylitics.wzgp.http.ResponseGridCreate;
 import com.zylitics.wzgp.resource.CompletedOperation;
+import com.zylitics.wzgp.resource.SharedDependencies;
 import com.zylitics.wzgp.resource.grid.GridStarter;
 import com.zylitics.wzgp.resource.search.ResourceSearch;
 import com.zylitics.wzgp.resource.util.ResourceUtil;
+import com.zylitics.wzgp.web.exceptions.GridNotRunningException;
+import com.zylitics.wzgp.web.exceptions.GridStartHandlerFailureException;
 
 public class GridStartHandler extends AbstractGridCreateHandler {
 
 private static final Logger LOG = LoggerFactory.getLogger(GridStartHandler.class);
 
-  public GridStartHandler(SharedDependencies sharedDep
-      , RequestGridCreate request) {
+  public GridStartHandler(SharedDependencies sharedDep, RequestGridCreate request) {
     super(sharedDep, request);
   }
   
@@ -40,7 +41,7 @@ private static final Logger LOG = LoggerFactory.getLogger(GridStartHandler.class
     if (!instance.isPresent()) {
       LOG.warn("No stopped instance found that matches the given search terms, search terms: {} {}"
           , request.getResourceSearchParams().toString()
-          , buildProp.toString());
+          , addToException);
       throw new GridStartHandlerFailureException();  // give up
     }
     return instance.get();
@@ -59,7 +60,7 @@ private static final Logger LOG = LoggerFactory.getLogger(GridStartHandler.class
       LOG.error("Couldn't start stopped grid instance {}, operation: {} {}"
           , gridInstance.toPrettyString()
           , operation.toPrettyString()
-          , buildProp.toString());
+          , addToException);
       throw new GridStartHandlerFailureException();  // give up
     }
     
@@ -72,7 +73,8 @@ private static final Logger LOG = LoggerFactory.getLogger(GridStartHandler.class
   }
   
   private void onGridStartEventHandler(Instance gridInstance) throws Exception {
-    // verify that we own this instance, get the current state of instance
+    // ==========verify that we own this instance, get the current state of instance
+    
     gridInstance = computeCalls.getInstance(gridInstance.getName(), gridInstance.getZone());
     // get the current value of lock-by-build label
     String labelLockedByBuild = gridInstance.getLabels().get(ResourceUtil.LABEL_LOCKED_BY_BUILD);
@@ -83,7 +85,19 @@ private static final Logger LOG = LoggerFactory.getLogger(GridStartHandler.class
       // we'll not re-attempt finding another stopped instance for now and will just give up.
       LOG.error("Looks like some other request took out our instance while it was starting up"
           + ", forcing us to leave it out and give up. instance: {} {}"
-          , gridInstance.toPrettyString(), buildProp.toString());
+          , gridInstance.toPrettyString(), addToException);
+      throw new GridStartHandlerFailureException();  // give up
+    }
+    
+    // ==========verify that an ongoing deployment is not going to delete it
+    if (Boolean.parseBoolean(gridInstance.getLabels().get(ResourceUtil.LABEL_IS_DELETING))) {
+      // signifies that an ongoing deployment is running. This instance may or may not delete
+      // depending on when deployment script marked it for deletion, if it marked after it started,
+      // it won't delete but if it marked it before that (while in terminated state) it may delete
+      // soon, safer way is to get another fresh instance.
+      LOG.error("Instance started from stopped state, but is-deleting label is found true, rather"
+          + ", than taking a chance with the ongoing deployment, leaving it out. instance: {} {}"
+          , gridInstance.toPrettyString(), addToException);
       throw new GridStartHandlerFailureException();  // give up
     }
     
@@ -94,7 +108,7 @@ private static final Logger LOG = LoggerFactory.getLogger(GridStartHandler.class
       LOG.error(
           String.format("Grid instance found not running after start completed. grid instance %s %s"
           , gridInstance.toPrettyString()
-          , buildProp.toString())
+          , addToException)
           , ex);
       throw ex;  // give up
     }

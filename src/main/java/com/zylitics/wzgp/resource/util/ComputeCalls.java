@@ -14,7 +14,7 @@ import com.google.api.services.compute.model.InstancesSetMachineTypeRequest;
 import com.google.api.services.compute.model.InstancesSetServiceAccountRequest;
 import com.google.api.services.compute.model.Metadata;
 import com.google.api.services.compute.model.Operation;
-import com.zylitics.wzgp.config.SharedDependencies;
+import com.zylitics.wzgp.resource.SharedDependencies;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 
 public class ComputeCalls {
@@ -33,6 +33,17 @@ public class ComputeCalls {
   public Operation startInstance(String instanceName) throws Exception {
     Compute.Instances.Start startInstance = compute.instances().start(project, zone, instanceName);
     return executor.executeWithReattempt(startInstance);
+  }
+  
+  public Operation stopInstance(String instanceName) throws Exception {
+    Compute.Instances.Stop stopInstance = compute.instances().stop(project, zone, instanceName);
+    return executor.executeWithReattempt(stopInstance);
+  }
+  
+  public Operation deleteInstance(String instanceName) throws Exception {
+    Compute.Instances.Delete deleteInstance =
+        compute.instances().delete(project, zone, instanceName);
+    return executor.executeWithReattempt(deleteInstance);
   }
   
   public Operation setMachineType(String instanceName, String machineType) throws Exception {
@@ -97,6 +108,10 @@ public class ComputeCalls {
     return list.getItems();
   }
   
+  /**
+   * @param instanceZone: could be the zone coming in request or actual zone where instance got
+   * created that may defer from the one in request. 
+   */
   public Instance getInstance(String instanceName, String instanceZone) throws Exception {
     Compute.Instances.Get getInstance =
         compute.instances().get(project, instanceZone, instanceName);

@@ -1,4 +1,6 @@
-package com.zylitics.wzgp.web;
+package com.zylitics.wzgp.web.exceptions;
+
+import com.zylitics.wzgp.web.GridStartHandler;
 
 /**
  * Indicates that {@link GridStartHandler} failed to provide an instance, this could happen for any

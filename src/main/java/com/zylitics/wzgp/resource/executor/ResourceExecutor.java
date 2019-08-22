@@ -7,9 +7,9 @@ import com.google.api.client.googleapis.services.AbstractGoogleClientRequest;
 import com.google.api.client.json.GenericJson;
 import com.google.api.services.compute.ComputeRequest;
 import com.google.api.services.compute.model.Operation;
-import com.zylitics.wzgp.config.SharedDependencies;
 import com.zylitics.wzgp.resource.BuildProperty;
 import com.zylitics.wzgp.resource.CompletedOperation;
+import com.zylitics.wzgp.resource.SharedDependencies;
 
 /**
  * Interface that defines methods to execute pre-built objects with re-attempts. Re-attempts should
@@ -56,7 +56,8 @@ public interface ResourceExecutor {
       return new ResourceExecutorImpl.Factory();
     }
     
-    ResourceExecutor create(SharedDependencies sharedDep
-      , BuildProperty buildProp);
+    ResourceExecutor create(SharedDependencies sharedDep, BuildProperty buildProp);
+    
+    ResourceExecutor create(SharedDependencies sharedDep);
   }
 }

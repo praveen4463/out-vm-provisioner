@@ -3,7 +3,7 @@ package com.zylitics.wzgp.resource.grid;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.zylitics.wzgp.config.SharedDependencies;
+import com.zylitics.wzgp.resource.SharedDependencies;
 import com.zylitics.wzgp.resource.APICoreProperties.GridDefault;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 

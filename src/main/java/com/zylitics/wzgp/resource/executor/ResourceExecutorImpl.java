@@ -18,10 +18,10 @@ import com.google.api.services.compute.Compute;
 import com.google.api.services.compute.ComputeRequest;
 import com.google.api.services.compute.model.Operation;
 import com.google.cloud.GcpLaunchStage.Alpha;
-import com.zylitics.wzgp.config.SharedDependencies;
 import com.zylitics.wzgp.resource.APICoreProperties;
 import com.zylitics.wzgp.resource.BuildProperty;
 import com.zylitics.wzgp.resource.CompletedOperation;
+import com.zylitics.wzgp.resource.SharedDependencies;
 import com.zylitics.wzgp.resource.util.ResourceUtil;
 
 /**
@@ -34,7 +34,7 @@ import com.zylitics.wzgp.resource.util.ResourceUtil;
 /*
  * Notes:
  * !!! The previous version of this file is saved as backup and this has now updated to have minimal
- * logic for now until we learn how and what type of exceptions returns from gcp api. Once we've a
+ * logic for now until we learn how and what type of exceptions return from gcp api. Once we've a
  * solid knowledge, refer to the backed-up file and work on this.
  * com.google.api.client.http.HttpRequest already has a re-attempt logic so we may not have to
  * build lot of re-attempt code around general http exceptions.
@@ -58,13 +58,19 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
   private static final int ZONAL_ISSUES_MAX_REATTEMPTS = 5;
   
   private final SharedDependencies sharedDep;
-  private final BuildProperty buildProp;
   private final Random random;
+  
+  private final String addToException;
   
   private ResourceExecutorImpl(SharedDependencies sharedDep, BuildProperty buildProp) {
     this.sharedDep = sharedDep;
-    this.buildProp = buildProp;
     random = new Random();
+    
+    addToException = buildAddToException(buildProp);
+  }
+  
+  private ResourceExecutorImpl(SharedDependencies sharedDep) {
+    this(sharedDep, null);
   }
   
   @Override
@@ -73,12 +79,12 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
     Assert.notNull(objToExecute, "object to execute can't be null.");
     
     try {
-      V out = objToExecute.setOauthToken(sharedDep.token()).execute();
+      V out = objToExecute.execute();
       if (out == null) {
         // Shouldn't happen but still log.
         LOG.error("Got null while inoking execute() on {} {}" 
             , objToExecute.toString()
-            , buildProp.toString());
+            , addToException);
       }
       return out;
     } catch(IOException io) {
@@ -91,12 +97,12 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
             , objToExecute.toString()
             , httpExp.getStatusCode()
             , httpExp.getStatusMessage()
-            , buildProp.toString());
+            , addToException);
       } catch (ClassCastException cce) {
         LOG.error("An IOException occurred while inoking execute() on {}, HttpResponseException"
             + " isn't found wrapped. {}"
             , objToExecute.toString()
-            , buildProp.toString());
+            , addToException);
       }
       // re-throw exception for handlers.
       throw io;
@@ -143,7 +149,7 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
     LOG.error("After waiting for Operation completion, the returned error codes aren't matched the"
         + " ones we have. Reattempt couldn't happen. Returned codes: {} {}" 
         , String.join(",", operationErrorsToCodes(operation))
-        , buildProp.toString());
+        , addToException);
     return new CompletedOperation(operation);
   }
   
@@ -187,7 +193,7 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
               + " have. Returned codes: {} {}"
               , (attempts + 1)
               , String.join(",", operationErrorsToCodes(operation))
-              , buildProp.toString());
+              , addToException);
           return new CompletedOperation(operation);
         }
       }
@@ -195,7 +201,7 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
     }
     LOG.error("maximum re-attempts reached for operation {} {}" 
         , operation.toPrettyString()
-        , buildProp.toString());
+        , addToException);
     return new CompletedOperation(operation);
   }
   
@@ -220,7 +226,7 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
         throw new TimeoutException(String.format("Timed out waiting for Operation to complete."
             + " Operation: %s %s"
             , operation.toPrettyString()
-            , buildProp.toString()));
+            , addToException));
       }
       
       // Won't use ComputeCalls here.
@@ -234,6 +240,14 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
     return operation;
   }
   
+  private String buildAddToException(BuildProperty buildProp) {
+    StringBuilder sb = new StringBuilder();
+    if (buildProp != null) {
+      sb.append(buildProp.toString());
+    }
+    return sb.toString();
+  }
+  
   private List<String> operationErrorsToCodes(Operation operation) {
     return operation.getError().getErrors()
         .stream()
@@ -244,10 +258,13 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
   public static class Factory implements ResourceExecutor.Factory {
     
     @Override
-    public ResourceExecutor create(SharedDependencies sharedDep
-        , BuildProperty buildProp) {
-      return new ResourceExecutorImpl(sharedDep
-          , buildProp);
+    public ResourceExecutor create(SharedDependencies sharedDep, BuildProperty buildProp) {
+      return new ResourceExecutorImpl(sharedDep, buildProp);
+    }
+    
+    @Override
+    public ResourceExecutor create(SharedDependencies sharedDep) {
+      return new ResourceExecutorImpl(sharedDep);
     }
   }
 }

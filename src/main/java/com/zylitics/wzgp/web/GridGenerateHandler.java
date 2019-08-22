@@ -9,19 +9,21 @@ import org.springframework.util.Assert;
 import com.google.api.services.compute.model.Image;
 import com.google.api.services.compute.model.Instance;
 import com.google.api.services.compute.model.Operation;
-import com.zylitics.wzgp.config.SharedDependencies;
 import com.zylitics.wzgp.http.RequestGridCreate;
 import com.zylitics.wzgp.http.ResponseGridCreate;
 import com.zylitics.wzgp.resource.CompletedOperation;
+import com.zylitics.wzgp.resource.SharedDependencies;
 import com.zylitics.wzgp.resource.grid.GridGenerator;
 import com.zylitics.wzgp.resource.search.ResourceSearch;
 import com.zylitics.wzgp.resource.util.ResourceUtil;
+import com.zylitics.wzgp.web.exceptions.GridNotCreatedException;
+import com.zylitics.wzgp.web.exceptions.GridNotRunningException;
+import com.zylitics.wzgp.web.exceptions.ImageNotFoundException;
 
 public class GridGenerateHandler extends AbstractGridCreateHandler {
   private String sourceImageFamily;
 
-  public GridGenerateHandler(SharedDependencies sharedDep
-      , RequestGridCreate request) {
+  public GridGenerateHandler(SharedDependencies sharedDep, RequestGridCreate request) {
     super(sharedDep, request);
   }
   
@@ -53,7 +55,7 @@ public class GridGenerateHandler extends AbstractGridCreateHandler {
       throw new ImageNotFoundException(
           String.format("No image matches the given search terms, search terms: %s %s"
           , request.getResourceSearchParams().toString()
-          , buildProp.toString()));
+          , addToException));
     }
     return image.get();
   }
@@ -67,7 +69,7 @@ public class GridGenerateHandler extends AbstractGridCreateHandler {
           String.format("Couldn't generate a new grid using image %s, operation: %s %s"
           , image.getName()
           , operation.toPrettyString()
-          , buildProp.toString()));
+          , addToException));
     }
     // get the created grid instance
     Instance gridInstance = computeCalls.getInstance(operation.getName(), operation.getZone());
@@ -89,7 +91,7 @@ public class GridGenerateHandler extends AbstractGridCreateHandler {
           String.format("Grid instance found not running even after the operation"
           + " completed. grid instance: %s %s"
               , gridInstance.toPrettyString()
-              , buildProp.toString()));
+              , addToException));
     }
   }
 }

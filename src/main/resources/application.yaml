@@ -2,7 +2,7 @@
 api-core:
   project-id: zl-win-nodes
   short-version: beta
-  gcp-api-url: https://www.googleapis.com/compute/v1/projects
+  gce-api-url: https://www.googleapis.com/compute/v1/projects
   gce-timeout-millis: 360000
   gce-zonal-reattempt-errors:
     - ZONE_RESOURCE_POOL_EXHAUSTED

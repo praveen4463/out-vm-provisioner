@@ -1,4 +1,4 @@
-package com.zylitics.wzgp.web;
+package com.zylitics.wzgp.web.exceptions;
 
 import com.google.api.services.compute.model.Operation;
 

@@ -20,15 +20,14 @@ import org.springframework.web.bind.annotation.RestController;
 import com.google.api.client.util.Strings;
 import com.google.api.services.compute.Compute;
 import com.zylitics.wzgp.config.GCPCompute;
-import com.zylitics.wzgp.config.SharedDependencies;
-import com.zylitics.wzgp.http.AbstractResponse;
 import com.zylitics.wzgp.http.ResponseGridError;
 import com.zylitics.wzgp.http.RequestGridCreate;
 import com.zylitics.wzgp.http.ResponseGridCreate;
 import com.zylitics.wzgp.http.ResponseGridDelete;
 import com.zylitics.wzgp.http.ResponseStatus;
 import com.zylitics.wzgp.resource.APICoreProperties;
-import com.zylitics.wzgp.resource.executor.ResourceExecutorImpl;
+import com.zylitics.wzgp.resource.SharedDependencies;
+import com.zylitics.wzgp.web.exceptions.GridStartHandlerFailureException;
 
 /*
  * We should make sure our application don't throw any exception at this controller level and
@@ -59,14 +58,12 @@ public class GridController {
   private static final Logger LOG = LoggerFactory.getLogger(GridController.class);
   
   private final Compute compute;
-  private final String token;
   private final APICoreProperties apiCoreProps;
   
   @Autowired
   public GridController(GCPCompute gcpCompute, APICoreProperties apiCoreProps) {
     Assert.notNull(gcpCompute, "GCPCompute object can't be null.");
     compute = gcpCompute.getCompute();
-    token = gcpCompute.getToken().getTokenValue();
     
     Assert.notNull(apiCoreProps, "APICoreProperties object can't be null.");
     this.apiCoreProps = apiCoreProps;
@@ -74,47 +71,59 @@ public class GridController {
   
   private SharedDependencies getSharedDependencies(String zone) {
     return new SharedDependencies(compute
-        , token
         , apiCoreProps
         , zone);
   }
 
   @PostMapping
-  public ResponseEntity<AbstractResponse> create(
+  public ResponseEntity<ResponseGridCreate> create(
       @Validated @RequestBody RequestGridCreate gridCreateReq
       , @PathVariable String zone
       , @RequestParam(defaultValue="false") boolean noRush
-      , @RequestParam(required=false) String sourceImageFamily) {
+      , @RequestParam(required=false) String sourceImageFamily) throws Exception {
     SharedDependencies sharedDep = getSharedDependencies(zone);
     
-    
-    if (!Strings.isNullOrEmpty(sourceImageFamily)) {
-      // when sourceImageFamily is given, we'll create a new instance straight away without checking
-      // anything else.
-      
+    if (!Strings.isNullOrEmpty(sourceImageFamily) || noRush) {
+      GridGenerateHandler handler = new GridGenerateHandler(sharedDep, gridCreateReq);
+      if (!Strings.isNullOrEmpty(sourceImageFamily)) {
+        handler.setSourceImageFamily(sourceImageFamily);
+      }
+      return handler.handle();
     }
-    
-    // since sourceImageFamily is not supplied, we'll require to search instances, first validate
-    // that we got search parameters in requests as they need manual validation.
+    // we'll now require to search instances, first validate that we got search parameters in
+    // requests as they need manual validation.
     gridCreateReq.getResourceSearchParams().validate();
     
-    
-    return null;
+    // first try to find and start a stopped grid instance.
+    GridStartHandler startHandler = new GridStartHandler(sharedDep, gridCreateReq);
+    try {
+      return startHandler.handle();
+    } catch (GridStartHandlerFailureException failure) {
+      // we couldn't get a stopped grid instance, fallback to a fresh one.
+      return new GridGenerateHandler(sharedDep, gridCreateReq).handle();
+    }
   }
   
   @DeleteMapping("/{gridName}")
-  public ResponseEntity<AbstractResponse> delete(@PathVariable String zone
+  public ResponseEntity<ResponseGridDelete> delete(@PathVariable String zone
       , @PathVariable String gridName
       , @RequestParam(defaultValue="false") boolean noRush
-      , @RequestParam(required=false) String sessionId) {
-    return null;
+      , @RequestParam(required=false) String sessionId) throws Exception {
+    SharedDependencies sharedDep = getSharedDependencies(zone);
+    
+    GridDeleteHandler handler = new GridDeleteHandler(sharedDep, gridName);
+    if (!Strings.isNullOrEmpty(sessionId)) {
+      handler.setSessionId(sessionId);
+    }
+    handler.setNoRush(noRush);
+    return handler.handle();
   }
   
   /**
    * Invoked when @RequestBody binding is failed 
    */
   @ExceptionHandler
-  public ResponseEntity<AbstractResponse> handleExceptions(MethodArgumentNotValidException ex) {
+  public ResponseEntity<ResponseGridError> handleExceptions(MethodArgumentNotValidException ex) {
     return processErrResponse(ex, HttpStatus.BAD_REQUEST);
   }
   
@@ -126,12 +135,15 @@ public class GridController {
    * @return {@link ResponseEntity}
    */
   @ExceptionHandler
-  public ResponseEntity<AbstractResponse> handleExceptions(Exception ex) {
+  public ResponseEntity<ResponseGridError> handleExceptions(Exception ex) {
     return processErrResponse(ex, HttpStatus.INTERNAL_SERVER_ERROR);
   }
   
-  private ResponseEntity<AbstractResponse> processErrResponse(Throwable ex, HttpStatus status) {
- // Log exception.
+  private ResponseEntity<ResponseGridError> processErrResponse(Throwable ex, HttpStatus status) {
+    // Log exception.
+    // TODO: we'll have to see what type of errors we may get here and may require more information
+    // from handler classes to better debug error causes, for example the state of program when this
+    // exception occurred, the received parameters from client, etc.
     LOG.error(ex.getMessage(), ex);
     
     ResponseGridError errRes = new ResponseGridError();

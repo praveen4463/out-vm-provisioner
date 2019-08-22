@@ -7,6 +7,7 @@ public class ResourceUtil {
   
   public static final String LABEL_LOCKED_BY_BUILD = "locked-by-build";
   public static final String LABEL_IS_DELETING = "is-deleting";
+  public static final String METADATA_CURRENT_TEST_SESSIONID = "current-test-sessionId";
 
   public static boolean isOperationSuccess(Operation operation) {
     if (operation.getStatus().equals("DONE")

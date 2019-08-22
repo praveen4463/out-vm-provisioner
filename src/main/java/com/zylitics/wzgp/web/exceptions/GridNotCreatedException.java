@@ -1,4 +1,4 @@
-package com.zylitics.wzgp.web;
+package com.zylitics.wzgp.web.exceptions;
 
 public class GridNotCreatedException extends RuntimeException {
 

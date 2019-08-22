@@ -1,5 +1,7 @@
 package com.zylitics.wzgp.resource.grid;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -9,9 +11,9 @@ import com.google.api.client.util.Strings;
 import com.google.api.services.compute.model.Instance;
 import com.google.api.services.compute.model.Operation;
 import com.google.api.services.compute.model.ServiceAccount;
-import com.zylitics.wzgp.config.SharedDependencies;
 import com.zylitics.wzgp.resource.BuildProperty;
 import com.zylitics.wzgp.resource.CompletedOperation;
+import com.zylitics.wzgp.resource.SharedDependencies;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 import com.zylitics.wzgp.resource.util.ComputeCalls;
 import com.zylitics.wzgp.resource.util.ResourceUtil;
@@ -19,8 +21,9 @@ import com.zylitics.wzgp.resource.util.ResourceUtil;
 public class GridStarter extends AbstractGrid {
   
   private final Instance gridInstance;
-  private final BuildProperty buildProp;
   private final ComputeCalls computeCalls;
+  
+  private final String addToException;
 
   public GridStarter(SharedDependencies sharedDep
       , BuildProperty buildProp
@@ -30,11 +33,12 @@ public class GridStarter extends AbstractGrid {
       , ComputeCalls computeCalls) {
     super(sharedDep, gridProp, executor);
     
-    this.buildProp = buildProp;
     Assert.notNull(gridInstance, "grid instance can't be null.");
     Assert.hasText(gridInstance.getName(), "grid instance name is missing, object seems invalid.");
     this.gridInstance = gridInstance;
     this.computeCalls = computeCalls;
+    
+    addToException = buildAddToException(buildProp);
   }
   
   public CompletedOperation start() throws Exception {
@@ -42,20 +46,21 @@ public class GridStarter extends AbstractGrid {
       throw new RuntimeException(
           String.format("The given grid instance: %s, isn't in terminated state. Can't proceed. %s"
           , gridInstance.toPrettyString()
-          , buildProp.toString()));
+          , addToException));
     }
     // Before starting the grid, we should update the requested properties of it.
-    Optional<Operation> machineType = machineTypeUpdateHandler();
-    Optional<Operation> serviceAccount = serviceAccountUpdateHandler();
-    Optional<Operation> customLabels = customLabelsUpdateHandler();
-    Optional<Operation> metadata = metadataUpdateHandler();
+    List<Optional<Operation>> updateOperations = new ArrayList<>(10);
+    updateOperations.add(machineTypeUpdateHandler());
+    updateOperations.add(serviceAccountUpdateHandler());
+    updateOperations.add(customLabelsUpdateHandler());
+    updateOperations.add(metadataUpdateHandler());
     // We've started all the updates at ones sequentially, they will most likely complete near
-    // together, but we'll verify completion of all of them individually before beginning start.
-    
-    if (machineType.isPresent()) executor.blockUntilComplete(machineType.get());
-    if (serviceAccount.isPresent()) executor.blockUntilComplete(serviceAccount.get());
-    if (customLabels.isPresent()) executor.blockUntilComplete(customLabels.get());
-    if (metadata.isPresent()) executor.blockUntilComplete(metadata.get());
+    // together, but we'll verify completion of all of them before beginning start.
+    for (Optional<Operation> optOperation : updateOperations) {
+      if (optOperation.isPresent()) {
+        executor.blockUntilComplete(optOperation.get());
+      }
+    }
     
     // All updated, now start grid.
     Operation start = startInstanceHandler();
@@ -75,7 +80,7 @@ public class GridStarter extends AbstractGrid {
       throw new RuntimeException(
           String.format("Grid instance doesn't have a machine type, grid instance: %s %s"
           , gridInstance.toPrettyString()
-          , buildProp.toString()));
+          , addToException));
     }
     
     if (!gridProp.getMachineType().equals(
@@ -97,7 +102,7 @@ public class GridStarter extends AbstractGrid {
       throw new RuntimeException(
           String.format("Grid instance doesn't have a service account, grid instance: %s %s"
           , gridInstance.toPrettyString()
-          , buildProp.toString()));
+          , addToException));
     }
     
     ServiceAccount existingServAcc = gridInstance.getServiceAccounts().get(0);
@@ -128,5 +133,13 @@ public class GridStarter extends AbstractGrid {
     return Optional.ofNullable(computeCalls.setMetadata(
         gridInstance.getName()
         , mergedMetadata));
+  }
+  
+  private String buildAddToException(BuildProperty buildProp) {
+    StringBuilder sb = new StringBuilder();
+    if (buildProp != null) {
+      sb.append(buildProp.toString());
+    }
+    return sb.toString();
   }
 }
