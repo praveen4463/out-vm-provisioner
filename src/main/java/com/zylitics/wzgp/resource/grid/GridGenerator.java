@@ -3,10 +3,14 @@ package com.zylitics.wzgp.resource.grid;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
+
 import org.springframework.util.Assert;
 
 import com.google.api.services.compute.Compute;
@@ -25,7 +29,6 @@ import com.zylitics.wzgp.resource.CompletedOperation;
 import com.zylitics.wzgp.resource.SharedDependencies;
 import com.zylitics.wzgp.resource.APICoreProperties.GridDefault;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
-import com.zylitics.wzgp.resource.util.BuildGridLabels;
 import com.zylitics.wzgp.util.Randoms;
 
 public class GridGenerator extends AbstractGrid {
@@ -63,10 +66,10 @@ public class GridGenerator extends AbstractGrid {
     String instanceName = String.join("-", sourceImage.getFamily(), randomChars, "vm");
     
     Set<String> tags = gridDefault.getTags();
-    Map<String, String> labels = new BuildGridLabels(sourceImage
+    Map<String, String> labels = buildGridLabels(sourceImage
         , gridDefault.getLabels()
         , gridProp.getCustomLabels()
-        , gridDefault.getImageSpecificLabelsKey()).build();
+        , gridDefault.getImageSpecificLabelsKey());
     Map<String, String> metadata = mergedMetadata();
     
     String machineType =
@@ -140,5 +143,35 @@ public class GridGenerator extends AbstractGrid {
       // Wrap, so that compiler won't complain using this method in lambda.
       throw new RuntimeException(io);
     }
+  }
+  
+  /**
+   * Merge image and server defined labels, image defined labels take precedence. Following are
+   * the customizations required to build valid set of labels for new grid instance:
+   * 1. There are few labels specific to image, we'll exclude them.
+   * 2. We'll put some labels known only at runtime for the grid, such as source-image-family
+   * 3. We'll customize some labels based on the specific inputs to the api.
+   */
+  private Map<String, String> buildGridLabels(Image image
+      , Map<String, String> defaultLabels
+      , Map<String, String> customLabels
+      , Set<String> imageSpecificLabelKeys) {
+    // first put default labels specified by server
+    Map<String, String> mergedLabels = new HashMap<>();
+    mergedLabels.putAll(defaultLabels);
+    
+    // put after getting labels from image and filter image specific keys.
+    Map<String, String> gridLabelsFromImage = image.getLabels().entrySet().stream()
+        .filter(entry -> !imageSpecificLabelKeys.contains(entry.getKey()))
+        .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+    mergedLabels.putAll(gridLabelsFromImage);
+    
+    // put in custom labels so that it overrides any matching entry.
+    mergedLabels.putAll(customLabels);
+    
+    // put in runtime specific labels
+    mergedLabels.put("source-image-family", image.getFamily());
+    
+    return mergedLabels;
   }
 }

@@ -19,8 +19,6 @@ import com.zylitics.wzgp.resource.APICoreProperties;
 /**
  * Note: Configuration file is written using kebab-case, relaxed binding allows us to convert them
  * to java specific style, for example short-version gets parsed shortVersion.
- * Note on injection: Thru type prediction of spring framework any place autowiring on the type of
- * this class (APICoreProperties) should get the object of this class without registering a bean.
  * Validation reference:
  * https://docs.spring.io/spring-boot/docs/2.1.6.RELEASE/reference/html/boot-features-external-config.html#boot-features-external-config-validation
  * @author Praveen Tiwari
