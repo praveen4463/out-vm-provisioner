@@ -16,7 +16,7 @@ public class CompletedOperation {
   private final Operation operation;
 
   public CompletedOperation(Operation operation) {
-    Assert.notNull(operation, "Can't set a null Operation.");
+    Assert.notNull(operation, "Can't set a null 'Operation'.");
     Assert.isTrue(operation.getStatus().equals("DONE"), "This Operation isn't yet completed.");
     
     this.operation = operation;

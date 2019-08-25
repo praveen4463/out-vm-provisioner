@@ -15,9 +15,9 @@ import com.google.api.services.compute.model.Operation;
 import com.google.common.collect.ImmutableMap;
 import com.zylitics.wzgp.http.ResponseGridDelete;
 import com.zylitics.wzgp.http.ResponseStatus;
-import com.zylitics.wzgp.resource.SharedDependencies;
+import com.zylitics.wzgp.resource.APICoreProperties;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
-import com.zylitics.wzgp.resource.util.ComputeCalls;
+import com.zylitics.wzgp.resource.service.ComputeService;
 import com.zylitics.wzgp.resource.util.ResourceUtil;
 import com.zylitics.wzgp.web.exceptions.GridNotDeletedException;
 import com.zylitics.wzgp.web.exceptions.GridNotStoppedException;
@@ -25,19 +25,18 @@ import com.zylitics.wzgp.web.exceptions.GridNotStoppedException;
 public class GridDeleteHandler extends AbstractGridHandler {
 
   private final String gridName;
-  private final ResourceExecutor executor;
-  private final ComputeCalls computeCalls;
   
   private @Nullable String sessionId;
   private boolean noRush;
   
-  public GridDeleteHandler(SharedDependencies sharedDep, String gridName) {
-    super(sharedDep);
+  public GridDeleteHandler(APICoreProperties apiCoreProps
+      , ResourceExecutor executor
+      , ComputeService computeSrv
+      , String zone
+      , String gridName) {
+    super(apiCoreProps, executor, computeSrv, zone);
     
     this.gridName = gridName;
-    
-    executor = getExecutor();
-    computeCalls = getComputeCalls();
   }
   
   @Override
@@ -45,11 +44,14 @@ public class GridDeleteHandler extends AbstractGridHandler {
     // first set sessionId if available to ResourceUtil.METADATA_CURRENT_TEST_SESSIONID
     List<Operation> pendingOperations = new ArrayList<>(5);
     if (!Strings.isNullOrEmpty(sessionId)) {
-      pendingOperations.add(computeCalls.setMetadata(gridName
-          , ImmutableMap.of(ResourceUtil.METADATA_CURRENT_TEST_SESSIONID, sessionId)));
+      pendingOperations.add(
+          computeSrv.setMetadata(gridName
+          , ImmutableMap.of(ResourceUtil.METADATA_CURRENT_TEST_SESSIONID, sessionId)
+          , zone
+          , null));
     }
     // get the grid instance to check a few things,
-    Instance gridInstance = computeCalls.getInstance(gridName, sharedDep.zone());
+    Instance gridInstance = computeSrv.getInstance(gridName, zone, null);
     
     // could be true if an ongoing deployment is running that applied this label to indicate we
     // should delete the instance.
@@ -78,13 +80,16 @@ public class GridDeleteHandler extends AbstractGridHandler {
       , boolean labelIsDeletingTrue) throws Exception {
     
     if (!labelIsDeletingTrue) {
-      // indicate we're going to delete it.
-      pendingOperations.add(computeCalls.setLabels(gridName
-          , ImmutableMap.of(ResourceUtil.LABEL_IS_DELETING, "true")));
+      // adding this label indicates we're going to delete it.
+      pendingOperations.add(
+          computeSrv.setLabels(gridName
+          , ImmutableMap.of(ResourceUtil.LABEL_IS_DELETING, "true")
+          , zone
+          , null));
     }
     waitForPendingOperations(pendingOperations);
-    Operation operation = computeCalls.deleteInstance(gridName);
-    operation = executor.blockUntilComplete(operation);
+    Operation operation = computeSrv.deleteInstance(gridName, zone, null);
+    operation = executor.blockUntilComplete(operation, null);
     if (!ResourceUtil.isOperationSuccess(operation)) {
       throw new GridNotDeletedException(
           String.format("Couldn't delete grid instance %s, operation: %s"
@@ -101,8 +106,8 @@ public class GridDeleteHandler extends AbstractGridHandler {
   private ResponseEntity<ResponseGridDelete> stop(
       List<Operation> pendingOperations) throws Exception {
     waitForPendingOperations(pendingOperations);
-    Operation operation = computeCalls.stopInstance(gridName);
-    operation = executor.blockUntilComplete(operation);
+    Operation operation = computeSrv.stopInstance(gridName, zone, null);
+    operation = executor.blockUntilComplete(operation, null);
     if (!ResourceUtil.isOperationSuccess(operation)) {
       throw new GridNotStoppedException(
           String.format("Couldn't stop grid instance %s, operation: %s"
@@ -118,7 +123,7 @@ public class GridDeleteHandler extends AbstractGridHandler {
   
   private void waitForPendingOperations(List<Operation> pendingOperations) throws Exception {
     for (Operation operation : pendingOperations) {
-      executor.blockUntilComplete(operation);
+      executor.blockUntilComplete(operation, null);
     }
   }
   
@@ -126,15 +131,7 @@ public class GridDeleteHandler extends AbstractGridHandler {
     ResponseGridDelete response = new ResponseGridDelete();
     response.setHttpErrorStatusCode(HttpStatus.OK.value());
     response.setStatus(ResponseStatus.SUCCESS.name());
-    response.setZone(sharedDep.zone());
+    response.setZone(zone);
     return response;
-  }
-  
-  private ResourceExecutor getExecutor() {
-    return ResourceExecutor.Factory.getDefault().create(sharedDep);
-  }
-  
-  private ComputeCalls getComputeCalls() {
-    return new ComputeCalls(sharedDep, executor);
   }
 }

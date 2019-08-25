@@ -11,34 +11,30 @@ import com.google.api.client.util.Strings;
 import com.google.api.services.compute.model.Instance;
 import com.google.api.services.compute.model.Operation;
 import com.google.api.services.compute.model.ServiceAccount;
+import com.zylitics.wzgp.resource.APICoreProperties;
 import com.zylitics.wzgp.resource.BuildProperty;
 import com.zylitics.wzgp.resource.CompletedOperation;
-import com.zylitics.wzgp.resource.SharedDependencies;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
-import com.zylitics.wzgp.resource.util.ComputeCalls;
+import com.zylitics.wzgp.resource.service.ComputeService;
 import com.zylitics.wzgp.resource.util.ResourceUtil;
 
 public class GridStarter extends AbstractGrid {
   
+  private final ComputeService computeSrv;
   private final Instance gridInstance;
-  private final ComputeCalls computeCalls;
-  
-  private final String addToException;
 
-  public GridStarter(SharedDependencies sharedDep
+  public GridStarter(APICoreProperties apiCoreProps
+      , ResourceExecutor executor
+      , ComputeService computeSrv
       , BuildProperty buildProp
       , GridProperty gridProp
-      , Instance gridInstance
-      , ResourceExecutor executor
-      , ComputeCalls computeCalls) {
-    super(sharedDep, gridProp, executor);
+      , Instance gridInstance) {
+    super(apiCoreProps, executor, buildProp, gridProp);
     
-    Assert.notNull(gridInstance, "grid instance can't be null.");
-    Assert.hasText(gridInstance.getName(), "grid instance name is missing, object seems invalid.");
+    this.computeSrv = computeSrv;
+    Assert.notNull(gridInstance, "'gridInstance' can't be null.");
+    Assert.hasText(gridInstance.getName(), "'gridInstance' name is missing, object seems invalid.");
     this.gridInstance = gridInstance;
-    this.computeCalls = computeCalls;
-    
-    addToException = buildAddToException(buildProp);
   }
   
   public CompletedOperation start() throws Exception {
@@ -46,7 +42,7 @@ public class GridStarter extends AbstractGrid {
       throw new RuntimeException(
           String.format("The given grid instance: %s, isn't in terminated state. Can't proceed. %s"
           , gridInstance.toPrettyString()
-          , addToException));
+          , addToException()));
     }
     // Before starting the grid, we should update the requested properties of it.
     List<Optional<Operation>> updateOperations = new ArrayList<>(10);
@@ -58,17 +54,17 @@ public class GridStarter extends AbstractGrid {
     // together, but we'll verify completion of all of them before beginning start.
     for (Optional<Operation> optOperation : updateOperations) {
       if (optOperation.isPresent()) {
-        executor.blockUntilComplete(optOperation.get());
+        executor.blockUntilComplete(optOperation.get(), buildProp);
       }
     }
     
     // All updated, now start grid.
     Operation start = startInstanceHandler();
-    return new CompletedOperation(executor.blockUntilComplete(start));
+    return new CompletedOperation(executor.blockUntilComplete(start, buildProp));
   }
   
   private Operation startInstanceHandler() throws Exception {
-    return computeCalls.startInstance(gridInstance.getName());
+    return computeSrv.startInstance(gridInstance.getName(), gridInstance.getZone(), buildProp);
   }
   
   private Optional<Operation> machineTypeUpdateHandler() throws Exception {
@@ -77,17 +73,20 @@ public class GridStarter extends AbstractGrid {
     }
     
     if (Strings.isNullOrEmpty(gridInstance.getMachineType())) {
+      // shouldn't happen but still check.
       throw new RuntimeException(
           String.format("Grid instance doesn't have a machine type, grid instance: %s %s"
           , gridInstance.toPrettyString()
-          , addToException));
+          , addToException()));
     }
     
     if (!gridProp.getMachineType().equals(
         ResourceUtil.getResourceNameFromUrl(gridInstance.getMachineType()))) {
-      return Optional.ofNullable(computeCalls.setMachineType(
+      return Optional.ofNullable(computeSrv.setMachineType(
           gridInstance.getName()
-          , gridProp.getMachineType()));
+          , gridProp.getMachineType()
+          , gridInstance.getZone()
+          , buildProp));
     }
     return Optional.empty();
   }
@@ -102,14 +101,16 @@ public class GridStarter extends AbstractGrid {
       throw new RuntimeException(
           String.format("Grid instance doesn't have a service account, grid instance: %s %s"
           , gridInstance.toPrettyString()
-          , addToException));
+          , addToException()));
     }
     
     ServiceAccount existingServAcc = gridInstance.getServiceAccounts().get(0);
     if (!gridProp.getServiceAccount().equals(existingServAcc.getEmail())) {
-      return Optional.ofNullable(computeCalls.setServiceAccount(
+      return Optional.ofNullable(computeSrv.setServiceAccount(
           gridInstance.getName()
-          , gridProp.getServiceAccount()));
+          , gridProp.getServiceAccount()
+          , gridInstance.getZone()
+          , buildProp));
     }
     return Optional.empty();
   }
@@ -119,9 +120,11 @@ public class GridStarter extends AbstractGrid {
       return Optional.empty();
     }
     
-    return Optional.ofNullable(computeCalls.setLabels(
+    return Optional.ofNullable(computeSrv.setLabels(
         gridInstance.getName()
-        , gridProp.getCustomLabels()));
+        , gridProp.getCustomLabels()
+        , gridInstance.getZone()
+        , buildProp));
   }
   
   private Optional<Operation> metadataUpdateHandler() throws Exception {
@@ -130,12 +133,14 @@ public class GridStarter extends AbstractGrid {
       return Optional.empty();
     }
     
-    return Optional.ofNullable(computeCalls.setMetadata(
+    return Optional.ofNullable(computeSrv.setMetadata(
         gridInstance.getName()
-        , mergedMetadata));
+        , mergedMetadata
+        , gridInstance.getZone()
+        , buildProp));
   }
   
-  private String buildAddToException(BuildProperty buildProp) {
+  private String addToException() {
     StringBuilder sb = new StringBuilder();
     if (buildProp != null) {
       sb.append(buildProp.toString());

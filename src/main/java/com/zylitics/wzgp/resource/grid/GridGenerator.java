@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Random;
 import java.util.Set;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
@@ -25,45 +24,50 @@ import com.google.api.services.compute.model.NetworkInterface;
 import com.google.api.services.compute.model.Scheduling;
 import com.google.api.services.compute.model.ServiceAccount;
 import com.google.api.services.compute.model.Tags;
+import com.zylitics.wzgp.resource.APICoreProperties;
+import com.zylitics.wzgp.resource.BuildProperty;
 import com.zylitics.wzgp.resource.CompletedOperation;
-import com.zylitics.wzgp.resource.SharedDependencies;
 import com.zylitics.wzgp.resource.APICoreProperties.GridDefault;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 import com.zylitics.wzgp.util.Randoms;
 
 public class GridGenerator extends AbstractGrid {
   
+  private final Compute compute;
   private final Image sourceImage;
-  private final Random random;
   
-  public GridGenerator(SharedDependencies sharedDep
+  private final String instanceName; 
+  
+  public GridGenerator(Compute compute
+      , APICoreProperties apiCoreProps
+      , ResourceExecutor executor
+      , BuildProperty buildProp
       , GridProperty gridProp
-      , Image sourceImage
-      , ResourceExecutor executor) {
-    super(sharedDep, gridProp, executor);
+      , Image sourceImage) {
+    super(apiCoreProps, executor, buildProp, gridProp);
     
-    Assert.notNull(sourceImage, "sourceImage can't be null.");
+    this.compute = compute;
+    Assert.notNull(sourceImage, "'sourceImage' can't be null.");
     this.sourceImage = sourceImage;
-    random = new Random();
+    
+    String randomChars = new Randoms().generateRandom(10);
+    instanceName = String.join("-", sourceImage.getFamily(), randomChars, "vm");
   }
   
   /*
    * !!! Remember that after grid creation, grid's zone should always be taken from Operation
    * rather than the zone given by requester, since the zone could be different than the given. 
    */
-  public CompletedOperation create() throws Exception {
+  public CompletedOperation create(String zone) throws Exception {
     // first try creating with the zone given by requester, and re-attempt on random zones if
     // this fails.
-    Compute.Instances.Insert insertInstance = buildNewGrid(sharedDep.zone());
+    Compute.Instances.Insert insertInstance = buildNewGrid(zone);
     return executor.executeWithZonalReattempt(insertInstance
-        , randomZone -> buildNewGrid(randomZone));
+        , randomZone -> buildNewGrid(randomZone), buildProp);
   }
   
   private Compute.Instances.Insert buildNewGrid(String gridZone) {
-    GridDefault gridDefault = sharedDep.apiCoreProps().getGridDefault();
-    
-    String randomChars = new Randoms(random).generateRandom(10);
-    String instanceName = String.join("-", sourceImage.getFamily(), randomChars, "vm");
+    GridDefault gridDefault = apiCoreProps.getGridDefault();
     
     Set<String> tags = gridDefault.getTags();
     Map<String, String> labels = buildGridLabels(sourceImage
@@ -135,10 +139,10 @@ public class GridGenerator extends AbstractGrid {
     instance.setLabels(labels);
     
     // Complete instance build
-    // Won't use ComputeCalls here.
+    // Won't use ComputeService here.
     try {
-      return sharedDep.compute().instances().insert(
-          sharedDep.apiCoreProps().getProjectId(), gridZone, instance);
+      return compute.instances().insert(
+          apiCoreProps.getProjectId(), gridZone, instance);
     } catch (IOException io) {
       // Wrap, so that compiler won't complain using this method in lambda.
       throw new RuntimeException(io);

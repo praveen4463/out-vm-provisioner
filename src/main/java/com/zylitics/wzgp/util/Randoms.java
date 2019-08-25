@@ -13,6 +13,10 @@ public class Randoms {
     this.random = random;
   }
   
+  public Randoms() {
+    this(new Random());
+  }
+  
   public String generateRandom(int length) {
     StringBuilder sb = new StringBuilder(length);
     int charSetLength = CHAR_SET.length();

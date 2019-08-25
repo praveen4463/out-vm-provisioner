@@ -7,31 +7,41 @@ import static com.zylitics.wzgp.resource.search.FilterBuilder.Operator.EQ;
 import java.util.List;
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 import com.google.api.services.compute.model.Image;
 import com.google.api.services.compute.model.Instance;
-import com.zylitics.wzgp.resource.util.ComputeCalls;
+import com.zylitics.wzgp.resource.BuildProperty;
+import com.zylitics.wzgp.resource.service.ComputeService;
 
 public class ResourceSearchImpl implements ResourceSearch {
   
+  private final ComputeService computeServ;
   private final ResourceSearchParam searchParam;
-  protected final ComputeCalls computeCalls;
+  
+  private @Nullable BuildProperty buildProp;
 
-  private ResourceSearchImpl(ResourceSearchParam searchParam, ComputeCalls computeCalls) {
+  private ResourceSearchImpl(ComputeService computeServ, ResourceSearchParam searchParam) {
+    this.computeServ = computeServ;
     this.searchParam = searchParam;
-    this.computeCalls = computeCalls;
+  }
+  
+  @Override
+  public void setBuildProperty(BuildProperty buildProp) {
+    this.buildProp = buildProp;
   }
   
   @Override
   public Optional<Image> searchImage() throws Exception {
     String filter = buildCommonFilter(searchParam);
-    List<Image> images = computeCalls.listImages(filter, 1L);
+    List<Image> images = computeServ.listImages(filter, 1L, buildProp);
     return images != null && images.size() > 0
         ? Optional.of(images.get(0))
         : Optional.empty();
   }
   
   @Override
-  public Optional<Instance> searchStoppedInstance() throws Exception {
+  public Optional<Instance> searchStoppedInstance(String zone) throws Exception {
     FilterBuilder filterBuilder = new FilterBuilder();
     String filter = filterBuilder
         .addCondition("status", "TERMINATED", String.class, EQ)
@@ -46,7 +56,7 @@ public class ResourceSearchImpl implements ResourceSearch {
         .build();
     filter += filterBuilder.addConditionalExpr(AND).build() + buildCommonFilter(searchParam);
     
-    List<Instance> instances = computeCalls.listInstances(filter, 1L);
+    List<Instance> instances = computeServ.listInstances(filter, 1L, zone, buildProp);
     return instances != null && instances.size() > 0
         ? Optional.of(instances.get(0))
         : Optional.empty();
@@ -78,8 +88,8 @@ public class ResourceSearchImpl implements ResourceSearch {
   public static class Factory implements ResourceSearch.Factory {
     
     @Override
-    public ResourceSearch create(ResourceSearchParam searchParam, ComputeCalls computeCalls) {
-      return new ResourceSearchImpl(searchParam, computeCalls);
+    public ResourceSearch create(ComputeService computeCalls, ResourceSearchParam searchParam) {
+      return new ResourceSearchImpl(computeCalls, searchParam);
     }
   }
 }

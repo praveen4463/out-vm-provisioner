@@ -3,22 +3,26 @@ package com.zylitics.wzgp.resource.grid;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.zylitics.wzgp.resource.SharedDependencies;
+import com.zylitics.wzgp.resource.APICoreProperties;
 import com.zylitics.wzgp.resource.APICoreProperties.GridDefault;
+import com.zylitics.wzgp.resource.BuildProperty;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 
 public abstract class AbstractGrid {
   
-  protected final SharedDependencies sharedDep;
-  protected final GridProperty gridProp;
+  protected final APICoreProperties apiCoreProps; 
   protected final ResourceExecutor executor;
+  protected final BuildProperty buildProp;
+  protected final GridProperty gridProp;
   
-  protected AbstractGrid(SharedDependencies sharedDep
-      , GridProperty gridProp
-      , ResourceExecutor executor) {
-    this.sharedDep = sharedDep;
-    this.gridProp = gridProp;
+  protected AbstractGrid(APICoreProperties apiCoreProps
+      , ResourceExecutor executor
+      , BuildProperty buildProp
+      , GridProperty gridProp) {
+    this.apiCoreProps = apiCoreProps;
     this.executor = executor;
+    this.buildProp = buildProp;
+    this.gridProp = gridProp;
   }
   
   /**
@@ -26,7 +30,7 @@ public abstract class AbstractGrid {
    * take precedence.
    */
   protected Map<String, String> mergedMetadata() {
-    GridDefault gridDefault = sharedDep.apiCoreProps().getGridDefault();
+    GridDefault gridDefault = apiCoreProps.getGridDefault();
     Map<String, String> metadata = new HashMap<>();
     
     // first put server defined grid defaults.

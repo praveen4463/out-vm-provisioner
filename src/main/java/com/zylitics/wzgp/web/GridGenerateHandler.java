@@ -6,25 +6,37 @@ import org.assertj.core.util.Strings;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.Assert;
 
+import com.google.api.services.compute.Compute;
 import com.google.api.services.compute.model.Image;
 import com.google.api.services.compute.model.Instance;
 import com.google.api.services.compute.model.Operation;
 import com.zylitics.wzgp.http.RequestGridCreate;
 import com.zylitics.wzgp.http.ResponseGridCreate;
+import com.zylitics.wzgp.resource.APICoreProperties;
 import com.zylitics.wzgp.resource.CompletedOperation;
-import com.zylitics.wzgp.resource.SharedDependencies;
+import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 import com.zylitics.wzgp.resource.grid.GridGenerator;
 import com.zylitics.wzgp.resource.search.ResourceSearch;
+import com.zylitics.wzgp.resource.service.ComputeService;
 import com.zylitics.wzgp.resource.util.ResourceUtil;
 import com.zylitics.wzgp.web.exceptions.GridNotCreatedException;
 import com.zylitics.wzgp.web.exceptions.GridNotRunningException;
 import com.zylitics.wzgp.web.exceptions.ImageNotFoundException;
 
 public class GridGenerateHandler extends AbstractGridCreateHandler {
+  private final Compute compute;
+  
   private String sourceImageFamily;
 
-  public GridGenerateHandler(SharedDependencies sharedDep, RequestGridCreate request) {
-    super(sharedDep, request);
+  public GridGenerateHandler(Compute compute
+      , APICoreProperties apiCoreProps
+      , ResourceExecutor executor
+      , ComputeService computeSrv
+      , String zone
+      , RequestGridCreate request) {
+    super(apiCoreProps, executor, computeSrv, zone, request);
+    
+    this.compute = compute;
   }
   
   @Override
@@ -32,7 +44,7 @@ public class GridGenerateHandler extends AbstractGridCreateHandler {
     Image image = null;
     // First try if we can get image from the inputs.
     if (!Strings.isNullOrEmpty(sourceImageFamily)) {
-      image = computeCalls.getImageFromFamily(sourceImageFamily);
+      image = computeSrv.getImageFromFamily(sourceImageFamily, buildProp);
     }
     // If nothing worked, search an image.
     if (image == null) {
@@ -43,7 +55,7 @@ public class GridGenerateHandler extends AbstractGridCreateHandler {
   }
   
   public void setSourceImageFamily(String sourceImageFamily) {
-    Assert.hasText(sourceImageFamily, "source image family can't be empty");
+    Assert.hasText(sourceImageFamily, "'sourceImageFamily' can't be empty");
     
     this.sourceImageFamily = sourceImageFamily;
   }
@@ -55,24 +67,31 @@ public class GridGenerateHandler extends AbstractGridCreateHandler {
       throw new ImageNotFoundException(
           String.format("No image matches the given search terms, search terms: %s %s"
           , request.getResourceSearchParams().toString()
-          , addToException));
+          , addToException()));
     }
     return image.get();
   }
   
   private ResponseEntity<ResponseGridCreate> generateGrid(Image image) throws Exception {
-    GridGenerator generator = getGridGenerator(image);
-    CompletedOperation completedOperation = generator.create();
+    GridGenerator generator = new GridGenerator(compute
+        , apiCoreProps
+        , executor
+        , buildProp
+        , request.getGridProperties()
+        , image);
+    CompletedOperation completedOperation = generator.create(zone);
     Operation operation = completedOperation.get();
     if (!ResourceUtil.isOperationSuccess(operation))  {
       throw new GridNotCreatedException(
           String.format("Couldn't generate a new grid using image %s, operation: %s %s"
           , image.getName()
           , operation.toPrettyString()
-          , addToException));
+          , addToException()));
     }
     // get the created grid instance
-    Instance gridInstance = computeCalls.getInstance(operation.getName(), operation.getZone());
+    Instance gridInstance = computeSrv.getInstance(operation.getName()
+        , operation.getZone()
+        , buildProp);
     onGridGeneratedEventHandler(gridInstance);
     
     ResponseGridCreate response = prepareResponse(gridInstance);
@@ -83,7 +102,7 @@ public class GridGenerateHandler extends AbstractGridCreateHandler {
   
   private void onGridGeneratedEventHandler(Instance gridInstance) throws Exception {
     // label buildId to the created grid instance
-    lockGridInstance(gridInstance.getName());
+    lockGridInstance(gridInstance.getName(), gridInstance.getZone());
     // verify the grid is running and there's nothing wrong
     if (!isRunning(gridInstance)) {
       // shouldn't happen
@@ -91,7 +110,7 @@ public class GridGenerateHandler extends AbstractGridCreateHandler {
           String.format("Grid instance found not running even after the operation"
           + " completed. grid instance: %s %s"
               , gridInstance.toPrettyString()
-              , addToException));
+              , addToException()));
     }
   }
 }

@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.Assert;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -19,14 +18,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.google.api.client.util.Strings;
 import com.google.api.services.compute.Compute;
-import com.zylitics.wzgp.config.GCPCompute;
 import com.zylitics.wzgp.http.ResponseGridError;
 import com.zylitics.wzgp.http.RequestGridCreate;
 import com.zylitics.wzgp.http.ResponseGridCreate;
 import com.zylitics.wzgp.http.ResponseGridDelete;
 import com.zylitics.wzgp.http.ResponseStatus;
 import com.zylitics.wzgp.resource.APICoreProperties;
-import com.zylitics.wzgp.resource.SharedDependencies;
+import com.zylitics.wzgp.resource.executor.ResourceExecutor;
+import com.zylitics.wzgp.resource.service.ComputeService;
 import com.zylitics.wzgp.web.exceptions.GridStartHandlerFailureException;
 
 /*
@@ -59,20 +58,21 @@ public class GridController {
   
   private final Compute compute;
   private final APICoreProperties apiCoreProps;
+  private final ResourceExecutor executor;
+  private final ComputeService computeSrv;
   
+  // All these dependencies are singleton and that's why we'll provide these to all domain objects
+  // rather than letting them generate. Domain objects are created per request and don't need to
+  // worry about thread safety.
   @Autowired
-  public GridController(GCPCompute gcpCompute, APICoreProperties apiCoreProps) {
-    Assert.notNull(gcpCompute, "GCPCompute object can't be null.");
-    compute = gcpCompute.getCompute();
-    
-    Assert.notNull(apiCoreProps, "APICoreProperties object can't be null.");
+  public GridController(Compute compute
+      , APICoreProperties apiCoreProps
+      , ResourceExecutor executor
+      , ComputeService computeSrv) {
+    this.compute = compute;
     this.apiCoreProps = apiCoreProps;
-  }
-  
-  private SharedDependencies getSharedDependencies(String zone) {
-    return new SharedDependencies(compute
-        , apiCoreProps
-        , zone);
+    this.executor = executor;
+    this.computeSrv = computeSrv;
   }
 
   @PostMapping
@@ -81,10 +81,14 @@ public class GridController {
       , @PathVariable String zone
       , @RequestParam(defaultValue="false") boolean noRush
       , @RequestParam(required=false) String sourceImageFamily) throws Exception {
-    SharedDependencies sharedDep = getSharedDependencies(zone);
     
     if (!Strings.isNullOrEmpty(sourceImageFamily) || noRush) {
-      GridGenerateHandler handler = new GridGenerateHandler(sharedDep, gridCreateReq);
+      GridGenerateHandler handler = new GridGenerateHandler(compute
+          , apiCoreProps
+          , executor
+          , computeSrv
+          , zone
+          , gridCreateReq);
       if (!Strings.isNullOrEmpty(sourceImageFamily)) {
         handler.setSourceImageFamily(sourceImageFamily);
       }
@@ -95,12 +99,21 @@ public class GridController {
     gridCreateReq.getResourceSearchParams().validate();
     
     // first try to find and start a stopped grid instance.
-    GridStartHandler startHandler = new GridStartHandler(sharedDep, gridCreateReq);
+    GridStartHandler startHandler = new GridStartHandler(apiCoreProps
+        , executor
+        , computeSrv
+        , zone
+        , gridCreateReq);
     try {
       return startHandler.handle();
     } catch (GridStartHandlerFailureException failure) {
       // we couldn't get a stopped grid instance, fallback to a fresh one.
-      return new GridGenerateHandler(sharedDep, gridCreateReq).handle();
+      return new GridGenerateHandler(compute
+          , apiCoreProps
+          , executor
+          , computeSrv
+          , zone
+          , gridCreateReq).handle();
     }
   }
   
@@ -109,9 +122,11 @@ public class GridController {
       , @PathVariable String gridName
       , @RequestParam(defaultValue="false") boolean noRush
       , @RequestParam(required=false) String sessionId) throws Exception {
-    SharedDependencies sharedDep = getSharedDependencies(zone);
-    
-    GridDeleteHandler handler = new GridDeleteHandler(sharedDep, gridName);
+    GridDeleteHandler handler = new GridDeleteHandler(apiCoreProps
+        , executor
+        , computeSrv
+        , zone
+        , gridName);
     if (!Strings.isNullOrEmpty(sessionId)) {
       handler.setSessionId(sessionId);
     }
