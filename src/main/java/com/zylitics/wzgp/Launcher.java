@@ -16,6 +16,12 @@ import com.zylitics.wzgp.config.APICorePropertiesImpl;
 import com.zylitics.wzgp.resource.APICoreProperties;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 import com.zylitics.wzgp.resource.executor.ResourceExecutorImpl;
+import com.zylitics.wzgp.web.GridDeleteHandler;
+import com.zylitics.wzgp.web.GridDeleteHandlerImpl;
+import com.zylitics.wzgp.web.GridGenerateHandler;
+import com.zylitics.wzgp.web.GridGenerateHandlerImpl;
+import com.zylitics.wzgp.web.GridStartHandler;
+import com.zylitics.wzgp.web.GridStartHandlerImpl;
 
 @SpringBootApplication
 public class Launcher {
@@ -47,5 +53,20 @@ public class Launcher {
   @Bean
   public ResourceExecutor getResourceExecutor() throws Exception {
     return new ResourceExecutorImpl(getCompute(), getAPICoreProperties());
+  }
+  
+  @Bean
+  public GridGenerateHandler.Factory getGridGenerateHandlerFactory() {
+    return new GridGenerateHandlerImpl.Factory();
+  }
+  
+  @Bean
+  public GridStartHandler.Factory getGridStartHandlerFactory() {
+    return new GridStartHandlerImpl.Factory();
+  }
+  
+  @Bean
+  public GridDeleteHandler.Factory getGridDeleteHandlerFactory() {
+    return new GridDeleteHandlerImpl.Factory();
   }
 }

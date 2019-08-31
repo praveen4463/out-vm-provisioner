@@ -12,7 +12,9 @@ public class GridNotRunningException extends RuntimeException {
 
   private static final long serialVersionUID = 8172380696228134127L;
   
-  public GridNotRunningException() {}
+  public GridNotRunningException() {
+    super();
+  }
   
   public GridNotRunningException(String message) {
     super(message);

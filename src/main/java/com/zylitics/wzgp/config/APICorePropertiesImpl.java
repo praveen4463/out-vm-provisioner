@@ -29,11 +29,12 @@ import com.zylitics.wzgp.resource.APICoreProperties;
 @Validated
 public class APICorePropertiesImpl implements APICoreProperties {
   
+  // How properties are matched and accessed by the container?
+  // the properties file in the classpath is read, thru relaxed binding properties are converted
+  // into instance fields and the field name's get and set accessor are invoked. Thus the accessor
+  // names should match with the properties. 
   @NotBlank
   private String projectId;
-  
-  @NotBlank
-  private String shortVersion;
   
   @NotBlank
   private String gceApiUrl;
@@ -58,15 +59,6 @@ public class APICorePropertiesImpl implements APICoreProperties {
   
   public void setProjectId(String projectId) {
     this.projectId = projectId;
-  }
-  
-  @Override
-  public String getShortVersion() {
-    return shortVersion;
-  }
-  
-  public void setShortVersion(String shortVersion) {
-    this.shortVersion = shortVersion;
   }
   
   @Override
@@ -112,7 +104,8 @@ public class APICorePropertiesImpl implements APICoreProperties {
     return gridDefaults;
   }
   
-  public static final class GridDefaults implements GridDefault {
+  // Has to be public because we're not having set accessors in the interface.
+  public static class GridDefaults implements GridDefault {
     @NotBlank
     private String machineType;
     

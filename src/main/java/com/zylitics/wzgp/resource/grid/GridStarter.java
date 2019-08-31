@@ -2,7 +2,6 @@ package com.zylitics.wzgp.resource.grid;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.util.Assert;
@@ -11,26 +10,28 @@ import com.google.api.client.util.Strings;
 import com.google.api.services.compute.model.Instance;
 import com.google.api.services.compute.model.Operation;
 import com.google.api.services.compute.model.ServiceAccount;
-import com.zylitics.wzgp.resource.APICoreProperties;
 import com.zylitics.wzgp.resource.BuildProperty;
 import com.zylitics.wzgp.resource.CompletedOperation;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 import com.zylitics.wzgp.resource.service.ComputeService;
 import com.zylitics.wzgp.resource.util.ResourceUtil;
 
-public class GridStarter extends AbstractGrid {
+public class GridStarter {
   
+  private final ResourceExecutor executor;
   private final ComputeService computeSrv;
+  private final BuildProperty buildProp;
+  private final GridProperty gridProp;
   private final Instance gridInstance;
 
-  public GridStarter(APICoreProperties apiCoreProps
-      , ResourceExecutor executor
+  public GridStarter(ResourceExecutor executor
       , ComputeService computeSrv
       , BuildProperty buildProp
       , GridProperty gridProp
       , Instance gridInstance) {
-    super(apiCoreProps, executor, buildProp, gridProp);
-    
+    this.executor = executor;
+    this.buildProp = buildProp;
+    this.gridProp = gridProp;
     this.computeSrv = computeSrv;
     Assert.notNull(gridInstance, "'gridInstance' can't be null.");
     Assert.hasText(gridInstance.getName(), "'gridInstance' name is missing, object seems invalid.");
@@ -39,6 +40,7 @@ public class GridStarter extends AbstractGrid {
   
   public CompletedOperation start() throws Exception {
     if (!gridInstance.getStatus().equals("TERMINATED")) {
+      // shouldn't happen but still check.
       throw new RuntimeException(
           String.format("The given grid instance: %s, isn't in terminated state. Can't proceed. %s"
           , gridInstance.toPrettyString()
@@ -128,14 +130,13 @@ public class GridStarter extends AbstractGrid {
   }
   
   private Optional<Operation> metadataUpdateHandler() throws Exception {
-    Map<String, String> mergedMetadata = mergedMetadata();
-    if (mergedMetadata == null || mergedMetadata.size() == 0) {
+    if (gridProp.getMetadata() == null || gridProp.getMetadata().size() == 0) {
       return Optional.empty();
     }
     
     return Optional.ofNullable(computeSrv.setMetadata(
         gridInstance.getName()
-        , mergedMetadata
+        , gridProp.getMetadata()
         , gridInstance.getZone()
         , buildProp));
   }

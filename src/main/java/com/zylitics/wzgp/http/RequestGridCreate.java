@@ -8,7 +8,6 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
 
 import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.util.Assert;
 import org.springframework.validation.annotation.Validated;
 
 import com.zylitics.wzgp.resource.BuildProperty;
@@ -45,7 +44,7 @@ public class RequestGridCreate {
     return gridProperties;
   }
   
-  public static final class BuildProperties implements BuildProperty {
+  public static class BuildProperties implements BuildProperty {
     
     @NotBlank
     private String buildId;
@@ -64,7 +63,7 @@ public class RequestGridCreate {
     }
   }
 
-  public static final class ResourceSearchParams implements ResourceSearchParam {
+  public static class ResourceSearchParams implements ResourceSearchParam {
     
     private String os;
     private String browser;
@@ -96,18 +95,6 @@ public class RequestGridCreate {
     public void setShots(boolean shots) {
       this.shots = shots;
     }
-    
-    /**
-     * Validates the required search fields as per api documentation.
-     * @throws IllegalArgumentException if validation fails. 
-     */
-    // Validate separately because this class may or may not be in the request, putting bean
-    // validation annotations here will cause it to validate every time and request is bound.
-    @Override
-    public void validate() throws IllegalArgumentException {
-      Assert.hasText(os, "'os' can't be empty.");
-      Assert.hasText(browser, "'browser' can't be empty.");
-    }
 
     @Override
     public String toString() {
@@ -115,7 +102,7 @@ public class RequestGridCreate {
     }
   }
   
-  public static final class GridProperties implements GridProperty {
+  public static class GridProperties implements GridProperty {
     
     private String machineType;
     private String serviceAccount;

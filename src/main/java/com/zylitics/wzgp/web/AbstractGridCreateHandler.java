@@ -41,12 +41,12 @@ public abstract class AbstractGridCreateHandler extends AbstractGridHandler {
     return search;
   }
   
-  protected ResponseGridCreate prepareResponse(Instance gridInstance) {
+  protected ResponseGridCreate prepareResponse(Instance gridInstance, HttpStatus status) {
     ResponseGridCreate response = new ResponseGridCreate();
     response.setGridInternalIP(gridInstance.getNetworkInterfaces().get(0).getNetworkIP());
     response.setGridId(gridInstance.getId());
     response.setGridName(gridInstance.getName());
-    response.setHttpErrorStatusCode(HttpStatus.CREATED.value());
+    response.setHttpErrorStatusCode(status.value());
     response.setStatus(ResponseStatus.SUCCESS.name());
     response.setZone(gridInstance.getZone());
     return response;

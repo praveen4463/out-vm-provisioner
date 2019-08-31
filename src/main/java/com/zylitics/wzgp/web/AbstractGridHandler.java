@@ -1,8 +1,5 @@
 package com.zylitics.wzgp.web;
 
-import org.springframework.http.ResponseEntity;
-
-import com.zylitics.wzgp.http.AbstractResponse;
 import com.zylitics.wzgp.resource.APICoreProperties;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 import com.zylitics.wzgp.resource.service.ComputeService;
@@ -23,6 +20,4 @@ public abstract class AbstractGridHandler {
     this.computeSrv = computeSrv;
     this.zone = zone;
   }
-  
-  public abstract ResponseEntity<? extends AbstractResponse> handle() throws Exception;
 }

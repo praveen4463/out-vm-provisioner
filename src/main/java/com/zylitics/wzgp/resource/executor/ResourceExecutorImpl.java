@@ -1,6 +1,8 @@
 package com.zylitics.wzgp.resource.executor;
 
 import java.io.IOException;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -22,6 +24,7 @@ import com.google.api.client.json.GenericJson;
 import com.google.api.services.compute.Compute;
 import com.google.api.services.compute.ComputeRequest;
 import com.google.api.services.compute.model.Operation;
+import com.google.common.annotations.VisibleForTesting;
 import com.zylitics.wzgp.resource.APICoreProperties;
 import com.zylitics.wzgp.resource.BuildProperty;
 import com.zylitics.wzgp.resource.CompletedOperation;
@@ -58,7 +61,7 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
    * As we use this api, we may see more GCE codes telling a zonal issues that will need to be
    * added into the list of codes. Unless added, those will be catched as 'resource issues'.
    */
-  private static final int ZONAL_ISSUES_MAX_REATTEMPTS = 5;
+  public static final int ZONAL_ISSUES_MAX_REATTEMPTS = 5;
   
   private final Compute compute;
   private final APICoreProperties apiCoreProps;
@@ -79,7 +82,7 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
       V out = objToExecute.execute();
       if (out == null) {
         // Shouldn't happen but still log.
-        LOG.error("Got null while inoking execute() on {} {}" 
+        LOG.error("Got null while inoking execute on {} {}" 
             , objToExecute.toString()
             , addToException(buildProp));
       }
@@ -89,7 +92,7 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
       // Log messages for debugging the issue.
       try {
         HttpResponseException httpExp = (HttpResponseException) io;
-        LOG.error("An IOException occurred while inoking execute() on {}. From inner"
+        LOG.error("An IOException occurred while invoking execute on {}. From inner"
             + " HttpResponseException: Status code= {}, Status message= {} {}"
             , objToExecute.toString()
             , httpExp.getStatusCode()
@@ -97,7 +100,7 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
             , addToException(buildProp));
       } catch (ClassCastException cce) {
         // TODO: remove once you know that this won't happen.
-        LOG.error("An IOException occurred while inoking execute() on {}, HttpResponseException"
+        LOG.error("An IOException occurred while invoking execute on {}, HttpResponseException"
             + " isn't found wrapped. {}"
             , objToExecute.toString()
             , addToException(buildProp));
@@ -124,7 +127,6 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
       , Function<String, T> generateObjToExecutePerZone
       , @Nullable BuildProperty buildProp) throws Exception {
     Assert.notNull(objToExecute, "'objToExecute' can't be null.");
-    Assert.notNull(generateObjToExecutePerZone, "'generateObjToExecutePerZone' can't be null.");
     
     // first execute the input object to get an Operation. Use method that will re-attempt in case
     // getting just the 'Operation' raises exceptions.
@@ -136,9 +138,16 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
       return new CompletedOperation(operation);
     }
 
+    if (operation.getError() == null || operation.getError().getErrors() == null) {
+      // shouldn't happen but still log.
+      LOG.error("Operation {} returned no error on failure. Reattempt couldn't happen. {}"
+          , operation.toPrettyString()
+          , addToException(buildProp));
+      return new CompletedOperation(operation);
+    }
     // Reaching here means our request failed, check for error codes.
     for (Operation.Error.Errors err : operation.getError().getErrors()) {
-      if (err.getCode() != null 
+      if (err.getCode() != null
           && apiCoreProps.getGceZonalReattemptErrors().contains(err.getCode())) {
         return perZoneReattemptHandler(generateObjToExecutePerZone, buildProp);
       }
@@ -167,6 +176,8 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
   private <T extends ComputeRequest<Operation>> CompletedOperation perZoneReattemptHandler(
       Function<String, T> generateObjToExecutePerZone
       , @Nullable BuildProperty buildProp) throws Exception {
+    Assert.notNull(generateObjToExecutePerZone, "'generateObjToExecutePerZone' can't be null.");
+    
     Random random = new Random();
     int attempts = 0;
     List<String> alternateZones =
@@ -175,30 +186,39 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
     Operation operation = null;
     
     while (attempts < ZONAL_ISSUES_MAX_REATTEMPTS) {
+      // increment in beginning so we don't set it at multiple places that are continuing in loop.
+      attempts++;
       String randomZone = alternateZones.get(random.nextInt(totalAlternateZones));
       T objToExecute = generateObjToExecutePerZone.apply(randomZone);
       operation = executeWithReattempt(objToExecute, buildProp);
       operation = blockUntilComplete(operation, buildProp);
       
       if (ResourceUtil.isOperationSuccess(operation)) {
-        LOG.debug("Operation {} succeeded on attempt # {}"
+        LOG.debug("Operation {} succeeded on attempt #{}"
             , operation.toPrettyString()
-            , (attempts + 1));
+            , attempts);
         return new CompletedOperation(operation);
       }
       
+      if (operation.getError() == null || operation.getError().getErrors() == null) {
+        // shouldn't happen but still log.
+        LOG.warn("Operation {} returned no error on failure, attempt #{}"
+            , operation.toPrettyString()
+            , attempts);
+        continue;
+      }
+      
       for (Operation.Error.Errors err : operation.getError().getErrors()) {
-        if (err.getCode() == null 
+        if (err.getCode() == null
             || !apiCoreProps.getGceZonalReattemptErrors().contains(err.getCode())) {
-          LOG.error("During reattempt # {}, the returned error codes aren't matched the ones we"
+          LOG.error("During reattempt #{}, the returned error codes aren't matched the ones we"
               + " have. Returned codes: {} {}"
-              , (attempts + 1)
+              , (attempts)
               , String.join(",", operationErrorsToCodes(operation))
               , addToException(buildProp));
           return new CompletedOperation(operation);
         }
       }
-      attempts++;
     }
     LOG.error("maximum re-attempts reached for operation {} {}" 
         , operation.toPrettyString()
@@ -209,26 +229,33 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
   @Override
   public Operation blockUntilComplete(Operation operation
       , @Nullable BuildProperty buildProp) throws Exception {
+    long pollInterval = 10 * 1000;
+    return blockUntilComplete(operation, pollInterval, Clock.systemUTC(), buildProp);
+  }
+  
+  @VisibleForTesting
+  public Operation blockUntilComplete(Operation operation
+      , long pollInterval
+      , Clock clock
+      , @Nullable BuildProperty buildProp) throws Exception {
     Assert.notNull(operation, "Operation can't be null");
     
-    long start = System.currentTimeMillis();
-    long pollInterval = 10 * 1000;
-    
+    Instant start = clock.instant();
     String zone = ResourceUtil.getResourceNameFromUrl(operation.getZone());
     String status = operation.getStatus();
     String opId = operation.getName();
     
     while (!status.equals("DONE")) {
       Thread.sleep(pollInterval);
-      long elapsed = System.currentTimeMillis() - start;
-      if (elapsed >= apiCoreProps.getGceTimeoutMillis()) {
+      Instant elapsed = clock.instant().minusMillis(apiCoreProps.getGceTimeoutMillis());
+      if (elapsed.isAfter(start)) {
         throw new TimeoutException(String.format("Timed out waiting for Operation to complete."
             + " Operation: %s %s"
             , operation.toPrettyString()
             , addToException(buildProp)));
       }
       
-      // Won't use ComputeService here.
+      // Won't use ComputeService here to prevent a cyclic dependency.
       Compute.ZoneOperations.Get get = compute.zoneOperations().get(
           apiCoreProps.getProjectId()
           , zone

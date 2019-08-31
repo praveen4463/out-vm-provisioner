@@ -31,21 +31,14 @@ public final class FilterBuilder {
   
   private StringBuilder builder = new StringBuilder();
   
-  public <T> FilterBuilder addCondition(String key
-      , T value
-      , Class<T> valueClazz
-      , Operator operator) {
+  public FilterBuilder addCondition(String key, String value, Operator operator) {
     Assert.hasText(key, "key can't be empty");
     Assert.notNull(value, "value can't be null");
     
-    String formattedValue = (String) value;
-    if (valueClazz.getClass().getName().equals(String.class.getName())) {
-      formattedValue = "\"" + formattedValue + "\""; 
-    }
     builder.append(SEARCH_TMPL
         .replace("L", key)
         .replace("O", operator.symbol)
-        .replace("R", formattedValue));
+        .replace("R", "\"" + value + "\""));
     return this;
   }
   

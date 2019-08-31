@@ -7,8 +7,6 @@ public interface APICoreProperties {
 
   String getProjectId();
   
-  String getShortVersion();
-  
   String getGceApiUrl();
   
   long getGceTimeoutMillis();

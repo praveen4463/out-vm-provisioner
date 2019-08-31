@@ -44,18 +44,18 @@ public class ResourceSearchImpl implements ResourceSearch {
   public Optional<Instance> searchStoppedInstance(String zone) throws Exception {
     FilterBuilder filterBuilder = new FilterBuilder();
     String filter = filterBuilder
-        .addCondition("status", "TERMINATED", String.class, EQ)
+        .addCondition("status", "TERMINATED", EQ)
         .addConditionalExpr(AND)
-        .addCondition("labels.is-production-instance", "true", String.class, EQ)
+        .addCondition("labels.is-production-instance", "true", EQ)
         .addConditionalExpr(AND)
-        .addCondition("labels.zl-selenium-grid", "true", String.class, EQ)
+        .addCondition("labels.zl-selenium-grid", "true", EQ)
         .addConditionalExpr(AND)
-        .addCondition("labels.locked-by-build", "NONE", String.class, EQ)
+        .addCondition("labels.locked-by-build", "NONE", EQ)
         .addConditionalExpr(AND)
-        .addCondition("labels.is-deleting", "false", String.class, EQ)
+        .addCondition("labels.is-deleting", "false", EQ)
+        .addConditionalExpr(AND)  // common filter will follow here
         .build();
-    filter += filterBuilder.addConditionalExpr(AND).build() + buildCommonFilter(searchParam);
-    
+    filter += buildCommonFilter(searchParam);
     List<Instance> instances = computeServ.listInstances(filter, 1L, zone, buildProp);
     return instances != null && instances.size() > 0
         ? Optional.of(instances.get(0))
@@ -65,23 +65,23 @@ public class ResourceSearchImpl implements ResourceSearch {
   private String buildCommonFilter(ResourceSearchParam searchParam) {
     String browser = searchParam.getBrowser();
     return new FilterBuilder()
-        .addCondition("labels.platform", "windows", String.class, EQ)
+        .addCondition("labels.platform", "windows", EQ)
         .addConditionalExpr(AND)
-        .addCondition("labels.os", searchParam.getOS(), String.class, EQ)
+        .addCondition("labels.os", searchParam.getOS(), EQ)
         .addConditionalExpr(AND)
-        .addCondition("labels.browser1", browser, String.class, EQ)
+        .addCondition("labels.browser1", browser, EQ)
         .addConditionalExpr(OR)
-        .addCondition("labels.browser2", browser, String.class, EQ)
+        .addCondition("labels.browser2", browser, EQ)
         .addConditionalExpr(OR)
-        .addCondition("labels.browser3", browser, String.class, EQ)
+        .addCondition("labels.browser3", browser, EQ)
         .addConditionalExpr(OR)
-        .addCondition("labels.browser4", browser, String.class, EQ)
+        .addCondition("labels.browser4", browser, EQ)
         .addConditionalExpr(OR)
-        .addCondition("labels.browser5", browser, String.class, EQ)
+        .addCondition("labels.browser5", browser, EQ)
         .addConditionalExpr(OR)
-        .addCondition("labels.browser6", browser, String.class, EQ)
+        .addCondition("labels.browser6", browser, EQ)
         .addConditionalExpr(AND)
-        .addCondition("labels.shots", searchParam.isShots(), boolean.class, EQ)
+        .addCondition("labels.shots", String.valueOf(searchParam.isShots()), EQ)
         .build();
   }
   

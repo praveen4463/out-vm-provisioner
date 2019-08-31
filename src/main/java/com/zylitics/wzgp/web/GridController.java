@@ -51,7 +51,7 @@ import com.zylitics.wzgp.web.exceptions.GridStartHandlerFailureException;
  * members.
  */
 @RestController
-@RequestMapping("${api-core.short-version}/zones/{zone}/grids")
+@RequestMapping("${app-short-version}/zones/{zone}/grids")
 public class GridController {
   
   private static final Logger LOG = LoggerFactory.getLogger(GridController.class);
@@ -60,6 +60,9 @@ public class GridController {
   private final APICoreProperties apiCoreProps;
   private final ResourceExecutor executor;
   private final ComputeService computeSrv;
+  private final GridGenerateHandler.Factory gridGenerateHandlerFactory;
+  private final GridStartHandler.Factory gridStartHandlerFactory;
+  private final GridDeleteHandler.Factory gridDeleteHandlerFactory;
   
   // All these dependencies are singleton and that's why we'll provide these to all domain objects
   // rather than letting them generate. Domain objects are created per request and don't need to
@@ -68,11 +71,17 @@ public class GridController {
   public GridController(Compute compute
       , APICoreProperties apiCoreProps
       , ResourceExecutor executor
-      , ComputeService computeSrv) {
+      , ComputeService computeSrv
+      , GridGenerateHandler.Factory gridGenerateHandlerFactory
+      , GridStartHandler.Factory gridStartHandlerFactory
+      , GridDeleteHandler.Factory gridDeleteHandlerFactory) {
     this.compute = compute;
     this.apiCoreProps = apiCoreProps;
     this.executor = executor;
     this.computeSrv = computeSrv;
+    this.gridGenerateHandlerFactory = gridGenerateHandlerFactory;
+    this.gridStartHandlerFactory = gridStartHandlerFactory;
+    this.gridDeleteHandlerFactory = gridDeleteHandlerFactory;
   }
 
   @PostMapping
@@ -83,23 +92,23 @@ public class GridController {
       , @RequestParam(required=false) String sourceImageFamily) throws Exception {
     
     if (!Strings.isNullOrEmpty(sourceImageFamily) || noRush) {
-      GridGenerateHandler handler = new GridGenerateHandler(compute
+      GridGenerateHandler generateHandler = gridGenerateHandlerFactory.create(compute
           , apiCoreProps
           , executor
           , computeSrv
           , zone
           , gridCreateReq);
       if (!Strings.isNullOrEmpty(sourceImageFamily)) {
-        handler.setSourceImageFamily(sourceImageFamily);
+        generateHandler.setSourceImageFamily(sourceImageFamily);
       }
-      return handler.handle();
+      return generateHandler.handle();
     }
     // we'll now require to search instances, first validate that we got search parameters in
     // requests as they need manual validation.
     gridCreateReq.getResourceSearchParams().validate();
     
     // first try to find and start a stopped grid instance.
-    GridStartHandler startHandler = new GridStartHandler(apiCoreProps
+    GridStartHandler startHandler = gridStartHandlerFactory.create(apiCoreProps
         , executor
         , computeSrv
         , zone
@@ -108,7 +117,7 @@ public class GridController {
       return startHandler.handle();
     } catch (GridStartHandlerFailureException failure) {
       // we couldn't get a stopped grid instance, fallback to a fresh one.
-      return new GridGenerateHandler(compute
+      return gridGenerateHandlerFactory.create(compute
           , apiCoreProps
           , executor
           , computeSrv
@@ -122,16 +131,16 @@ public class GridController {
       , @PathVariable String gridName
       , @RequestParam(defaultValue="false") boolean noRush
       , @RequestParam(required=false) String sessionId) throws Exception {
-    GridDeleteHandler handler = new GridDeleteHandler(apiCoreProps
+    GridDeleteHandler deleteHandler = gridDeleteHandlerFactory.create(apiCoreProps
         , executor
         , computeSrv
         , zone
         , gridName);
     if (!Strings.isNullOrEmpty(sessionId)) {
-      handler.setSessionId(sessionId);
+      deleteHandler.setSessionId(sessionId);
     }
-    handler.setNoRush(noRush);
-    return handler.handle();
+    deleteHandler.setNoRush(noRush);
+    return deleteHandler.handle();
   }
   
   /**

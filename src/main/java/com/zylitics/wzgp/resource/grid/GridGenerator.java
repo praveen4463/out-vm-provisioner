@@ -19,7 +19,6 @@ import com.google.api.services.compute.model.AttachedDisk;
 import com.google.api.services.compute.model.AttachedDiskInitializeParams;
 import com.google.api.services.compute.model.Image;
 import com.google.api.services.compute.model.Instance;
-import com.google.api.services.compute.model.Metadata;
 import com.google.api.services.compute.model.NetworkInterface;
 import com.google.api.services.compute.model.Scheduling;
 import com.google.api.services.compute.model.ServiceAccount;
@@ -29,14 +28,19 @@ import com.zylitics.wzgp.resource.BuildProperty;
 import com.zylitics.wzgp.resource.CompletedOperation;
 import com.zylitics.wzgp.resource.APICoreProperties.GridDefault;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
+import com.zylitics.wzgp.resource.util.ResourceUtil;
 import com.zylitics.wzgp.util.Randoms;
 
-public class GridGenerator extends AbstractGrid {
+public class GridGenerator {
   
   private final Compute compute;
+  private final APICoreProperties apiCoreProps; 
+  private final ResourceExecutor executor;
+  private final BuildProperty buildProp;
+  private final GridProperty gridProp;
   private final Image sourceImage;
   
-  private final String instanceName; 
+  private final String instanceName;
   
   public GridGenerator(Compute compute
       , APICoreProperties apiCoreProps
@@ -44,9 +48,12 @@ public class GridGenerator extends AbstractGrid {
       , BuildProperty buildProp
       , GridProperty gridProp
       , Image sourceImage) {
-    super(apiCoreProps, executor, buildProp, gridProp);
-    
     this.compute = compute;
+    this.apiCoreProps = apiCoreProps;
+    this.executor = executor;
+    this.buildProp = buildProp;
+    this.gridProp = gridProp;
+    
     Assert.notNull(sourceImage, "'sourceImage' can't be null.");
     this.sourceImage = sourceImage;
     
@@ -88,8 +95,12 @@ public class GridGenerator extends AbstractGrid {
     // Initialize instance object.
     Instance instance = new Instance();
     instance.setName(instanceName);
+    
+    // Attach machine
     instance.setMachineType(String.format("zones/%s/machineTypes/%s"
         , gridZone, machineType));
+    
+    // Set zone
     instance.setZone(gridZone);
     
     // Attach network interface
@@ -131,18 +142,15 @@ public class GridGenerator extends AbstractGrid {
     instance.setTags(networkTags);
     
     // Add metadata
-    Metadata md = new Metadata();
-    md.putAll(metadata);
-    instance.setMetadata(md);
+    instance.setMetadata(ResourceUtil.getGCPMetadata(metadata));
     
     // Add labels
     instance.setLabels(labels);
     
-    // Complete instance build
+    // Finish instance build
     // Won't use ComputeService here.
     try {
-      return compute.instances().insert(
-          apiCoreProps.getProjectId(), gridZone, instance);
+      return compute.instances().insert(apiCoreProps.getProjectId(), gridZone, instance);
     } catch (IOException io) {
       // Wrap, so that compiler won't complain using this method in lambda.
       throw new RuntimeException(io);
@@ -173,9 +181,23 @@ public class GridGenerator extends AbstractGrid {
     // put in custom labels so that it overrides any matching entry.
     mergedLabels.putAll(customLabels);
     
-    // put in runtime specific labels
-    mergedLabels.put("source-image-family", image.getFamily());
+    // put in labels using image properties.
+    
+    // reference source image of the grid as label.
+    mergedLabels.put(ResourceUtil.LABEL_SOURCE_FAMILY, image.getFamily());
     
     return mergedLabels;
   }
+  
+  private Map<String, String> mergedMetadata() {
+    GridDefault gridDefault = apiCoreProps.getGridDefault();
+    Map<String, String> metadata = new HashMap<>();
+    
+    // first put server defined grid defaults.
+    metadata.putAll(gridDefault.getMetadata());
+    // merge user defined grid properties, replacing if there's a match.
+    metadata.putAll(gridProp.getMetadata());
+    return metadata;
+  }
+  
 }

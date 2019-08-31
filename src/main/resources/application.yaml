@@ -1,7 +1,6 @@
 ---
 api-core:
   project-id: zl-win-nodes
-  short-version: beta
   gce-api-url: https://www.googleapis.com/compute/v1/projects
   gce-timeout-millis: 360000
   gce-zonal-reattempt-errors:
@@ -38,8 +37,7 @@ api-core:
       is-deleting: false
     metadata: # specify only metadata that can be given a default.
       time-zone-with-dst: Greenwich Standard Time
-    image-specific-labels-key: # Label keys in image those don't hold the same value as in a grid.  
-      - source_image_family
+    image-specific-labels-key: # Label keys in image those don't belong to a grid.
       - min-on-demand-test-vm
 ---
 spring.profiles.active=production

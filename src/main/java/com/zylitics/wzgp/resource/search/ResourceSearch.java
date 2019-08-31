@@ -21,6 +21,6 @@ public interface ResourceSearch {
       return new ResourceSearchImpl.Factory();
     }
     
-    ResourceSearch create(ComputeService computeCalls, ResourceSearchParam searchParam);
+    ResourceSearch create(ComputeService computeSrv, ResourceSearchParam searchParam);
   }
 }
