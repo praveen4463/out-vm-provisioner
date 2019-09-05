@@ -50,7 +50,7 @@ public class ResourceSearchImpl implements ResourceSearch {
         .addConditionalExpr(AND)
         .addCondition("labels.zl-selenium-grid", "true", EQ)
         .addConditionalExpr(AND)
-        .addCondition("labels.locked-by-build", "NONE", EQ)
+        .addCondition("labels.locked-by-build", "none", EQ)
         .addConditionalExpr(AND)
         .addCondition("labels.is-deleting", "false", EQ)
         .addConditionalExpr(AND)  // common filter will follow here

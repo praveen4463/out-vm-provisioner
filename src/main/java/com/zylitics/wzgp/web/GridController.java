@@ -24,6 +24,7 @@ import com.zylitics.wzgp.http.ResponseGridCreate;
 import com.zylitics.wzgp.http.ResponseGridDelete;
 import com.zylitics.wzgp.http.ResponseStatus;
 import com.zylitics.wzgp.resource.APICoreProperties;
+import com.zylitics.wzgp.resource.BuildProperty;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 import com.zylitics.wzgp.resource.service.ComputeService;
 import com.zylitics.wzgp.web.exceptions.GridStartHandlerFailureException;
@@ -49,6 +50,10 @@ import com.zylitics.wzgp.web.exceptions.GridStartHandlerFailureException;
  * 
  * !!! Note that, object of this class will be shared among all threads, take care with global
  * members.
+ * 
+ * Note: The controller is instantiated once and used for all requests processing. Then handler
+ * factories used will be injected on the first instantiation and will remain until the life of
+ * application together with other controller dependencies.
  */
 @RestController
 @RequestMapping("${app-short-version}/zones/{zone}/grids")
@@ -115,7 +120,11 @@ public class GridController {
         , gridCreateReq);
     try {
       return startHandler.handle();
-    } catch (GridStartHandlerFailureException failure) {
+    } catch (Exception failure) {
+      if (!(failure instanceof GridStartHandlerFailureException)) {
+        LOG.error("start handler experienced an unexpected exception, trying to create a fresh grid"
+            + addToException(gridCreateReq.getBuildProperties()), failure);
+      }
       // we couldn't get a stopped grid instance, fallback to a fresh one.
       return gridGenerateHandlerFactory.create(compute
           , apiCoreProps
@@ -168,15 +177,23 @@ public class GridController {
     // TODO: we'll have to see what type of errors we may get here and may require more information
     // from handler classes to better debug error causes, for example the state of program when this
     // exception occurred, the received parameters from client, etc.
-    LOG.error(ex.getMessage(), ex);
+    LOG.error("", ex);
     
     ResponseGridError errRes = new ResponseGridError();
-    errRes.setHttpErrorStatusCode(status.value());
+    errRes.setHttpStatusCode(status.value());
     errRes.setError(ex.getMessage());
     errRes.setStatus(ResponseStatus.FAILURE.name());
     
     return ResponseEntity
         .status(status)
         .body(errRes);
+  }
+  
+  private String addToException(BuildProperty buildProp) {
+    StringBuilder sb = new StringBuilder();
+    if (buildProp != null) {
+      sb.append(buildProp.toString());
+    }
+    return sb.toString();
   }
 }

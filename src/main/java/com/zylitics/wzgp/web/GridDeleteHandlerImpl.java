@@ -5,13 +5,13 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import org.assertj.core.util.Strings;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.Assert;
 
 import com.google.api.services.compute.model.Instance;
 import com.google.api.services.compute.model.Operation;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.zylitics.wzgp.http.ResponseGridDelete;
 import com.zylitics.wzgp.http.ResponseStatus;
@@ -20,6 +20,7 @@ import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 import com.zylitics.wzgp.resource.service.ComputeService;
 import com.zylitics.wzgp.resource.util.ResourceUtil;
 import com.zylitics.wzgp.web.exceptions.GridNotDeletedException;
+import com.zylitics.wzgp.web.exceptions.GridNotFoundException;
 import com.zylitics.wzgp.web.exceptions.GridNotStoppedException;
 
 public class GridDeleteHandlerImpl extends AbstractGridHandler implements GridDeleteHandler {
@@ -52,6 +53,11 @@ public class GridDeleteHandlerImpl extends AbstractGridHandler implements GridDe
     }
     // get the grid instance to check a few things,
     Instance gridInstance = computeSrv.getInstance(gridName, zone, null);
+    
+    if (gridInstance == null) {
+      throw new GridNotFoundException("Grid instance wasn't found by name " + gridName + " deletion"
+          + " is failed");
+    }
     
     // could be true if an ongoing deployment is running that applied this label to indicate we
     // should delete the instance.
@@ -101,7 +107,7 @@ public class GridDeleteHandlerImpl extends AbstractGridHandler implements GridDe
     
     ResponseGridDelete response = prepareResponse();
     return ResponseEntity
-        .status(response.getHttpErrorStatusCode())
+        .status(response.getHttpStatusCode())
         .body(response);
   }
   
@@ -119,7 +125,7 @@ public class GridDeleteHandlerImpl extends AbstractGridHandler implements GridDe
     
     ResponseGridDelete response = prepareResponse();
     return ResponseEntity
-        .status(response.getHttpErrorStatusCode())
+        .status(response.getHttpStatusCode())
         .body(response);
   }
   
@@ -131,7 +137,7 @@ public class GridDeleteHandlerImpl extends AbstractGridHandler implements GridDe
   
   private ResponseGridDelete prepareResponse() {
     ResponseGridDelete response = new ResponseGridDelete();
-    response.setHttpErrorStatusCode(HttpStatus.OK.value());
+    response.setHttpStatusCode(HttpStatus.OK.value());
     response.setStatus(ResponseStatus.SUCCESS.name());
     response.setZone(zone);
     return response;

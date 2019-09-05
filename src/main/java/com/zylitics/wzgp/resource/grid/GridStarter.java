@@ -1,5 +1,7 @@
 package com.zylitics.wzgp.resource.grid;
 
+import static com.zylitics.wzgp.resource.util.ResourceUtil.nameFromUrl;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -14,7 +16,6 @@ import com.zylitics.wzgp.resource.BuildProperty;
 import com.zylitics.wzgp.resource.CompletedOperation;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 import com.zylitics.wzgp.resource.service.ComputeService;
-import com.zylitics.wzgp.resource.util.ResourceUtil;
 
 public class GridStarter {
   
@@ -23,6 +24,7 @@ public class GridStarter {
   private final BuildProperty buildProp;
   private final GridProperty gridProp;
   private final Instance gridInstance;
+  private final String zone;
 
   public GridStarter(ResourceExecutor executor
       , ComputeService computeSrv
@@ -36,6 +38,7 @@ public class GridStarter {
     Assert.notNull(gridInstance, "'gridInstance' can't be null.");
     Assert.hasText(gridInstance.getName(), "'gridInstance' name is missing, object seems invalid.");
     this.gridInstance = gridInstance;
+    zone = nameFromUrl(gridInstance.getZone()); 
   }
   
   public CompletedOperation start() throws Exception {
@@ -66,7 +69,7 @@ public class GridStarter {
   }
   
   private Operation startInstanceHandler() throws Exception {
-    return computeSrv.startInstance(gridInstance.getName(), gridInstance.getZone(), buildProp);
+    return computeSrv.startInstance(gridInstance.getName(), zone, buildProp);
   }
   
   private Optional<Operation> machineTypeUpdateHandler() throws Exception {
@@ -83,11 +86,11 @@ public class GridStarter {
     }
     
     if (!gridProp.getMachineType().equals(
-        ResourceUtil.getResourceNameFromUrl(gridInstance.getMachineType()))) {
+        nameFromUrl(gridInstance.getMachineType()))) {
       return Optional.ofNullable(computeSrv.setMachineType(
           gridInstance.getName()
           , gridProp.getMachineType()
-          , gridInstance.getZone()
+          , zone
           , buildProp));
     }
     return Optional.empty();
@@ -111,7 +114,7 @@ public class GridStarter {
       return Optional.ofNullable(computeSrv.setServiceAccount(
           gridInstance.getName()
           , gridProp.getServiceAccount()
-          , gridInstance.getZone()
+          , zone
           , buildProp));
     }
     return Optional.empty();
@@ -125,7 +128,7 @@ public class GridStarter {
     return Optional.ofNullable(computeSrv.setLabels(
         gridInstance.getName()
         , gridProp.getCustomLabels()
-        , gridInstance.getZone()
+        , zone
         , buildProp));
   }
   
@@ -137,7 +140,7 @@ public class GridStarter {
     return Optional.ofNullable(computeSrv.setMetadata(
         gridInstance.getName()
         , gridProp.getMetadata()
-        , gridInstance.getZone()
+        , zone
         , buildProp));
   }
   

@@ -33,11 +33,10 @@ api-core:
     labels: # we should specify only instance specific labels, no labels common with image.
       is-production-instance: true
       zl-selenium-grid: true
-      locked-by-build: NONE
+      locked-by-build: none
       is-deleting: false
     metadata: # specify only metadata that can be given a default.
       time-zone-with-dst: Greenwich Standard Time
     image-specific-labels-key: # Label keys in image those don't belong to a grid.
       - min-on-demand-test-vm
 ---
-spring.profiles.active=production

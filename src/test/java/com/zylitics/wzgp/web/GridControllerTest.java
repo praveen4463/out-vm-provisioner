@@ -21,7 +21,7 @@ import com.zylitics.wzgp.web.exceptions.GridStartHandlerFailureException;
 
 public class GridControllerTest {
   
-  private static final String ZONE = "zone-1";
+  private static final String ZONE = "us-central0-g";
   
   private static final String GRID_NAME = "grid-1";
   
@@ -94,12 +94,23 @@ public class GridControllerTest {
   }
   
   @Test
-  @DisplayName("verify stopped grid start failure lead to fresh grid generate")
-  void gridStartedFailureTriggerGridGenerate() throws Exception {
+  @DisplayName("verify stopped grid start 'known' failure lead to fresh grid generate")
+  void gridStartedKnowFailureTriggerGridGenerate() throws Exception {
+    gridStartedFailureTriggerGridGenerate(GridStartHandlerFailureException.class);
+  }
+  
+  @Test
+  @DisplayName("verify stopped grid start 'unknown' failure lead to fresh grid generate")
+  void gridStartedUnknownFailureTriggerGridGenerate() throws Exception {
+    gridStartedFailureTriggerGridGenerate(RuntimeException.class);
+  }
+  
+  void gridStartedFailureTriggerGridGenerate(Class<? extends Throwable> failureType)
+      throws Exception {
     GridGenerateHandler generateHandler = mock(GridGenerateHandler.class);
     
     GridStartHandler startHandler = mock(GridStartHandler.class);
-    when(startHandler.handle()).thenThrow(GridStartHandlerFailureException.class);
+    when(startHandler.handle()).thenThrow(failureType);
     
     RequestGridCreate request = mock(RequestGridCreate.class);
     

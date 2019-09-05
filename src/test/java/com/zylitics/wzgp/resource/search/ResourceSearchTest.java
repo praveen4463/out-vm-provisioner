@@ -12,11 +12,12 @@ import com.google.api.services.compute.model.Instance;
 import com.google.common.collect.ImmutableList;
 import com.zylitics.wzgp.resource.service.ComputeService;
 import com.zylitics.wzgp.test.dummy.DummyRequestGridCreate;
+import com.zylitics.wzgp.test.util.ResourceTestUtil;
 
 public class ResourceSearchTest {
   
   private static final ResourceSearchParam SEARCH_PARAMS =
-      new DummyRequestGridCreate().getResourceSearchParams();
+      new DummyRequestGridCreate().get().getResourceSearchParams();
 
   @Test
   @DisplayName("verify image search parameters are valid")
@@ -40,7 +41,7 @@ public class ResourceSearchTest {
     sb.append(" AND ");
     sb.append("(labels.zl-selenium-grid = \"true\")");
     sb.append(" AND ");
-    sb.append("(labels.locked-by-build = \"NONE\")");
+    sb.append("(labels.locked-by-build = \"none\")");
     sb.append(" AND ");
     sb.append("(labels.is-deleting = \"false\")");
     sb.append(" AND ");
@@ -48,8 +49,11 @@ public class ResourceSearchTest {
     String instanceName = "instance-1";
     String zone = "zone-1";
     ComputeService computeSrv = mock(ComputeService.class);
+    
     when(computeSrv.listInstances(sb.toString(), 1L, zone, null))
-        .thenReturn(ImmutableList.of(new Instance().setName(instanceName).setZone(zone)));
+        .thenReturn(ImmutableList.of(
+            new Instance().setName(instanceName).setZone(ResourceTestUtil.getZoneLink(zone))));
+    
     Instance instance = ResourceSearch.Factory.getDefault().create(computeSrv, SEARCH_PARAMS)
         .searchStoppedInstance(zone).get();
     assertEquals(instanceName, instance.getName());

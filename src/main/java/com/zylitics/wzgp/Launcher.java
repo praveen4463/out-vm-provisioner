@@ -5,6 +5,7 @@ import java.util.Collections;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Profile;
 
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
@@ -12,10 +13,6 @@ import com.google.api.services.compute.Compute;
 import com.google.api.services.compute.ComputeScopes;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.zylitics.wzgp.config.APICorePropertiesImpl;
-import com.zylitics.wzgp.resource.APICoreProperties;
-import com.zylitics.wzgp.resource.executor.ResourceExecutor;
-import com.zylitics.wzgp.resource.executor.ResourceExecutorImpl;
 import com.zylitics.wzgp.web.GridDeleteHandler;
 import com.zylitics.wzgp.web.GridDeleteHandlerImpl;
 import com.zylitics.wzgp.web.GridGenerateHandler;
@@ -31,7 +28,8 @@ public class Launcher {
   }
   
   @Bean
-  public Compute getCompute() throws Exception {
+  @Profile("production")
+  public Compute compute() throws Exception {
     GoogleCredentials credentials = GoogleCredentials.getApplicationDefault();
     if (credentials.createScopedRequired()) {
       credentials = credentials.createScoped(
@@ -46,27 +44,20 @@ public class Launcher {
   }
   
   @Bean
-  public APICoreProperties getAPICoreProperties() {
-    return new APICorePropertiesImpl();
-  }
-  
-  @Bean
-  public ResourceExecutor getResourceExecutor() throws Exception {
-    return new ResourceExecutorImpl(getCompute(), getAPICoreProperties());
-  }
-  
-  @Bean
-  public GridGenerateHandler.Factory getGridGenerateHandlerFactory() {
+  @Profile("production")
+  public GridGenerateHandler.Factory gridGenerateHandlerFactory() {
     return new GridGenerateHandlerImpl.Factory();
   }
   
   @Bean
-  public GridStartHandler.Factory getGridStartHandlerFactory() {
+  @Profile("production")
+  public GridStartHandler.Factory gridStartHandlerFactory() {
     return new GridStartHandlerImpl.Factory();
   }
   
   @Bean
-  public GridDeleteHandler.Factory getGridDeleteHandlerFactory() {
+  @Profile("production")
+  public GridDeleteHandler.Factory gridDeleteHandlerFactory() {
     return new GridDeleteHandlerImpl.Factory();
   }
 }

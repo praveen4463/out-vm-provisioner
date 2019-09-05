@@ -1,5 +1,7 @@
 package com.zylitics.wzgp.resource.grid;
 
+import static com.zylitics.wzgp.resource.util.ResourceUtil.nameFromUrl;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -84,7 +86,8 @@ public class GridGeneratorTest {
           .put("browser1", "chrome")
           .put(ResourceUtil.LABEL_SOURCE_FAMILY, IMAGE_FAMILY).build();
   
-  private static final BuildProperty BUILD_PROP = new DummyRequestGridCreate().getBuildProperties();
+  private static final BuildProperty BUILD_PROP =
+      new DummyRequestGridCreate().get().getBuildProperties();
   
   private static final Compute COMPUTE = new FakeCompute().get();
   
@@ -103,17 +106,17 @@ public class GridGeneratorTest {
   @SuppressWarnings("unchecked")
   @DisplayName("verify grid creates and validate its properties")
   @Test
-  void gridCreateTest() throws Exception {
+  void gridGenerateTest() throws Exception {
     // Prepare spy that return a private instance of GridDefault so that we can provide any values.
     APICoreProperties apiCorePropsSpy = spy(new DummyAPICoreProperties());
     doReturn(new DummyGridDefaults()).when(apiCorePropsSpy).getGridDefault();
     
-    String primaryZone = "zone-a";
-    String randomZone = "zone-f";
+    String primaryZone = "us-central0-g";
+    String primaryZoneRegion = "us-central0";
+    String randomZone = "us-west0-k";
+    String randomZoneRegion = "us-west0";
     
-    Image image = new Image();
-    image.setFamily(IMAGE_FAMILY);
-    image.setLabels(IMAGE_LABELS);
+    Image image = new Image().setFamily(IMAGE_FAMILY).setLabels(IMAGE_LABELS);
     
     ResourceExecutor executor = mock(ResourceExecutor.class);
     
@@ -122,14 +125,16 @@ public class GridGeneratorTest {
           
           Instances.Insert insertInstanceProvided = (Instances.Insert) invocation.getArgument(0);
           
-          verifyGridConfiguration((Instance) insertInstanceProvided.getJsonContent(), primaryZone);
+          verifyGridConfiguration((Instance) insertInstanceProvided.getJsonContent()
+              , primaryZoneRegion);
           
           Function<String, Instances.Insert> insertInstanceFactory =
               (Function<String, Instances.Insert>) invocation.getArgument(1);
           
           Instances.Insert insertInstanceGenerated = insertInstanceFactory.apply(randomZone);
           
-          verifyGridConfiguration((Instance) insertInstanceGenerated.getJsonContent(), randomZone);
+          verifyGridConfiguration((Instance) insertInstanceGenerated.getJsonContent()
+              , randomZoneRegion);
           
           Operation operation = new Operation();
           operation.setStatus("DONE");
@@ -145,29 +150,28 @@ public class GridGeneratorTest {
     assertEquals("DONE", generator.create(primaryZone).get().getStatus());
   }
   
-  private void verifyGridConfiguration(Instance instance, String suppliedZone) {
-    assertTrue(instance.getName().matches(IMAGE_FAMILY + "-" + "[a-z0-9A-Z]{10}-vm"));
+  private void verifyGridConfiguration(Instance instance, String region) {
+    assertTrue(instance.getName().matches(IMAGE_FAMILY + "-" + "[a-z0-9]{10}-vm"));
     
-    assertEquals(suppliedZone, instance.getZone());
-    
-    assertEquals(MACHINE_TYPE, ResourceUtil.getResourceNameFromUrl(instance.getMachineType()));
+    assertEquals(MACHINE_TYPE, nameFromUrl(instance.getMachineType()));
     
     assertEquals(NETWORK
-        , ResourceUtil.getResourceNameFromUrl(instance.getNetworkInterfaces().get(0).getNetwork()));
+        , nameFromUrl(instance.getNetworkInterfaces().get(0).getNetwork()));
+    
+    // match URI instead cause we need to verify the region as well.
+    String subnetURL = String.format("regions/%s/subnetworks/%s", region, "subnet-" + region);
+    assertEquals(subnetURL, instance.getNetworkInterfaces().get(0).getSubnetwork());
     
     assertEquals(IMAGE_FAMILY
-        , ResourceUtil.getResourceNameFromUrl(
-            instance.getDisks().get(0).getInitializeParams().getSourceImage()));
+        , nameFromUrl(instance.getDisks().get(0).getInitializeParams().getSourceImage()));
     
-    assertEquals(SERVICE_ACCOUNT
-        , ResourceUtil.getResourceNameFromUrl(instance.getServiceAccounts().get(0).getEmail()));
+    assertEquals(SERVICE_ACCOUNT, instance.getServiceAccounts().get(0).getEmail());
     
     assertEquals(PREEMPTIBLE, instance.getScheduling().getPreemptible());
     
     assertEquals(TAGS, new HashSet<>(instance.getTags().getItems()));
     
-    assertEquals(ResourceUtil.getGCPMetadata(MERGED_METADATA)
-        , instance.getMetadata());
+    assertEquals(ResourceUtil.getGCPMetadata(MERGED_METADATA), instance.getMetadata());
     
     assertEquals(MERGED_LABELS, instance.getLabels());
   }

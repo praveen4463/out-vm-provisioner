@@ -27,6 +27,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -51,13 +52,15 @@ import com.zylitics.wzgp.test.dummy.DummyAPICoreProperties;
 import com.zylitics.wzgp.test.dummy.DummyRequestGridCreate;
 import com.zylitics.wzgp.test.dummy.FakeCompute;
 import com.zylitics.wzgp.test.util.FlexibleOffsetClock;
+import com.zylitics.wzgp.test.util.ResourceTestUtil;
 
 public class ResourceExecutorImplTest {
 
-  private static final BuildProperty BUILD_PROP = new DummyRequestGridCreate().getBuildProperties();
+  private static final BuildProperty BUILD_PROP =
+      new DummyRequestGridCreate().get().getBuildProperties();
   
   // shouldn't be in our re-attempt zone list.
-  private static final String PRIMARY_ZONE = "unknown-zone-a-1";
+  private static final String PRIMARY_ZONE = "us-central0-g";
   
   private static final String INSTANCE_NAME = "instance-a-1";
   
@@ -167,7 +170,7 @@ public class ResourceExecutorImplTest {
               // generate new Instances.Insert for this zone.
               Instance newZoneInstance = new Instance();
               
-              newZoneInstance.setZone(randomZone);
+              newZoneInstance.setZone(ResourceTestUtil.getZoneLink(randomZone));
               
               Instances.Insert mockInsertInstanceRandomZone =
                   getMockInsertInstance(randomZone, newZoneInstance);
@@ -175,6 +178,8 @@ public class ResourceExecutorImplTest {
               // succeed on the any re-attempt. Randomly selects between successful and unsuccessful
               // operation response. This verifies our re-attempt logic is strong enough to sustain
               // a few unsuccessful responses, thus the maximum re-attempts should be > 4
+              //TODO: we may apply some logic so that if random.nextBoolean() is false for max
+              // re-attempt times, we force it to true so tests won't fail.  
               Operation operation = random.nextBoolean()
                   ? getSuccessfulOperation(INSTANCE_NAME, randomZone, "DONE")
                   : getUnSuccessfulOperation(INSTANCE_NAME, randomZone, "DONE", zonalErrors.get(0));
@@ -188,10 +193,13 @@ public class ResourceExecutorImplTest {
             
             assertTrue(ResourceUtil.isOperationSuccess(returnedOperation.get()));
             
-            assertNotEquals(returnedOperation.get().getZone(), PRIMARY_ZONE);
+            String returnedOperationZone =
+                ResourceUtil.nameFromUrl(returnedOperation.get().getZone());
             
-            assertTrue(API_CORE_PROPS.getGceReattemptZones().contains(
-                returnedOperation.get().getZone()));  // verify, random zone is taken from our list.
+            assertNotEquals(returnedOperationZone, PRIMARY_ZONE);
+            
+            assertTrue(API_CORE_PROPS.getGceReattemptZones().contains(returnedOperationZone));
+            // verify, random zone is taken from our list.
             
           }),
           
@@ -215,7 +223,7 @@ public class ResourceExecutorImplTest {
               // generate new Instances.Insert for this zone.
               Instance newZoneInstance = new Instance();
               
-              newZoneInstance.setZone(randomZone);
+              newZoneInstance.setZone(ResourceTestUtil.getZoneLink(randomZone));
               
               Instances.Insert mockInsertInstanceRandomZone =
                   getMockInsertInstance(randomZone, newZoneInstance);
@@ -257,7 +265,7 @@ public class ResourceExecutorImplTest {
               // generate new Instances.Insert for this zone.
               Instance newZoneInstance = new Instance();
               
-              newZoneInstance.setZone(randomZone);
+              newZoneInstance.setZone(ResourceTestUtil.getZoneLink(randomZone));
               
               Instances.Insert mockInsertInstanceRandomZone =
                   getMockInsertInstance(randomZone, newZoneInstance);
@@ -335,16 +343,16 @@ public class ResourceExecutorImplTest {
   private Operation getOpForStatusCheck(String status) {
     return new Operation()
         .setStatus(status)
-        .setName("unknown-op")
-        .setZone("unknown-zone");
+        .setName("operation-" + UUID.randomUUID())
+        .setZone(ResourceTestUtil.getZoneLink(PRIMARY_ZONE));
   }
   
   private Operation getSuccessfulOperation(String resourceName, String zone, String status) {
     return new Operation()
-        .setHttpErrorStatusCode(HttpStatus.OK.value())
         .setStatus(status)
-        .setName(resourceName)
-        .setZone(zone);
+        .setName("operation-" + UUID.randomUUID())
+        .setTargetLink(ResourceTestUtil.getOperationTargetLink(resourceName, zone))
+        .setZone(ResourceTestUtil.getZoneLink(zone));
   }
   
   private Operation getUnSuccessfulOperation(String resourceName, String zone, String status
@@ -361,8 +369,9 @@ public class ResourceExecutorImplTest {
     return new Operation()
         .setHttpErrorStatusCode(HttpStatus.TOO_MANY_REQUESTS.value())
         .setStatus(status)
-        .setName(resourceName)
-        .setZone(zone)
+        .setName("operation-" + UUID.randomUUID())
+        .setTargetLink(ResourceTestUtil.getOperationTargetLink(resourceName, zone))
+        .setZone(ResourceTestUtil.getZoneLink(zone))
         .setError(error);
   }
   

@@ -1,5 +1,7 @@
 package com.zylitics.wzgp.web;
 
+import static com.zylitics.wzgp.resource.util.ResourceUtil.nameFromUrl;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.util.Assert;
 
@@ -46,14 +48,20 @@ public abstract class AbstractGridCreateHandler extends AbstractGridHandler {
     response.setGridInternalIP(gridInstance.getNetworkInterfaces().get(0).getNetworkIP());
     response.setGridId(gridInstance.getId());
     response.setGridName(gridInstance.getName());
-    response.setHttpErrorStatusCode(status.value());
+    response.setHttpStatusCode(status.value());
     response.setStatus(ResponseStatus.SUCCESS.name());
-    response.setZone(gridInstance.getZone());
+    response.setZone(nameFromUrl(gridInstance.getZone()));
     return response;
   }
   
-  protected void lockGridInstance(String name, String zone) throws Exception {
-    Operation operation = computeSrv.setLabels(name
+  /**
+   * Locks a grid instance by putting {@link }
+   * @param instanceWithUptoDateDetails should be an instance that is up-to-date with GCP (use get()
+   * to fetch up-to-date instance from GCP)
+   * @throws Exception
+   */
+  protected void lockGridInstance(Instance instanceWithUptoDateDetails) throws Exception {
+    Operation operation = computeSrv.setLabels(gridName
         , ImmutableMap.of(ResourceUtil.LABEL_LOCKED_BY_BUILD, buildProp.getBuildId())
         , zone
         , buildProp);

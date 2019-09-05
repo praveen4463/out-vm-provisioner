@@ -18,7 +18,7 @@ public class DummyAPICoreProperties implements APICoreProperties {
   
   @Override
   public String getGceApiUrl() {
-    return "http://googleapis.com";
+    return "https://www.googleapis.com/compute/v1/projects";
   }
   
   @Override

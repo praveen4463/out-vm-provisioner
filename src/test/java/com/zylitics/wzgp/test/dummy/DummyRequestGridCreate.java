@@ -1,100 +1,30 @@
 package com.zylitics.wzgp.test.dummy;
 
-import java.util.Map;
-
-import com.google.common.collect.ImmutableMap;
 import com.zylitics.wzgp.http.RequestGridCreate;
+import com.zylitics.wzgp.http.RequestGridCreate.BuildProperties;
+import com.zylitics.wzgp.http.RequestGridCreate.GridProperties;
+import com.zylitics.wzgp.http.RequestGridCreate.ResourceSearchParams;
 
-public class DummyRequestGridCreate extends RequestGridCreate {
+public class DummyRequestGridCreate {
 
-  private DummyBuildProperties buildProperties = new DummyBuildProperties();
+  private RequestGridCreate requestGridCreate;
   
-  private DummyResourceSearchParams resourceSearchParams = new DummyResourceSearchParams();
-  
-  private DummyGridProperties gridProperties = new DummyGridProperties();
-  
-  @Override
-  public DummyBuildProperties getBuildProperties() {
-    return buildProperties;
-  }
-  
-  @Override
-  public DummyResourceSearchParams getResourceSearchParams() {
-    return resourceSearchParams;
-  }
-  
-  @Override
-  public DummyGridProperties getGridProperties() {
-    return gridProperties;
-  }
-  
-  private static class DummyBuildProperties extends BuildProperties {
+  public RequestGridCreate get() {
+    requestGridCreate = new RequestGridCreate();
+    BuildProperties buildProps = requestGridCreate.getBuildProperties();
+    buildProps.setBuildId("build-007");
     
-    private String buildId = "build-007";
+    ResourceSearchParams resourceSearchParams = requestGridCreate.getResourceSearchParams();
+    resourceSearchParams.setOS("win7");
+    resourceSearchParams.setBrowser("chrome");
+    resourceSearchParams.setShots(false);
     
-    @Override
-    public String getBuildId() {
-      return buildId;
-    }
-    
-    @Override
-    public String toString() {
-      return "BuildProperties [buildId=" + buildId + "]";
-    }
-  }
-  
-  private static class DummyResourceSearchParams extends ResourceSearchParams {
-    
-    private String os = "win7";
-    private String browser = "chrome";
-    private boolean shots = false;
-    
-    @Override
-    public String getOS() {
-      return os;
-    }
-    
-    @Override
-    public String getBrowser() {
-      return browser;
-    }
-    
-    @Override
-    public boolean isShots() {
-      return shots;
-    }
-    
-    @Override
-    public String toString() {
-      return "ResourceSearchParams [os=" + os + ", browser=" + browser + ", shots=" + shots + "]";
-    }
-  }
-  
-  private static class DummyGridProperties extends GridProperties {
-    
-    @Override
-    public String getMachineType() {
-      return "n2-standard";
-    }
-    
-    @Override
-    public String getServiceAccount() {
-      return "dummy-service-account@gcp.com";
-    }
-    
-    @Override
-    public boolean isPreemptible() {
-      return false;
-    }
-    
-    @Override
-    public Map<String, String> getCustomLabels() {
-      return ImmutableMap.of("is-production-instance", "false");
-    }
-    
-    @Override
-    public Map<String, String> getMetadata() {
-      return ImmutableMap.of("screen", "1x1");
-    }
+    GridProperties gridProps = requestGridCreate.getGridProperties();
+    gridProps.setMachineType("n2-standard");
+    gridProps.setServiceAccount("dummy-service-account@gcp.com");
+    gridProps.setPreemptible(false);
+    gridProps.getCustomLabels().put("is-production-instance", "false");
+    gridProps.getMetadata().put("screen", "1x1");
+    return requestGridCreate;
   }
 }

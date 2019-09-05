@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static com.zylitics.wzgp.resource.util.ResourceUtil.nameFromUrl;
 
 import java.util.List;
 import java.util.Map;
@@ -35,11 +36,15 @@ import com.zylitics.wzgp.resource.util.ResourceUtil;
 import com.zylitics.wzgp.test.dummy.DummyAPICoreProperties;
 import com.zylitics.wzgp.test.dummy.DummyRequestGridCreate;
 import com.zylitics.wzgp.test.dummy.FakeCompute;
+import com.zylitics.wzgp.test.util.ResourceTestUtil;
 
 public class ComputeServiceTest {
   
-  private static final BuildProperty BUILD_PROP = new DummyRequestGridCreate().getBuildProperties();
-  private static final String ZONE = "unknown-zone-a-1";
+  private static final BuildProperty BUILD_PROP =
+      new DummyRequestGridCreate().get().getBuildProperties();
+  
+  private static final String ZONE = "us-central0-g";
+  
   private static final String INSTANCE_NAME = "instance-a-1";
 
   private static final Compute COMPUTE = new FakeCompute().get();
@@ -65,7 +70,7 @@ public class ComputeServiceTest {
             });
             ComputeService computeSrv = new ComputeService(COMPUTE, executor, API_CORE_PROPS);
             Operation operation = computeSrv.startInstance(INSTANCE_NAME, ZONE, BUILD_PROP);
-            assertEquals(INSTANCE_NAME, operation.getName());
+            assertEquals(INSTANCE_NAME, nameFromUrl(operation.getTargetLink()));
           }),
           
           dynamicTest("verify instance stop provides valid arguments to execute", () -> {
@@ -81,7 +86,7 @@ public class ComputeServiceTest {
             });
             ComputeService computeSrv = new ComputeService(COMPUTE, executor, API_CORE_PROPS);
             Operation operation = computeSrv.stopInstance(INSTANCE_NAME, ZONE, BUILD_PROP);
-            assertEquals(INSTANCE_NAME, operation.getName());
+            assertEquals(INSTANCE_NAME, nameFromUrl(operation.getTargetLink()));
           }),
           
           dynamicTest("verify instance delete provides valid arguments to execute", () -> {
@@ -97,7 +102,7 @@ public class ComputeServiceTest {
             });
             ComputeService computeSrv = new ComputeService(COMPUTE, executor, API_CORE_PROPS);
             Operation operation = computeSrv.deleteInstance(INSTANCE_NAME, ZONE, BUILD_PROP);
-            assertEquals(INSTANCE_NAME, operation.getName());
+            assertEquals(INSTANCE_NAME, nameFromUrl(operation.getTargetLink()));
           }),
           
           dynamicTest("verify instance get provides valid arguments to execute", () -> {
@@ -123,7 +128,7 @@ public class ComputeServiceTest {
                   Instances.SetMachineType setMachineType = ivocation.getArgument(0);
                   InstancesSetMachineTypeRequest request =
                       ((InstancesSetMachineTypeRequest) setMachineType.getJsonContent());
-                  String machine = ResourceUtil.getResourceNameFromUrl(request.getMachineType());
+                  String machine = nameFromUrl(request.getMachineType());
                   if (!(setMachineType.getInstance().equals(INSTANCE_NAME) 
                       && setMachineType.getZone().equals(ZONE)
                       && setMachineType.getProject().equals(project)
@@ -136,7 +141,7 @@ public class ComputeServiceTest {
             ComputeService computeSrv = new ComputeService(COMPUTE, executor, API_CORE_PROPS);
             Operation operation = computeSrv.setMachineType(INSTANCE_NAME
                 , gridDefault.getMachineType(), ZONE, BUILD_PROP);
-            assertEquals(INSTANCE_NAME, operation.getName());
+            assertEquals(INSTANCE_NAME, nameFromUrl(operation.getTargetLink()));
           }),
           
           dynamicTest("verify set service-account provides valid arguments to execute", () -> {
@@ -159,11 +164,12 @@ public class ComputeServiceTest {
             ComputeService computeSrv = new ComputeService(COMPUTE, executor, API_CORE_PROPS);
             Operation operation = computeSrv.setServiceAccount(INSTANCE_NAME
                 , gridDefault.getServiceAccount(), ZONE, BUILD_PROP);
-            assertEquals(INSTANCE_NAME, operation.getName());
+            assertEquals(INSTANCE_NAME, nameFromUrl(operation.getTargetLink()));
           }),
           
           dynamicTest("verify set labels provides valid arguments to execute", () -> {
             ResourceExecutor executor = mock(ResourceExecutor.class);
+            String currentLabelFingerprint = "Lmgff445ddj455hdjff";
             when(executor.executeWithReattempt(any(Instances.SetLabels.class)
                 , eq(BUILD_PROP))).then(ivocation -> {
                   Instances.SetLabels setLabels = ivocation.getArgument(0);
@@ -173,6 +179,7 @@ public class ComputeServiceTest {
                   if (!(setLabels.getInstance().equals(INSTANCE_NAME) 
                       && setLabels.getZone().equals(ZONE)
                       && setLabels.getProject().equals(project)
+                      && request.getLabelFingerprint().equals(currentLabelFingerprint)
                       && labels.equals(gridDefault.getLabels()))) {
                     throw new RuntimeException(
                         "invalid parameter given to Instances.SetLabels.");
@@ -181,12 +188,13 @@ public class ComputeServiceTest {
             });
             ComputeService computeSrv = new ComputeService(COMPUTE, executor, API_CORE_PROPS);
             Operation operation = computeSrv.setLabels(INSTANCE_NAME, gridDefault.getLabels()
-                , ZONE, BUILD_PROP);
-            assertEquals(INSTANCE_NAME, operation.getName());
+                , ZONE, currentLabelFingerprint, BUILD_PROP);
+            assertEquals(INSTANCE_NAME, nameFromUrl(operation.getTargetLink()));
           }),
           
           dynamicTest("verify set metadata provides valid arguments to execute", () -> {
             ResourceExecutor executor = mock(ResourceExecutor.class);
+            String currentFingerprint = "Lmgff445ddj455hdjff";
             when(executor.executeWithReattempt(any(Instances.SetMetadata.class), eq(BUILD_PROP)))
                 .then(ivocation -> {
                   Instances.SetMetadata setMetadata = ivocation.getArgument(0);
@@ -194,15 +202,17 @@ public class ComputeServiceTest {
                   if (!(setMetadata.getInstance().equals(INSTANCE_NAME) 
                       && setMetadata.getZone().equals(ZONE)
                       && setMetadata.getProject().equals(project)
-                      && metadata.equals(ResourceUtil.getGCPMetadata(gridDefault.getMetadata())))) {
+                      && metadata.getFingerprint().equals(currentFingerprint)
+                      && metadata.getItems().equals(
+                          ResourceUtil.getGCPMetadata(gridDefault.getMetadata()).getItems()))) {
                     throw new RuntimeException("invalid parameter given to Instances.SetMetadata.");
                   }
                   return getOperation(INSTANCE_NAME);
             });
             ComputeService computeSrv = new ComputeService(COMPUTE, executor, API_CORE_PROPS);
             Operation operation = computeSrv.setMetadata(INSTANCE_NAME, gridDefault.getMetadata()
-                , ZONE, BUILD_PROP);
-            assertEquals(INSTANCE_NAME, operation.getName());
+                , ZONE, currentFingerprint, BUILD_PROP);
+            assertEquals(INSTANCE_NAME, nameFromUrl(operation.getTargetLink()));
           }),
           
           dynamicTest("verify image get from family provides valid arguments to execute", () -> {
@@ -264,8 +274,8 @@ public class ComputeServiceTest {
         );
   }
   
-  private Operation getOperation(String name) {
-    return new Operation().setName(name);
+  private Operation getOperation(String resourceName) {
+    return new Operation().setTargetLink(ResourceTestUtil.getOperationTargetLink(resourceName
+        , ZONE));
   }
-  
 }

@@ -4,7 +4,7 @@ public abstract class AbstractResponse {
 
   private String status;
   private String error;
-  private int httpErrorStatusCode;
+  private int httpStatusCode;
   
   public String getStatus() {
     return status;
@@ -22,11 +22,11 @@ public abstract class AbstractResponse {
     this.error = error;
   }
 
-  public int getHttpErrorStatusCode() {
-    return httpErrorStatusCode;
+  public int getHttpStatusCode() {
+    return httpStatusCode;
   }
 
-  public void setHttpErrorStatusCode(int httpErrorStatusCode) {
-    this.httpErrorStatusCode = httpErrorStatusCode;
+  public void setHttpStatusCode(int httpErrorStatusCode) {
+    this.httpStatusCode = httpErrorStatusCode;
   }
 }

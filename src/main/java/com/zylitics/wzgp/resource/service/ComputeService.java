@@ -97,24 +97,49 @@ public class ComputeService {
     return executor.executeWithReattempt(setServAcc, buildProp);
   }
   
+  /**
+   * 
+   * @param instanceName The name of instance to set labels to
+   * @param labels that needs to be set
+   * @param zone where the instance resides
+   * @param currentFingerprint label-fingerprint currently set at GCP for this instance. It needs to
+   * be up-to-date with GCP (use get() to fetch up-to-date instance from GCP)
+   * @param buildProp BuildProperty instance
+   * @return {@link Operation} representing set-labels operation
+   * @throws Exception
+   */
   public Operation setLabels(String instanceName
       , Map<String, String> labels
       , String zone
+      , String currentFingerprint
       , @Nullable BuildProperty buildProp) throws Exception {
     InstancesSetLabelsRequest labelReq = new InstancesSetLabelsRequest();
     labelReq.setLabels(labels);
+    labelReq.setLabelFingerprint(currentFingerprint);
     Instances.SetLabels setLabels =
         compute.instances().setLabels(project, zone, instanceName, labelReq);
     return executor.executeWithReattempt(setLabels, buildProp);
   }
   
+  /**
+   * 
+   * @param instanceName The name of instance to set labels to
+   * @param metadata that needs to be set
+   * @param zone where the instance resides
+   * @param currentFingerprint metadata-fingerprint currently set at GCP for this instance. It needs
+   * to be up-to-date with GCP (use get() to fetch up-to-date instance from GCP)
+   * @param buildProp BuildProperty instance
+   * @return {@link Operation} representing set-metadata operation
+   * @throws Exception
+   */
   public Operation setMetadata(String instanceName
       , Map<String, String> metadata
       , String zone
+      , String currentFingerprint
       , @Nullable BuildProperty buildProp) throws Exception {
     Instances.SetMetadata setMetadata =
         compute.instances().setMetadata(project, zone, instanceName
-            , ResourceUtil.getGCPMetadata(metadata));
+            , ResourceUtil.getGCPMetadata(metadata).setFingerprint(currentFingerprint));
     return executor.executeWithReattempt(setMetadata, buildProp);
   }
   

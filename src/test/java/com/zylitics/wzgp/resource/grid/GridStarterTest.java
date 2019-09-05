@@ -5,6 +5,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,13 +25,19 @@ import com.zylitics.wzgp.resource.CompletedOperation;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 import com.zylitics.wzgp.resource.service.ComputeService;
 import com.zylitics.wzgp.test.dummy.DummyRequestGridCreate;
+import com.zylitics.wzgp.test.util.ResourceTestUtil;
 
 public class GridStarterTest {
   
-  private static final BuildProperty BUILD_PROP = new DummyRequestGridCreate().getBuildProperties();
-  private static final String ZONE = "zone-1";
+  private static final BuildProperty BUILD_PROP =
+      new DummyRequestGridCreate().get().getBuildProperties();
+  
+  private static final String ZONE = "us-central0-g";
+  
   private static final String GRID_NAME = "instance-1";
+  
   private static final String GRID_MACHINE_TYPE = "machine-1";
+  
   private static final String GRID_SERVICE_ACCOUNT = "srv@email.com";
   
   @Test
@@ -115,15 +122,16 @@ public class GridStarterTest {
     return new Instance()
         .setStatus("TERMINATED")
         .setName(GRID_NAME)
-        .setZone(ZONE)
+        .setZone(ResourceTestUtil.getZoneLink(ZONE))
         .setMachineType(String.format("zones/%s/machineTypes/%s", ZONE, GRID_MACHINE_TYPE))
         .setServiceAccounts(ImmutableList.of(new ServiceAccount().setEmail(GRID_SERVICE_ACCOUNT)));
   }
   
-  private Operation getOperation(String name, String description) {
+  private Operation getOperation(String resourceName, String description) {
     return new Operation()
         .setStatus("RUNNING")
-        .setName(name)
+        .setName("operation-" + UUID.randomUUID())
+        .setTargetLink(ResourceTestUtil.getOperationTargetLink(resourceName, ZONE))
         .setDescription(description);
   }
   

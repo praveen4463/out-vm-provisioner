@@ -100,12 +100,10 @@ public class GridGenerator {
     instance.setMachineType(String.format("zones/%s/machineTypes/%s"
         , gridZone, machineType));
     
-    // Set zone
-    instance.setZone(gridZone);
-    
     // Attach network interface
     NetworkInterface nif = new NetworkInterface();
     nif.setNetwork(String.format("global/networks/%s", network));
+    nif.setSubnetwork(ResourceUtil.getSubnetURLFromZone(gridZone));
     AccessConfig accessConfig = new AccessConfig();
     accessConfig.setType("ONE_TO_ONE_NAT");
     accessConfig.setName("External NAT");

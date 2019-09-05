@@ -1,5 +1,7 @@
 package com.zylitics.wzgp.resource.executor;
 
+import static com.zylitics.wzgp.resource.util.ResourceUtil.nameFromUrl;
+
 import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
@@ -81,7 +83,6 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
     try {
       V out = objToExecute.execute();
       if (out == null) {
-        // Shouldn't happen but still log.
         LOG.error("Got null while inoking execute on {} {}" 
             , objToExecute.toString()
             , addToException(buildProp));
@@ -90,21 +91,19 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
     } catch(IOException io) {
       // TODO: implement re-attempts after learning from logs.
       // Log messages for debugging the issue.
-      try {
-        HttpResponseException httpExp = (HttpResponseException) io;
-        LOG.error("An IOException occurred while invoking execute on {}. From inner"
-            + " HttpResponseException: Status code= {}, Status message= {} {}"
-            , objToExecute.toString()
-            , httpExp.getStatusCode()
-            , httpExp.getStatusMessage()
-            , addToException(buildProp));
-      } catch (ClassCastException cce) {
-        // TODO: remove once you know that this won't happen.
-        LOG.error("An IOException occurred while invoking execute on {}, HttpResponseException"
-            + " isn't found wrapped. {}"
-            , objToExecute.toString()
-            , addToException(buildProp));
+      HttpResponseException httpExp = (HttpResponseException) io;
+      StringBuilder objectInfo = new StringBuilder();
+      Object jsonContent = objToExecute.getJsonContent();
+      if(jsonContent != null) {
+        objectInfo.append(jsonContent.toString());
       }
+      objectInfo.append(objToExecute.toString());
+      LOG.error("An IOException occurred while invoking execute on {}. From inner"
+          + " HttpResponseException: Status code= {}, Status message= {} {}"
+          , objectInfo.toString()
+          , httpExp.getStatusCode()
+          , httpExp.getStatusMessage()
+          , addToException(buildProp));
       // re-throw exception for handlers.
       throw io;
     }
@@ -241,9 +240,9 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
     Assert.notNull(operation, "Operation can't be null");
     
     Instant start = clock.instant();
-    String zone = ResourceUtil.getResourceNameFromUrl(operation.getZone());
+    String zone = nameFromUrl(operation.getZone());
     String status = operation.getStatus();
-    String opId = operation.getName();
+    String operationName = operation.getName();
     
     while (!status.equals("DONE")) {
       Thread.sleep(pollInterval);
@@ -259,7 +258,7 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
       Compute.ZoneOperations.Get get = compute.zoneOperations().get(
           apiCoreProps.getProjectId()
           , zone
-          , opId);
+          , operationName);
       operation = executeWithReattempt(get, buildProp);
       status = operation.getStatus();
     }

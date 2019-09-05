@@ -2,6 +2,9 @@ package com.zylitics.wzgp.web;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import java.util.UUID;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.DisplayName;
@@ -19,10 +22,11 @@ import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 import com.zylitics.wzgp.resource.service.ComputeService;
 import com.zylitics.wzgp.resource.util.ResourceUtil;
 import com.zylitics.wzgp.test.dummy.DummyAPICoreProperties;
+import com.zylitics.wzgp.test.util.ResourceTestUtil;
 
 public class GridDeleteHandlerImplTest {
 
-  private static final String ZONE = "zone-1";
+  private static final String ZONE = "us-central0-g";
   
   private static final String GRID_NAME = "grid-1";
   
@@ -156,10 +160,11 @@ public class GridDeleteHandlerImplTest {
   private Operation getOperation(String resourceName, String zone, boolean isSuccess) {
     return new Operation()
         .setHttpErrorStatusCode(
-            isSuccess? HttpStatus.OK.value() : HttpStatus.INTERNAL_SERVER_ERROR.value())
+            isSuccess? null : HttpStatus.INTERNAL_SERVER_ERROR.value())
         .setStatus("DONE")
-        .setName(resourceName)
-        .setZone(zone);
+        .setName("operation-" + UUID.randomUUID())
+        .setTargetLink(ResourceTestUtil.getOperationTargetLink(resourceName, zone))
+        .setZone(ResourceTestUtil.getZoneLink(zone));
   }
   
   private void validateResonse(ResponseEntity<ResponseGridDelete> response) {
@@ -169,6 +174,6 @@ public class GridDeleteHandlerImplTest {
     
     assertEquals(ZONE, responseBody.getZone());
     assertEquals(ResponseStatus.SUCCESS.name(), responseBody.getStatus());
-    assertEquals(HttpStatus.OK.value(), responseBody.getHttpErrorStatusCode());
+    assertEquals(HttpStatus.OK.value(), responseBody.getHttpStatusCode());
   }
 }

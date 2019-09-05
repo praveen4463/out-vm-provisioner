@@ -4,8 +4,7 @@ import java.util.Random;
 
 public class Randoms {
   
-  private final static String CHAR_SET = "0123456789ABCDEFGHIZKLMNOPQRSTUVWXYZabcdefghizklmnopqrstu"
-      + "vwxyz";
+  private final static String CHAR_SET = "0123456789abcdefghizklmnopqrstuvwxyz";
   
   private final Random random;
   

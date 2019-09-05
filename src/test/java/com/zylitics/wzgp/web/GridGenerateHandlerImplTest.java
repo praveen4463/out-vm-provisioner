@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 
 import java.math.BigInteger;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 
 import org.junit.jupiter.api.DisplayName;
@@ -37,11 +38,12 @@ import com.zylitics.wzgp.resource.util.ResourceUtil;
 import com.zylitics.wzgp.test.dummy.DummyAPICoreProperties;
 import com.zylitics.wzgp.test.dummy.DummyRequestGridCreate;
 import com.zylitics.wzgp.test.dummy.FakeCompute;
+import com.zylitics.wzgp.test.util.ResourceTestUtil;
 import com.zylitics.wzgp.web.exceptions.GridNotCreatedException;
 
 public class GridGenerateHandlerImplTest {
   
-  private static final String ZONE = "zone-1";
+  private static final String ZONE = "us-central0-g";
   
   private static final String GENERATED_INSTANCE_NAME = "grid-1";
   
@@ -55,7 +57,7 @@ public class GridGenerateHandlerImplTest {
   
   private static final APICoreProperties API_CORE_PROPS = new DummyAPICoreProperties();
   
-  private static final RequestGridCreate REQ_CREATE = new DummyRequestGridCreate();
+  private static final RequestGridCreate REQ_CREATE = new DummyRequestGridCreate().get();
   
   private static final BuildProperty BUILD_PROP = REQ_CREATE.getBuildProperties();
   
@@ -154,12 +156,12 @@ public class GridGenerateHandlerImplTest {
   
   private Instance getGeneratedInstance() {
     return new Instance()
-    .setId(GENERATED_INSTANCE_ID)
-    .setName(GENERATED_INSTANCE_NAME)
-    .setNetworkInterfaces(
-        ImmutableList.of(new NetworkInterface().setNetworkIP(GENERATED_INSTANCE_NETWORK_IP)))
-    .setZone(ZONE)
-    .setStatus("RUNNING");
+        .setId(GENERATED_INSTANCE_ID)
+        .setName(GENERATED_INSTANCE_NAME)
+        .setNetworkInterfaces(
+            ImmutableList.of(new NetworkInterface().setNetworkIP(GENERATED_INSTANCE_NETWORK_IP)))
+        .setZone(ResourceTestUtil.getZoneLink(ZONE))
+        .setStatus("RUNNING");
   }
   
   @SuppressWarnings("unchecked")
@@ -170,7 +172,7 @@ public class GridGenerateHandlerImplTest {
         , any(BuildProperty.class))).then(invocation -> {
           Instances.Insert insertInstanceProvided = (Instances.Insert) invocation.getArgument(0);
           Instance instance = (Instance) insertInstanceProvided.getJsonContent();
-          if (!ResourceUtil.getResourceNameFromUrl(instance.getDisks().get(0).getInitializeParams()
+          if (!ResourceUtil.nameFromUrl(instance.getDisks().get(0).getInitializeParams()
               .getSourceImage()).equals(sourceImageFamily)) {
             throw new RuntimeException("GridGenerator didn't get the valid source-image-family");
           }
@@ -203,15 +205,16 @@ public class GridGenerateHandlerImplTest {
     assertEquals(GENERATED_INSTANCE_NAME, responseBody.getGridName());
     assertEquals(ZONE, responseBody.getZone());
     assertEquals(ResponseStatus.SUCCESS.name(), responseBody.getStatus());
-    assertEquals(HttpStatus.CREATED.value(), responseBody.getHttpErrorStatusCode());
+    assertEquals(HttpStatus.CREATED.value(), responseBody.getHttpStatusCode());
   }
   
   private Operation getOperation(String resourceName, String zone, boolean isSuccess) {
     return new Operation()
         .setHttpErrorStatusCode(
-            isSuccess? HttpStatus.OK.value() : HttpStatus.INTERNAL_SERVER_ERROR.value())
+            isSuccess? null : HttpStatus.INTERNAL_SERVER_ERROR.value())
         .setStatus("DONE")
-        .setName(resourceName)
-        .setZone(zone);
+        .setName("operation-" + UUID.randomUUID())
+        .setTargetLink(ResourceTestUtil.getOperationTargetLink(resourceName, zone))
+        .setZone(ResourceTestUtil.getZoneLink(zone));
   }
 }

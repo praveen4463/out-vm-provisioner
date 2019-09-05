@@ -1,8 +1,9 @@
 package com.zylitics.wzgp.web;
 
+import static com.zylitics.wzgp.resource.util.ResourceUtil.nameFromUrl;
+
 import java.util.Optional;
 
-import org.assertj.core.util.Strings;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.Assert;
@@ -11,6 +12,7 @@ import com.google.api.services.compute.Compute;
 import com.google.api.services.compute.model.Image;
 import com.google.api.services.compute.model.Instance;
 import com.google.api.services.compute.model.Operation;
+import com.google.common.base.Strings;
 import com.zylitics.wzgp.http.RequestGridCreate;
 import com.zylitics.wzgp.http.ResponseGridCreate;
 import com.zylitics.wzgp.resource.APICoreProperties;
@@ -93,20 +95,21 @@ public class GridGenerateHandlerImpl extends AbstractGridCreateHandler
           , addToException()));
     }
     // get the created grid instance
-    Instance gridInstance = computeSrv.getInstance(operation.getName()
-        , operation.getZone()
+    Instance gridInstance = computeSrv.getInstance(
+        nameFromUrl(operation.getTargetLink())
+        , nameFromUrl(operation.getZone())
         , buildProp);
     onGridGeneratedEventHandler(gridInstance);
     
     ResponseGridCreate response = prepareResponse(gridInstance, HttpStatus.CREATED);
     return ResponseEntity
-        .status(response.getHttpErrorStatusCode())
+        .status(response.getHttpStatusCode())
         .body(response);
   }
   
   private void onGridGeneratedEventHandler(Instance gridInstance) throws Exception {
     // label buildId to the created grid instance
-    lockGridInstance(gridInstance.getName(), gridInstance.getZone());
+    lockGridInstance(gridInstance.getName(), nameFromUrl(gridInstance.getZone()));
     // verify the grid is running and there's nothing wrong
     if (!isRunning(gridInstance)) {
       // shouldn't happen

@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 
 import java.math.BigInteger;
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,7 @@ import com.zylitics.wzgp.resource.service.ComputeService;
 import com.zylitics.wzgp.resource.util.ResourceUtil;
 import com.zylitics.wzgp.test.dummy.DummyAPICoreProperties;
 import com.zylitics.wzgp.test.dummy.DummyRequestGridCreate;
+import com.zylitics.wzgp.test.util.ResourceTestUtil;
 import com.zylitics.wzgp.web.exceptions.GridBeingDeletedFromOutsideException;
 import com.zylitics.wzgp.web.exceptions.GridNotStartedException;
 import com.zylitics.wzgp.web.exceptions.GridOccupiedByOtherException;
@@ -40,7 +42,7 @@ import com.zylitics.wzgp.web.exceptions.GridStartHandlerFailureException;
 
 public class GridStartHandlerImplTest {
 
-  private static final String ZONE = "zone-1";
+  private static final String ZONE = "us-central0-g";
   
   private static final String SEARCHED_INSTANCE_NAME = "grid-1";
   
@@ -50,7 +52,7 @@ public class GridStartHandlerImplTest {
   
   private static final APICoreProperties API_CORE_PROPS = new DummyAPICoreProperties();
   
-  private static final RequestGridCreate REQ_CREATE = new DummyRequestGridCreate();
+  private static final RequestGridCreate REQ_CREATE = new DummyRequestGridCreate().get();
   
   private static final BuildProperty BUILD_PROP = REQ_CREATE.getBuildProperties();
   
@@ -110,7 +112,7 @@ public class GridStartHandlerImplTest {
     ComputeService computeSrv = mock(ComputeService.class);
     
     when(computeSrv.listInstances(anyString(), eq(1L), eq(ZONE), eq(BUILD_PROP)))
-    .thenReturn(ImmutableList.of(getSearchedInstance()));
+        .thenReturn(ImmutableList.of(getSearchedInstance()));
 
     Operation lockGridOperation = stubGridLocking(executor, computeSrv);
 
@@ -172,7 +174,7 @@ public class GridStartHandlerImplTest {
     ComputeService computeSrv = mock(ComputeService.class);
     
     when(computeSrv.listInstances(anyString(), eq(1L), eq(ZONE), eq(BUILD_PROP)))
-    .thenReturn(ImmutableList.of(getSearchedInstance()));
+        .thenReturn(ImmutableList.of(getSearchedInstance()));
 
     Operation lockGridOperation = stubGridLocking(executor, computeSrv);
 
@@ -214,8 +216,8 @@ public class GridStartHandlerImplTest {
         .setName(SEARCHED_INSTANCE_NAME)
         .setNetworkInterfaces(
             ImmutableList.of(new NetworkInterface().setNetworkIP(SEARCHED_INSTANCE_NETWORK_IP)))
-        .setZone(ZONE)
-        .setMachineType("machine-1")
+        .setZone(ResourceTestUtil.getZoneLink(ZONE))
+        .setMachineType(String.format("zones/%s/machineTypes/%s", ZONE, "machine-1"))
         .setServiceAccounts(ImmutableList.of(new ServiceAccount().setEmail("unknown@email.com")))
         .setStatus("TERMINATED");
   }
@@ -249,10 +251,11 @@ public class GridStartHandlerImplTest {
   private Operation getOperation(String resourceName, String zone, boolean isSuccess) {
     return new Operation()
         .setHttpErrorStatusCode(
-            isSuccess? HttpStatus.OK.value() : HttpStatus.INTERNAL_SERVER_ERROR.value())
+            isSuccess? null : HttpStatus.INTERNAL_SERVER_ERROR.value())
         .setStatus("DONE")
-        .setName(resourceName)
-        .setZone(zone);
+        .setName("operation-" + UUID.randomUUID())
+        .setTargetLink(ResourceTestUtil.getOperationTargetLink(resourceName, zone))
+        .setZone(ResourceTestUtil.getZoneLink(zone));
   }
   
   private void validateResonse(ResponseEntity<ResponseGridCreate> response) {
@@ -265,6 +268,6 @@ public class GridStartHandlerImplTest {
     assertEquals(SEARCHED_INSTANCE_NAME, responseBody.getGridName());
     assertEquals(ZONE, responseBody.getZone());
     assertEquals(ResponseStatus.SUCCESS.name(), responseBody.getStatus());
-    assertEquals(HttpStatus.OK.value(), responseBody.getHttpErrorStatusCode());
+    assertEquals(HttpStatus.OK.value(), responseBody.getHttpStatusCode());
   }
 }

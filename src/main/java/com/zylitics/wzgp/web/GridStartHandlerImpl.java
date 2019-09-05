@@ -1,8 +1,9 @@
 package com.zylitics.wzgp.web;
 
+import static com.zylitics.wzgp.resource.util.ResourceUtil.nameFromUrl;
+
 import java.util.Optional;
 
-import org.assertj.core.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -10,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 
 import com.google.api.services.compute.model.Instance;
 import com.google.api.services.compute.model.Operation;
+import com.google.common.base.Strings;
 import com.zylitics.wzgp.http.RequestGridCreate;
 import com.zylitics.wzgp.http.ResponseGridCreate;
 import com.zylitics.wzgp.resource.APICoreProperties;
@@ -55,12 +57,18 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
           , addToException());
       throw new GridStartHandlerFailureException();  // give up
     }
+    
     return instance.get();
   }
   
   private void onStoppedGridFoundEventHandler(Instance gridInstance) throws Exception {
+    // LOG the searched instance against build info so that if any error occurs during startup
+    // even if we don't know what instance was found against the build seeing the logs, there is
+    // this information available.
+    LOG.info("Build {} found stopped instance {} and going to start it", addToException()
+        , gridInstance.toPrettyString());
     // label buildId to the created grid instance to lock it.
-    lockGridInstance(gridInstance.getName(), gridInstance.getZone());
+    lockGridInstance(gridInstance);
   }
   
   private ResponseEntity<ResponseGridCreate> startGrid(Instance gridInstance) throws Exception {
@@ -70,22 +78,22 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
         , request.getGridProperties()
         , gridInstance);
     CompletedOperation completedOperation = starter.start();
+    
     Operation operation = completedOperation.get();
-    if (!ResourceUtil.isOperationSuccess(operation))  {
+    if (!ResourceUtil.isOperationSuccess(operation)) {
       LOG.error("Couldn't start stopped grid instance {}, operation: {} {}"
           , gridInstance.toPrettyString()
           , operation.toPrettyString()
           , addToException());
       throw new GridStartHandlerFailureException(
-          "Couldn't start stopped grid instance"
-          , new GridNotStartedException());  // give up
+          "Couldn't start stopped grid instance", new GridNotStartedException());  // give up
     }
     
     onGridStartEventHandler(gridInstance);
     
     ResponseGridCreate response = prepareResponse(gridInstance, HttpStatus.OK);
     return ResponseEntity
-        .status(response.getHttpErrorStatusCode())
+        .status(response.getHttpStatusCode())
         .body(response);
   }
   
@@ -93,7 +101,7 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
     // ==========verify that we own this instance, get the current state of instance
     
     gridInstance = computeSrv.getInstance(gridInstance.getName()
-        , gridInstance.getZone()
+        , nameFromUrl(gridInstance.getZone())
         , buildProp);
     // get the current value of lock-by-build label
     String labelLockedByBuild = gridInstance.getLabels().get(ResourceUtil.LABEL_LOCKED_BY_BUILD);
