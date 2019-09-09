@@ -28,7 +28,7 @@ public class Launcher {
   }
   
   @Bean
-  @Profile("production")
+  @Profile({"production", "e2e"})
   public Compute compute() throws Exception {
     GoogleCredentials credentials = GoogleCredentials.getApplicationDefault();
     if (credentials.createScopedRequired()) {
@@ -44,19 +44,19 @@ public class Launcher {
   }
   
   @Bean
-  @Profile("production")
+  @Profile({"production", "e2e"})
   public GridGenerateHandler.Factory gridGenerateHandlerFactory() {
     return new GridGenerateHandlerImpl.Factory();
   }
   
   @Bean
-  @Profile("production")
+  @Profile({"production", "e2e"})
   public GridStartHandler.Factory gridStartHandlerFactory() {
     return new GridStartHandlerImpl.Factory();
   }
   
   @Bean
-  @Profile("production")
+  @Profile({"production", "e2e"})
   public GridDeleteHandler.Factory gridDeleteHandlerFactory() {
     return new GridDeleteHandlerImpl.Factory();
   }

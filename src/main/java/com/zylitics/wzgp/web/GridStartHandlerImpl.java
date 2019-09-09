@@ -31,13 +31,13 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
 
   private static final Logger LOG = LoggerFactory.getLogger(GridStartHandlerImpl.class);
 
-  // APICoreProperties is currently redundant for this handler but keeping it for later use.
   private GridStartHandlerImpl(APICoreProperties apiCoreProps
       , ResourceExecutor executor
       , ComputeService computeSrv
+      , FingerprintBasedUpdater fingerprintBasedUpdater
       , String zone
       , RequestGridCreate request) {
-    super(apiCoreProps, executor, computeSrv, zone, request);
+    super(apiCoreProps, executor, computeSrv, fingerprintBasedUpdater, zone, request);
   }
   
   @Override
@@ -65,7 +65,7 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
     // LOG the searched instance against build info so that if any error occurs during startup
     // even if we don't know what instance was found against the build seeing the logs, there is
     // this information available.
-    LOG.info("Build {} found stopped instance {} and going to start it", addToException()
+    LOG.debug("Build {} found stopped instance {} and going to start it", addToException()
         , gridInstance.toPrettyString());
     // label buildId to the created grid instance to lock it.
     lockGridInstance(gridInstance);
@@ -74,6 +74,7 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
   private ResponseEntity<ResponseGridCreate> startGrid(Instance gridInstance) throws Exception {
     GridStarter starter = new GridStarter(executor
         , computeSrv
+        , fingerprintBasedUpdater
         , buildProp
         , request.getGridProperties()
         , gridInstance);
@@ -89,6 +90,11 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
           "Couldn't start stopped grid instance", new GridNotStartedException());  // give up
     }
     
+    // fetch fresh to see updated values made by starter.
+    gridInstance = computeSrv.getInstance(gridInstance.getName()
+        , nameFromUrl(gridInstance.getZone())
+        , buildProp);
+    
     onGridStartEventHandler(gridInstance);
     
     ResponseGridCreate response = prepareResponse(gridInstance, HttpStatus.OK);
@@ -100,9 +106,6 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
   private void onGridStartEventHandler(Instance gridInstance) throws Exception {
     // ==========verify that we own this instance, get the current state of instance
     
-    gridInstance = computeSrv.getInstance(gridInstance.getName()
-        , nameFromUrl(gridInstance.getZone())
-        , buildProp);
     // get the current value of lock-by-build label
     String labelLockedByBuild = gridInstance.getLabels().get(ResourceUtil.LABEL_LOCKED_BY_BUILD);
     // see whether it holds our build.
@@ -151,9 +154,11 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
   public static class Factory implements GridStartHandler.Factory {
     
     @Override
-    public GridStartHandler create(APICoreProperties apiCoreProps, ResourceExecutor executor,
-        ComputeService computeSrv, String zone, RequestGridCreate request) {
-      return new GridStartHandlerImpl(apiCoreProps, executor, computeSrv, zone, request);
+    public GridStartHandler create(APICoreProperties apiCoreProps, ResourceExecutor executor
+        , ComputeService computeSrv, FingerprintBasedUpdater fingerprintBasedUpdater, String zone
+        , RequestGridCreate request) {
+      return new GridStartHandlerImpl(apiCoreProps, executor, computeSrv, fingerprintBasedUpdater
+          , zone, request);
     }
   }
 }

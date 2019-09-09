@@ -14,6 +14,10 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import com.google.api.services.compute.Compute;
 import com.google.api.services.compute.Compute.Images;
@@ -38,6 +42,8 @@ import com.zylitics.wzgp.test.dummy.DummyRequestGridCreate;
 import com.zylitics.wzgp.test.dummy.FakeCompute;
 import com.zylitics.wzgp.test.util.ResourceTestUtil;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness=Strictness.STRICT_STUBS)
 public class ComputeServiceTest {
   
   private static final BuildProperty BUILD_PROP =

@@ -167,8 +167,7 @@ public class GridGenerator {
       , Map<String, String> customLabels
       , Set<String> imageSpecificLabelKeys) {
     // first put default labels specified by server
-    Map<String, String> mergedLabels = new HashMap<>();
-    mergedLabels.putAll(defaultLabels);
+    Map<String, String> mergedLabels = new HashMap<>(defaultLabels);
     
     // put after getting labels from image and filter image specific keys.
     Map<String, String> gridLabelsFromImage = image.getLabels().entrySet().stream()
@@ -189,13 +188,10 @@ public class GridGenerator {
   
   private Map<String, String> mergedMetadata() {
     GridDefault gridDefault = apiCoreProps.getGridDefault();
-    Map<String, String> metadata = new HashMap<>();
-    
     // first put server defined grid defaults.
-    metadata.putAll(gridDefault.getMetadata());
+    Map<String, String> metadata = new HashMap<>(gridDefault.getMetadata());
     // merge user defined grid properties, replacing if there's a match.
     metadata.putAll(gridProp.getMetadata());
     return metadata;
   }
-  
 }

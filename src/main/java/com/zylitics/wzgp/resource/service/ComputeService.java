@@ -25,6 +25,7 @@ import com.zylitics.wzgp.resource.APICoreProperties;
 import com.zylitics.wzgp.resource.BuildProperty;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 import com.zylitics.wzgp.resource.util.ResourceUtil;
+import com.zylitics.wzgp.web.FingerprintBasedUpdater;
 
 @Service
 @Scope("singleton")
@@ -44,64 +45,64 @@ public class ComputeService {
   }
   
   public Operation startInstance(String instanceName
-      , String zone
+      , String zoneName
       , @Nullable BuildProperty buildProp) throws Exception {
-    Instances.Start startInstance = compute.instances().start(project, zone, instanceName);
+    Instances.Start startInstance = compute.instances().start(project, zoneName, instanceName);
     return executor.executeWithReattempt(startInstance, buildProp);
   }
   
   public Operation stopInstance(String instanceName
-      , String zone
+      , String zoneName
       , @Nullable BuildProperty buildProp) throws Exception {
-    Instances.Stop stopInstance = compute.instances().stop(project, zone, instanceName);
+    Instances.Stop stopInstance = compute.instances().stop(project, zoneName, instanceName);
     return executor.executeWithReattempt(stopInstance, buildProp);
   }
   
   public Operation deleteInstance(String instanceName
-      , String zone
+      , String zoneName
       , @Nullable BuildProperty buildProp) throws Exception {
     Instances.Delete deleteInstance =
-        compute.instances().delete(project, zone, instanceName);
+        compute.instances().delete(project, zoneName, instanceName);
     return executor.executeWithReattempt(deleteInstance, buildProp);
   }
   
   public Instance getInstance(String instanceName
-      , String zone
+      , String zoneName
       , @Nullable BuildProperty buildProp) throws Exception {
     Instances.Get getInstance =
-        compute.instances().get(project, zone, instanceName);
+        compute.instances().get(project, zoneName, instanceName);
     return executor.executeWithReattempt(getInstance, buildProp);
   }
   
   public Operation setMachineType(String instanceName
       , String machineType
-      , String zone
+      , String zoneName
       , @Nullable BuildProperty buildProp) throws Exception {
     InstancesSetMachineTypeRequest machineTypeReq = new InstancesSetMachineTypeRequest();
     machineTypeReq.setMachineType(String.format("zones/%s/machineTypes/%s"
-        , zone, machineType));
+        , zoneName, machineType));
     Instances.SetMachineType setMachineType =
-        compute.instances().setMachineType(project, zone, instanceName, machineTypeReq);
+        compute.instances().setMachineType(project, zoneName, instanceName, machineTypeReq);
     return executor.executeWithReattempt(setMachineType, buildProp);
   }
   
   public Operation setServiceAccount(String instanceName
       , String email
-      , String zone
+      , String zoneName
       , @Nullable BuildProperty buildProp) throws Exception {
     InstancesSetServiceAccountRequest servAccReq = new InstancesSetServiceAccountRequest();
     servAccReq.setEmail(email);
     servAccReq.setScopes(Collections.singletonList(ComputeScopes.CLOUD_PLATFORM));
     Instances.SetServiceAccount setServAcc =
-        compute.instances().setServiceAccount(project, zone, instanceName, servAccReq);
+        compute.instances().setServiceAccount(project, zoneName, instanceName, servAccReq);
     return executor.executeWithReattempt(setServAcc, buildProp);
   }
   
   /**
-   * 
+   * Usually consumed using {@link FingerprintBasedUpdater}
    * @param instanceName The name of instance to set labels to
    * @param labels that needs to be set
-   * @param zone where the instance resides
+   * @param zoneName where the instance resides
    * @param currentFingerprint label-fingerprint currently set at GCP for this instance. It needs to
    * be up-to-date with GCP (use get() to fetch up-to-date instance from GCP)
    * @param buildProp BuildProperty instance
@@ -110,22 +111,22 @@ public class ComputeService {
    */
   public Operation setLabels(String instanceName
       , Map<String, String> labels
-      , String zone
+      , String zoneName
       , String currentFingerprint
       , @Nullable BuildProperty buildProp) throws Exception {
     InstancesSetLabelsRequest labelReq = new InstancesSetLabelsRequest();
     labelReq.setLabels(labels);
     labelReq.setLabelFingerprint(currentFingerprint);
     Instances.SetLabels setLabels =
-        compute.instances().setLabels(project, zone, instanceName, labelReq);
+        compute.instances().setLabels(project, zoneName, instanceName, labelReq);
     return executor.executeWithReattempt(setLabels, buildProp);
   }
   
   /**
-   * 
+   * Usually consumed using {@link FingerprintBasedUpdater}
    * @param instanceName The name of instance to set labels to
    * @param metadata that needs to be set
-   * @param zone where the instance resides
+   * @param zoneName where the instance resides
    * @param currentFingerprint metadata-fingerprint currently set at GCP for this instance. It needs
    * to be up-to-date with GCP (use get() to fetch up-to-date instance from GCP)
    * @param buildProp BuildProperty instance
@@ -134,11 +135,11 @@ public class ComputeService {
    */
   public Operation setMetadata(String instanceName
       , Map<String, String> metadata
-      , String zone
+      , String zoneName
       , String currentFingerprint
       , @Nullable BuildProperty buildProp) throws Exception {
     Instances.SetMetadata setMetadata =
-        compute.instances().setMetadata(project, zone, instanceName
+        compute.instances().setMetadata(project, zoneName, instanceName
             , ResourceUtil.getGCPMetadata(metadata).setFingerprint(currentFingerprint));
     return executor.executeWithReattempt(setMetadata, buildProp);
   }
@@ -162,9 +163,9 @@ public class ComputeService {
   
   public java.util.List<Instance> listInstances(String filter
       , long maxResults
-      , String zone
+      , String zoneName
       , @Nullable BuildProperty buildProp) throws Exception {
-    Instances.List listBuilder = compute.instances().list(project, zone);
+    Instances.List listBuilder = compute.instances().list(project, zoneName);
     listBuilder.setMaxResults(maxResults);
     listBuilder.setFilter(filter);
     InstanceList list = executor.executeWithReattempt(listBuilder, buildProp);

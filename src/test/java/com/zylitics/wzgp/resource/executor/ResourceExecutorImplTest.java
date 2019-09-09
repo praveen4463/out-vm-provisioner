@@ -34,6 +34,10 @@ import java.util.stream.Stream;
 
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.http.HttpStatus;
 
 import com.google.api.client.http.HttpHeaders;
@@ -54,6 +58,8 @@ import com.zylitics.wzgp.test.dummy.FakeCompute;
 import com.zylitics.wzgp.test.util.FlexibleOffsetClock;
 import com.zylitics.wzgp.test.util.ResourceTestUtil;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness=Strictness.STRICT_STUBS)
 public class ResourceExecutorImplTest {
 
   private static final BuildProperty BUILD_PROP =
@@ -137,8 +143,6 @@ public class ResourceExecutorImplTest {
             @SuppressWarnings("unchecked")
             Function<String, Instances.Insert> factoryForInsertPerZone =
                 (Function<String, Instances.Insert>) spy(Function.class);
-            
-            when(factoryForInsertPerZone.apply(anyString())).thenReturn(mockInsertInstance);
             
             when(mockInsertInstance.execute()).thenReturn(unsuccessfulOperation);
             

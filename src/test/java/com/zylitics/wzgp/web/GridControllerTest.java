@@ -8,10 +8,13 @@ import static org.mockito.Mockito.never;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import com.google.api.services.compute.Compute;
 import com.zylitics.wzgp.http.RequestGridCreate;
-import com.zylitics.wzgp.http.RequestGridCreate.ResourceSearchParams;
 import com.zylitics.wzgp.resource.APICoreProperties;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 import com.zylitics.wzgp.resource.service.ComputeService;
@@ -19,6 +22,8 @@ import com.zylitics.wzgp.test.dummy.DummyAPICoreProperties;
 import com.zylitics.wzgp.test.dummy.FakeCompute;
 import com.zylitics.wzgp.web.exceptions.GridStartHandlerFailureException;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness=Strictness.STRICT_STUBS)
 public class GridControllerTest {
   
   private static final String ZONE = "us-central0-g";
@@ -32,6 +37,9 @@ public class GridControllerTest {
   private static final ResourceExecutor EXECUTOR = mock(ResourceExecutor.class);
   
   private static final ComputeService COMPUTE_SRV = mock(ComputeService.class);
+  
+  private static final FingerprintBasedUpdater FINGERPRINT_BASED_UPDATER =
+      mock(FingerprintBasedUpdater.class);
 
   @Test
   @DisplayName("verify grid creates with source image family given")
@@ -78,8 +86,6 @@ public class GridControllerTest {
   void gridSearchedAndStarted() throws Exception {
     GridStartHandler startHandler = mock(GridStartHandler.class);
     RequestGridCreate request = mock(RequestGridCreate.class);
-    ResourceSearchParams resourceSearchParam = mock(ResourceSearchParams.class);
-    when(request.getResourceSearchParams()).thenReturn(resourceSearchParam);
     
     GridStartHandler.Factory startHandlerFactory =
         getGridStartHandlerFactory(startHandler, request);
@@ -87,8 +93,6 @@ public class GridControllerTest {
     GridController controller = getGridController(startHandlerFactory);
     
     controller.create(request, ZONE, false, null);
-    
-    verify(resourceSearchParam).validate();
     
     verify(startHandler).handle();
   }
@@ -114,9 +118,6 @@ public class GridControllerTest {
     
     RequestGridCreate request = mock(RequestGridCreate.class);
     
-    ResourceSearchParams resourceSearchParam = mock(ResourceSearchParams.class);
-    when(request.getResourceSearchParams()).thenReturn(resourceSearchParam);
-    
     GridGenerateHandler.Factory generateHandlerFactory =
         getGridGenerateHandlerFactory(generateHandler, request);
     
@@ -126,8 +127,6 @@ public class GridControllerTest {
     GridController controller = getGridController(generateHandlerFactory, startHandlerFactory);
     
     controller.create(request, ZONE, false, null);
-    
-    verify(resourceSearchParam).validate();
     
     verify(startHandler).handle();
     
@@ -159,48 +158,48 @@ public class GridControllerTest {
   private GridController getGridController(GridGenerateHandler.Factory gridGenerateHandlerFactory
       , GridStartHandler.Factory gridStartHandlerFactory) {
     return new GridController(COMPUTE, API_CORE_PROPS, EXECUTOR, COMPUTE_SRV
-        , gridGenerateHandlerFactory, gridStartHandlerFactory
+        , FINGERPRINT_BASED_UPDATER, gridGenerateHandlerFactory, gridStartHandlerFactory
         , mock(GridDeleteHandler.Factory.class));
   }
   
   private GridController getGridController(GridGenerateHandler.Factory gridGenerateHandlerFactory) {
     return new GridController(COMPUTE, API_CORE_PROPS, EXECUTOR, COMPUTE_SRV
-        , gridGenerateHandlerFactory, mock(GridStartHandler.Factory.class)
-        , mock(GridDeleteHandler.Factory.class));
+        , FINGERPRINT_BASED_UPDATER, gridGenerateHandlerFactory
+        , mock(GridStartHandler.Factory.class), mock(GridDeleteHandler.Factory.class));
   }
   
   private GridController getGridController(GridStartHandler.Factory gridStartHandlerFactory) {
     return new GridController(COMPUTE, API_CORE_PROPS, EXECUTOR, COMPUTE_SRV
-        , mock(GridGenerateHandler.Factory.class), gridStartHandlerFactory
-        , mock(GridDeleteHandler.Factory.class));
+        , FINGERPRINT_BASED_UPDATER, mock(GridGenerateHandler.Factory.class)
+        , gridStartHandlerFactory, mock(GridDeleteHandler.Factory.class));
   }
   
   private GridController getGridController(GridDeleteHandler.Factory gridDeleteHandlerFactory) {
     return new GridController(COMPUTE, API_CORE_PROPS, EXECUTOR, COMPUTE_SRV
-        , mock(GridGenerateHandler.Factory.class), mock(GridStartHandler.Factory.class)
-        , gridDeleteHandlerFactory);
+        , FINGERPRINT_BASED_UPDATER, mock(GridGenerateHandler.Factory.class)
+        , mock(GridStartHandler.Factory.class), gridDeleteHandlerFactory);
   }
   
   private GridGenerateHandler.Factory getGridGenerateHandlerFactory(GridGenerateHandler handler
       , RequestGridCreate request) {
     GridGenerateHandler.Factory factory = mock(GridGenerateHandler.Factory.class);
-    when(factory.create(COMPUTE, API_CORE_PROPS, EXECUTOR, COMPUTE_SRV, ZONE, request))
-        .thenReturn(handler);
+    when(factory.create(COMPUTE, API_CORE_PROPS, EXECUTOR, COMPUTE_SRV, FINGERPRINT_BASED_UPDATER
+        , ZONE, request)).thenReturn(handler);
     return factory;
   }
   
   private GridStartHandler.Factory getGridStartHandlerFactory(GridStartHandler handler
       , RequestGridCreate request) {
     GridStartHandler.Factory factory = mock(GridStartHandler.Factory.class);
-    when(factory.create(API_CORE_PROPS, EXECUTOR, COMPUTE_SRV, ZONE, request))
-        .thenReturn(handler);
+    when(factory.create(API_CORE_PROPS, EXECUTOR, COMPUTE_SRV, FINGERPRINT_BASED_UPDATER, ZONE
+        , request)).thenReturn(handler);
     return factory;
   }
   
   private GridDeleteHandler.Factory getGridDeleteHandlerFactory(GridDeleteHandler handler) {
     GridDeleteHandler.Factory factory = mock(GridDeleteHandler.Factory.class);
-    when(factory.create(API_CORE_PROPS, EXECUTOR, COMPUTE_SRV, ZONE, GRID_NAME))
-        .thenReturn(handler);
+    when(factory.create(API_CORE_PROPS, EXECUTOR, COMPUTE_SRV, FINGERPRINT_BASED_UPDATER, ZONE
+        , GRID_NAME)).thenReturn(handler);
     return factory;
   }
 }

@@ -15,6 +15,10 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -40,6 +44,8 @@ import com.zylitics.wzgp.web.exceptions.GridNotStartedException;
 import com.zylitics.wzgp.web.exceptions.GridOccupiedByOtherException;
 import com.zylitics.wzgp.web.exceptions.GridStartHandlerFailureException;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness=Strictness.STRICT_STUBS)
 public class GridStartHandlerImplTest {
 
   private static final String ZONE = "us-central0-g";
@@ -61,11 +67,15 @@ public class GridStartHandlerImplTest {
   void handlerTest() throws Exception {
     ResourceExecutor executor = mock(ResourceExecutor.class);
     ComputeService computeSrv = mock(ComputeService.class);
+    FingerprintBasedUpdater fingerprintBasedUpdater = mock(FingerprintBasedUpdater.class);
+    
+    Instance searchedInstance = getSearchedInstance();
     
     when(computeSrv.listInstances(anyString(), eq(1L), eq(ZONE), eq(BUILD_PROP)))
-        .thenReturn(ImmutableList.of(getSearchedInstance()));
+        .thenReturn(ImmutableList.of(searchedInstance));
     
-    Operation lockGridOperation = stubGridLocking(executor, computeSrv);
+    Operation lockGridOperation = stubGridLocking(executor, fingerprintBasedUpdater
+        , searchedInstance);
     
     stubGridStart(executor, computeSrv, true);
     
@@ -79,7 +89,7 @@ public class GridStartHandlerImplTest {
           return instance;
         });
     
-    GridStartHandler handler = getHandler(executor, computeSrv);
+    GridStartHandler handler = getHandler(executor, computeSrv, fingerprintBasedUpdater);
     
     ResponseEntity<ResponseGridCreate> response = handler.handle();
     
@@ -93,8 +103,9 @@ public class GridStartHandlerImplTest {
   void noStoppedInstanceFoundTest() throws Exception {
     ResourceExecutor executor = mock(ResourceExecutor.class);
     ComputeService computeSrv = mock(ComputeService.class);
+    FingerprintBasedUpdater fingerprintBasedUpdater = mock(FingerprintBasedUpdater.class);
     
-    GridStartHandler handler = getHandler(executor, computeSrv);
+    GridStartHandler handler = getHandler(executor, computeSrv, fingerprintBasedUpdater);
     
     assertThrows(GridStartHandlerFailureException.class, () -> handler.handle());
     
@@ -110,15 +121,19 @@ public class GridStartHandlerImplTest {
   void gridStarterFailureTest() throws Exception {
     ResourceExecutor executor = mock(ResourceExecutor.class);
     ComputeService computeSrv = mock(ComputeService.class);
+    FingerprintBasedUpdater fingerprintBasedUpdater = mock(FingerprintBasedUpdater.class);
+    
+    Instance searchedInstance = getSearchedInstance();
     
     when(computeSrv.listInstances(anyString(), eq(1L), eq(ZONE), eq(BUILD_PROP)))
-        .thenReturn(ImmutableList.of(getSearchedInstance()));
+        .thenReturn(ImmutableList.of(searchedInstance));
 
-    Operation lockGridOperation = stubGridLocking(executor, computeSrv);
+    Operation lockGridOperation = stubGridLocking(executor, fingerprintBasedUpdater
+        , searchedInstance);
 
     stubGridStart(executor, computeSrv, false);
 
-    GridStartHandler handler = getHandler(executor, computeSrv);
+    GridStartHandler handler = getHandler(executor, computeSrv, fingerprintBasedUpdater);
     
     Throwable t = null;
     try {
@@ -136,11 +151,15 @@ public class GridStartHandlerImplTest {
   void gridLockedByOtherTest() throws Exception {
     ResourceExecutor executor = mock(ResourceExecutor.class);
     ComputeService computeSrv = mock(ComputeService.class);
+    FingerprintBasedUpdater fingerprintBasedUpdater = mock(FingerprintBasedUpdater.class);
+    
+    Instance searchedInstance = getSearchedInstance();
     
     when(computeSrv.listInstances(anyString(), eq(1L), eq(ZONE), eq(BUILD_PROP)))
-    .thenReturn(ImmutableList.of(getSearchedInstance()));
+    .thenReturn(ImmutableList.of(searchedInstance));
 
-    Operation lockGridOperation = stubGridLocking(executor, computeSrv);
+    Operation lockGridOperation = stubGridLocking(executor, fingerprintBasedUpdater
+        , searchedInstance);
 
     stubGridStart(executor, computeSrv, true);
     
@@ -154,7 +173,7 @@ public class GridStartHandlerImplTest {
           return instance;
         });
 
-    GridStartHandler handler = getHandler(executor, computeSrv);
+    GridStartHandler handler = getHandler(executor, computeSrv, fingerprintBasedUpdater);
     
     Throwable t = null;
     try {
@@ -172,11 +191,15 @@ public class GridStartHandlerImplTest {
   void gridIsDeletingLabelFoundTest() throws Exception {
     ResourceExecutor executor = mock(ResourceExecutor.class);
     ComputeService computeSrv = mock(ComputeService.class);
+    FingerprintBasedUpdater fingerprintBasedUpdater = mock(FingerprintBasedUpdater.class);
+    
+    Instance searchedInstance = getSearchedInstance();
     
     when(computeSrv.listInstances(anyString(), eq(1L), eq(ZONE), eq(BUILD_PROP)))
-        .thenReturn(ImmutableList.of(getSearchedInstance()));
+        .thenReturn(ImmutableList.of(searchedInstance));
 
-    Operation lockGridOperation = stubGridLocking(executor, computeSrv);
+    Operation lockGridOperation = stubGridLocking(executor, fingerprintBasedUpdater
+        , searchedInstance);
 
     stubGridStart(executor, computeSrv, true);
     
@@ -192,7 +215,7 @@ public class GridStartHandlerImplTest {
           return instance;
         });
 
-    GridStartHandler handler = getHandler(executor, computeSrv);
+    GridStartHandler handler = getHandler(executor, computeSrv, fingerprintBasedUpdater);
     
     Throwable t = null;
     try {
@@ -205,9 +228,10 @@ public class GridStartHandlerImplTest {
     assertEquals("DONE", lockGridOperation.getStatus());
   }
   
-  private GridStartHandler getHandler(ResourceExecutor executor, ComputeService computeSrv) {
+  private GridStartHandler getHandler(ResourceExecutor executor, ComputeService computeSrv
+      , FingerprintBasedUpdater fingerprintBasedUpdater) {
     return new GridStartHandlerImpl.Factory().create(API_CORE_PROPS, executor, computeSrv
-        , ZONE, REQ_CREATE);
+        , fingerprintBasedUpdater, ZONE, REQ_CREATE);
   }
   
   private Instance getSearchedInstance() {
@@ -233,12 +257,12 @@ public class GridStartHandlerImplTest {
         .thenReturn(getOperation(SEARCHED_INSTANCE_NAME, ZONE, shouldSucceed));
   }
   
-  private Operation stubGridLocking(ResourceExecutor executor, ComputeService computeSrv)
-      throws Exception {
+  private Operation stubGridLocking(ResourceExecutor executor
+      , FingerprintBasedUpdater fingerprintBasedUpdater, Instance gridInstance) throws Exception {
     Map<String, String> lockGridLabel =
         ImmutableMap.of(ResourceUtil.LABEL_LOCKED_BY_BUILD, BUILD_PROP.getBuildId());
     Operation lockGridOperation = new Operation().setStatus("RUNNING");
-    when(computeSrv.setLabels(SEARCHED_INSTANCE_NAME, lockGridLabel, ZONE, BUILD_PROP))
+    when(fingerprintBasedUpdater.updateLabels(gridInstance, lockGridLabel, BUILD_PROP))
         .thenReturn(lockGridOperation);
     when(executor.blockUntilComplete(lockGridOperation, BUILD_PROP))
         .then(inv -> {

@@ -65,6 +65,7 @@ public class GridController {
   private final APICoreProperties apiCoreProps;
   private final ResourceExecutor executor;
   private final ComputeService computeSrv;
+  private final FingerprintBasedUpdater fingerprintBasedUpdater;
   private final GridGenerateHandler.Factory gridGenerateHandlerFactory;
   private final GridStartHandler.Factory gridStartHandlerFactory;
   private final GridDeleteHandler.Factory gridDeleteHandlerFactory;
@@ -77,6 +78,7 @@ public class GridController {
       , APICoreProperties apiCoreProps
       , ResourceExecutor executor
       , ComputeService computeSrv
+      , FingerprintBasedUpdater fingerprintBasedUpdater
       , GridGenerateHandler.Factory gridGenerateHandlerFactory
       , GridStartHandler.Factory gridStartHandlerFactory
       , GridDeleteHandler.Factory gridDeleteHandlerFactory) {
@@ -84,6 +86,7 @@ public class GridController {
     this.apiCoreProps = apiCoreProps;
     this.executor = executor;
     this.computeSrv = computeSrv;
+    this.fingerprintBasedUpdater = fingerprintBasedUpdater;
     this.gridGenerateHandlerFactory = gridGenerateHandlerFactory;
     this.gridStartHandlerFactory = gridStartHandlerFactory;
     this.gridDeleteHandlerFactory = gridDeleteHandlerFactory;
@@ -101,6 +104,7 @@ public class GridController {
           , apiCoreProps
           , executor
           , computeSrv
+          , fingerprintBasedUpdater
           , zone
           , gridCreateReq);
       if (!Strings.isNullOrEmpty(sourceImageFamily)) {
@@ -108,14 +112,12 @@ public class GridController {
       }
       return generateHandler.handle();
     }
-    // we'll now require to search instances, first validate that we got search parameters in
-    // requests as they need manual validation.
-    gridCreateReq.getResourceSearchParams().validate();
     
     // first try to find and start a stopped grid instance.
     GridStartHandler startHandler = gridStartHandlerFactory.create(apiCoreProps
         , executor
         , computeSrv
+        , fingerprintBasedUpdater
         , zone
         , gridCreateReq);
     try {
@@ -130,6 +132,7 @@ public class GridController {
           , apiCoreProps
           , executor
           , computeSrv
+          , fingerprintBasedUpdater
           , zone
           , gridCreateReq).handle();
     }
@@ -143,6 +146,7 @@ public class GridController {
     GridDeleteHandler deleteHandler = gridDeleteHandlerFactory.create(apiCoreProps
         , executor
         , computeSrv
+        , fingerprintBasedUpdater
         , zone
         , gridName);
     if (!Strings.isNullOrEmpty(sessionId)) {

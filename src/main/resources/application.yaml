@@ -39,4 +39,13 @@ api-core:
       time-zone-with-dst: Greenwich Standard Time
     image-specific-labels-key: # Label keys in image those don't belong to a grid.
       - min-on-demand-test-vm
+    instance-search-params:
+      labels.platform: windows
+      status: TERMINATED
+      labels.is-production-instance: true
+      labels.zl-selenium-grid: true
+      labels.locked-by-build: none
+      labels.is-deleting: false
+    image-search-params:
+      labels.platform: windows
 ---

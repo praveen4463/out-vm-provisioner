@@ -26,9 +26,10 @@ public abstract class AbstractGridCreateHandler extends AbstractGridHandler {
   public AbstractGridCreateHandler(APICoreProperties apiCoreProps
       , ResourceExecutor executor
       , ComputeService computeSrv
+      , FingerprintBasedUpdater fingerprintBasedUpdater
       , String zone
       , RequestGridCreate request) {
-    super(apiCoreProps, executor, computeSrv, zone);
+    super(apiCoreProps, executor, computeSrv, fingerprintBasedUpdater, zone);
 
     Assert.notNull(request, "RequestGridCreate can't be null");
     this.request = request;
@@ -36,8 +37,8 @@ public abstract class AbstractGridCreateHandler extends AbstractGridHandler {
   }
   
   protected ResourceSearch getSearch() {
-    ResourceSearch search = ResourceSearch.Factory.getDefault().create(
-        computeSrv
+    ResourceSearch search = ResourceSearch.Factory.getDefault().create(apiCoreProps
+        , computeSrv
         , request.getResourceSearchParams());
     search.setBuildProperty(buildProp);
     return search;
@@ -54,17 +55,9 @@ public abstract class AbstractGridCreateHandler extends AbstractGridHandler {
     return response;
   }
   
-  /**
-   * Locks a grid instance by putting {@link }
-   * @param instanceWithUptoDateDetails should be an instance that is up-to-date with GCP (use get()
-   * to fetch up-to-date instance from GCP)
-   * @throws Exception
-   */
-  protected void lockGridInstance(Instance instanceWithUptoDateDetails) throws Exception {
-    Operation operation = computeSrv.setLabels(gridName
-        , ImmutableMap.of(ResourceUtil.LABEL_LOCKED_BY_BUILD, buildProp.getBuildId())
-        , zone
-        , buildProp);
+  protected void lockGridInstance(Instance gridInstance) throws Exception {
+    Operation operation = fingerprintBasedUpdater.updateLabels(gridInstance
+        , ImmutableMap.of(ResourceUtil.LABEL_LOCKED_BY_BUILD, buildProp.getBuildId()), buildProp);
     executor.blockUntilComplete(operation, buildProp);
   }
   

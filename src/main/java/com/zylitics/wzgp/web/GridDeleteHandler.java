@@ -20,6 +20,7 @@ public interface GridDeleteHandler {
     GridDeleteHandler create(APICoreProperties apiCoreProps
         , ResourceExecutor executor
         , ComputeService computeSrv
+        , FingerprintBasedUpdater fingerprintBasedUpdater
         , String zone
         , String gridName);
   }

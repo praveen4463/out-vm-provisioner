@@ -2,6 +2,8 @@ package com.zylitics.wzgp.resource.grid;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +16,10 @@ import static org.mockito.ArgumentMatchers.eq;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import com.google.api.services.compute.model.Instance;
 import com.google.api.services.compute.model.Operation;
@@ -26,7 +32,10 @@ import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 import com.zylitics.wzgp.resource.service.ComputeService;
 import com.zylitics.wzgp.test.dummy.DummyRequestGridCreate;
 import com.zylitics.wzgp.test.util.ResourceTestUtil;
+import com.zylitics.wzgp.web.FingerprintBasedUpdater;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness=Strictness.STRICT_STUBS)
 public class GridStarterTest {
   
   private static final BuildProperty BUILD_PROP =
@@ -45,6 +54,7 @@ public class GridStarterTest {
   void gridStartsAndAllUpdatablePropsUpdateTest() throws Exception {
     ResourceExecutor executor = mock(ResourceExecutor.class);
     ComputeService computeSrv = mock(ComputeService.class);
+    FingerprintBasedUpdater fingerprintBasedUpdater = mock(FingerprintBasedUpdater.class);
     GridProperty gridProp = mock(GridProperty.class);
     Instance gridInstance = getInstance();
     
@@ -56,9 +66,56 @@ public class GridStarterTest {
     
     List<Operation> operations = new ArrayList<>(10);
     
-    setupComputeAndExecutorStubbing(computeSrv, executor, gridProp, operations);
+    // set compute-service and fingerprint-based-updater for various calls by starter.
     
-    GridStarter starter = new GridStarter(executor, computeSrv, BUILD_PROP, gridProp, gridInstance);
+    // parameter should match to let this stubbing work, we're verifying that starter is sending
+    // the correct parameters to service, params from gridProp are used because in any circumstance
+    // grid's existing params aren't sent to service for update. Name of the method used
+    // is set as returned Operation's description so that we later identify each operation.
+    when(computeSrv.setMachineType(GRID_NAME, gridProp.getMachineType(), ZONE, BUILD_PROP))
+        .then(inv -> {
+          Operation operation = getOperation(GRID_NAME, "setMachineType");
+          operations.add(operation);
+          return operation;
+        });
+    
+    when(computeSrv.setServiceAccount(GRID_NAME, gridProp.getServiceAccount(), ZONE, BUILD_PROP))
+        .then(inv -> {
+          Operation operation = getOperation(GRID_NAME, "setServiceAccount");
+          operations.add(operation);
+          return operation;
+        });
+    
+    when(fingerprintBasedUpdater.updateLabels(gridInstance, gridProp.getCustomLabels(), BUILD_PROP))
+        .then(inv -> {
+          Operation operation = getOperation(GRID_NAME, "setLabels");
+          operations.add(operation);
+          return operation;
+        });
+    when(fingerprintBasedUpdater.updateMetadata(gridInstance, gridProp.getMetadata(), BUILD_PROP))
+        .then(inv -> {
+          Operation operation = getOperation(GRID_NAME, "setMetadata");
+          operations.add(operation);
+          return operation;
+        });
+    
+    // finally for starting the instance, no need to add start operation since its wrapped in
+    // CompletedOperation
+    when(computeSrv.startInstance(GRID_NAME, ZONE, BUILD_PROP))
+        .thenReturn(getOperation(GRID_NAME, "startInstance"));
+    
+    // stub executor to process wait completion for operations.
+    // we'll mark each operation as 'DONE' just the same as executor would do, and can later check
+    // that our named operations (kept here in List) are actually completed via starter.
+    when(executor.blockUntilComplete(any(Operation.class), eq(BUILD_PROP)))
+        .then(invocation -> {
+          Operation operation = invocation.getArgument(0);
+          operation.setStatus("DONE");
+          return operation;
+        });
+    
+    GridStarter starter = new GridStarter(executor, computeSrv, fingerprintBasedUpdater, BUILD_PROP
+        , gridProp, gridInstance);
     CompletedOperation startOperationCompleted = starter.start();
     assertEquals("startInstance", startOperationCompleted.get().getDescription());
     
@@ -85,6 +142,7 @@ public class GridStarterTest {
   void gridStartsAndOnlySuppliedPropsUpdateTest() throws Exception {
     ResourceExecutor executor = mock(ResourceExecutor.class);
     ComputeService computeSrv = mock(ComputeService.class);
+    FingerprintBasedUpdater fingerprintBasedUpdater = mock(FingerprintBasedUpdater.class);
     GridProperty gridProp = mock(GridProperty.class);
     Instance gridInstance = getInstance();
     
@@ -96,25 +154,43 @@ public class GridStarterTest {
     
     List<Operation> operations = new ArrayList<>(10);
     
-    setupComputeAndExecutorStubbing(computeSrv, executor, gridProp, operations);
+    // set compute-service and fingerprint-based-updater for various calls by starter.
+    when(fingerprintBasedUpdater.updateMetadata(gridInstance, gridProp.getMetadata(), BUILD_PROP))
+        .then(inv -> {
+          Operation operation = getOperation(GRID_NAME, "setMetadata");
+          operations.add(operation);
+          return operation;
+        });
     
-    GridStarter starter = new GridStarter(executor, computeSrv, BUILD_PROP, gridProp, gridInstance);
+    when(computeSrv.startInstance(GRID_NAME, ZONE, BUILD_PROP))
+        .thenReturn(getOperation(GRID_NAME, "startInstance"));
+    
+    when(executor.blockUntilComplete(any(Operation.class), eq(BUILD_PROP)))
+        .then(invocation -> {
+          Operation operation = invocation.getArgument(0);
+          operation.setStatus("DONE");
+          return operation;
+        });
+    
+    GridStarter starter = new GridStarter(executor, computeSrv, fingerprintBasedUpdater, BUILD_PROP
+        , gridProp, gridInstance);
     CompletedOperation startOperationCompleted = starter.start();
+    
     assertEquals("startInstance", startOperationCompleted.get().getDescription());
     
     // verify that operations those were requested are only completed.
     assertTrue(operations.stream()
-        .noneMatch(operation -> operation.getDescription().equals("setMachineType")));
-    
-    assertTrue(operations.stream()
-        .noneMatch(operation -> operation.getDescription().equals("setServiceAccount")));
-    
-    assertTrue(operations.stream()
-        .noneMatch(operation -> operation.getDescription().equals("setLabels")));
-    
-    assertTrue(operations.stream()
         .filter(operation -> operation.getStatus().equals("DONE"))
         .anyMatch(operation -> operation.getDescription().equals("setMetadata")));
+    
+    verify(computeSrv, never())
+        .setMachineType(GRID_NAME, gridProp.getMachineType(), ZONE, BUILD_PROP);
+    
+    verify(computeSrv, never())
+        .setServiceAccount(GRID_NAME, gridProp.getServiceAccount(), ZONE, BUILD_PROP);
+    
+    verify(fingerprintBasedUpdater, never())
+        .updateLabels(gridInstance, gridProp.getCustomLabels(), BUILD_PROP);
   }
   
   private Instance getInstance() {
@@ -133,57 +209,5 @@ public class GridStarterTest {
         .setName("operation-" + UUID.randomUUID())
         .setTargetLink(ResourceTestUtil.getOperationTargetLink(resourceName, ZONE))
         .setDescription(description);
-  }
-  
-  private void setupComputeAndExecutorStubbing(ComputeService computeSrv, ResourceExecutor executor
-      , GridProperty gridProp, List<Operation> operations) throws Exception {
-    // set compute service for various calls by starter.
-    
-    // parameter should match to let this stubbing work, we're verifying that starter is sending
-    // the correct parameters to service, params from gridProp are used because in any circumstance
-    // grid's existing params aren't sent to service for update. Name of the method used
-    // is set as returned Operation's description so that we later identify each operation.
-    when(computeSrv.setMachineType(GRID_NAME, gridProp.getMachineType(), ZONE, BUILD_PROP))
-        .then(inv -> {
-          Operation operation = getOperation(GRID_NAME, "setMachineType");
-          operations.add(operation);
-          return operation;
-        });
-    
-    when(computeSrv.setServiceAccount(GRID_NAME, gridProp.getServiceAccount(), ZONE, BUILD_PROP))
-        .then(inv -> {
-          Operation operation = getOperation(GRID_NAME, "setServiceAccount");
-          operations.add(operation);
-          return operation;
-        });
-    
-    when(computeSrv.setLabels(GRID_NAME, gridProp.getCustomLabels(), ZONE, BUILD_PROP))
-        .then(inv -> {
-          Operation operation = getOperation(GRID_NAME, "setLabels");
-          operations.add(operation);
-          return operation;
-        });
-    
-    when(computeSrv.setMetadata(GRID_NAME, gridProp.getMetadata(), ZONE, BUILD_PROP))
-        .then(inv -> {
-          Operation operation = getOperation(GRID_NAME, "setMetadata");
-          operations.add(operation);
-          return operation;
-        });
-    
-    // finally for starting the instance, no need to add start operation since its wrapped in
-    // CompletedOperation
-    when(computeSrv.startInstance(GRID_NAME, ZONE, BUILD_PROP))
-        .thenReturn(getOperation(GRID_NAME, "startInstance"));
-    
-    // stub executor to process wait completion for operations.
-    // we'll mark each operation as 'DONE' just the same as executor would do, and can later check
-    // that our named operations (kept here in List) are actually completed via starter.
-    when(executor.blockUntilComplete(any(Operation.class), eq(BUILD_PROP)))
-        .then(invocation -> {
-          Operation operation = invocation.getArgument(0);
-          operation.setStatus("DONE");
-          return operation;
-        });
   }
 }

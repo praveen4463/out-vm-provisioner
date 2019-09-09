@@ -29,34 +29,32 @@ public class GridDeleteHandlerImpl extends AbstractGridHandler implements GridDe
   
   private @Nullable String sessionId;
   private boolean noRush;
+  private Instance gridInstance;
   
   private GridDeleteHandlerImpl(APICoreProperties apiCoreProps
       , ResourceExecutor executor
       , ComputeService computeSrv
+      , FingerprintBasedUpdater fingerprintBasedUpdater
       , String zone
       , String gridName) {
-    super(apiCoreProps, executor, computeSrv, zone);
+    super(apiCoreProps, executor, computeSrv, fingerprintBasedUpdater, zone);
     
     this.gridName = gridName;
   }
   
   @Override
   public ResponseEntity<ResponseGridDelete> handle() throws Exception {
-    // first set sessionId if available to ResourceUtil.METADATA_CURRENT_TEST_SESSIONID
-    List<Operation> pendingOperations = new ArrayList<>(5);
-    if (!Strings.isNullOrEmpty(sessionId)) {
-      pendingOperations.add(
-          computeSrv.setMetadata(gridName
-              , ImmutableMap.of(ResourceUtil.METADATA_CURRENT_TEST_SESSIONID, sessionId)
-              , zone
-              , null));
-    }
-    // get the grid instance to check a few things,
-    Instance gridInstance = computeSrv.getInstance(gridName, zone, null);
-    
+    gridInstance = computeSrv.getInstance(gridName, zone, null);
     if (gridInstance == null) {
       throw new GridNotFoundException("Grid instance wasn't found by name " + gridName + " deletion"
           + " is failed");
+    }
+    
+    // first set sessionId if available to ResourceUtil.METADATA_CURRENT_TEST_SESSIONID
+    List<Operation> pendingOperations = new ArrayList<>(5);
+    if (!Strings.isNullOrEmpty(sessionId)) {
+      pendingOperations.add(fingerprintBasedUpdater.updateMetadata(gridInstance
+          , ImmutableMap.of(ResourceUtil.METADATA_CURRENT_TEST_SESSIONID, sessionId), null));
     }
     
     // could be true if an ongoing deployment is running that applied this label to indicate we
@@ -89,11 +87,8 @@ public class GridDeleteHandlerImpl extends AbstractGridHandler implements GridDe
     
     if (!labelIsDeletingTrue) {
       // adding this label indicates we're going to delete it.
-      pendingOperations.add(
-          computeSrv.setLabels(gridName
-          , ImmutableMap.of(ResourceUtil.LABEL_IS_DELETING, "true")
-          , zone
-          , null));
+      pendingOperations.add(fingerprintBasedUpdater.updateLabels(gridInstance
+          , ImmutableMap.of(ResourceUtil.LABEL_IS_DELETING, "true"), null));
     }
     waitForPendingOperations(pendingOperations);  // let finish before starting delete
     Operation operation = computeSrv.deleteInstance(gridName, zone, null);
@@ -146,9 +141,11 @@ public class GridDeleteHandlerImpl extends AbstractGridHandler implements GridDe
   public static class Factory implements GridDeleteHandler.Factory {
     
     @Override
-    public GridDeleteHandler create(APICoreProperties apiCoreProps, ResourceExecutor executor,
-        ComputeService computeSrv, String zone, String gridName) {
-      return new GridDeleteHandlerImpl(apiCoreProps, executor, computeSrv, zone, gridName);
+    public GridDeleteHandler create(APICoreProperties apiCoreProps, ResourceExecutor executor
+        , ComputeService computeSrv, FingerprintBasedUpdater fingerprintBasedUpdater, String zone
+        , String gridName) {
+      return new GridDeleteHandlerImpl(apiCoreProps, executor, computeSrv, fingerprintBasedUpdater
+          , zone, gridName);
     }
   }
 }

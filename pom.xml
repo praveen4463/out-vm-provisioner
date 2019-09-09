@@ -78,6 +78,12 @@
       <version>${junit-jupiter.version}</version><!--$NO-MVN-MAN-VER$-->
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <version>${mockito.version}</version><!--$NO-MVN-MAN-VER$-->
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <build>
     <plugins>

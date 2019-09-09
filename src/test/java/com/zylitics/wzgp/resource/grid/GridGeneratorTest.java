@@ -5,7 +5,6 @@ import static com.zylitics.wzgp.resource.util.ResourceUtil.nameFromUrl;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.doReturn;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -18,6 +17,10 @@ import java.util.function.Function;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import com.google.api.services.compute.Compute;
 import com.google.api.services.compute.Compute.Instances;
@@ -36,6 +39,8 @@ import com.zylitics.wzgp.test.dummy.DummyAPICoreProperties;
 import com.zylitics.wzgp.test.dummy.DummyRequestGridCreate;
 import com.zylitics.wzgp.test.dummy.FakeCompute;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness=Strictness.STRICT_STUBS)
 public class GridGeneratorTest {
 
   private static final String IMAGE_FAMILY = "win-2008-base";
@@ -109,7 +114,7 @@ public class GridGeneratorTest {
   void gridGenerateTest() throws Exception {
     // Prepare spy that return a private instance of GridDefault so that we can provide any values.
     APICoreProperties apiCorePropsSpy = spy(new DummyAPICoreProperties());
-    doReturn(new DummyGridDefaults()).when(apiCorePropsSpy).getGridDefault();
+    when(apiCorePropsSpy.getGridDefault()).thenReturn(new DummyGridDefaults());
     
     String primaryZone = "us-central0-g";
     String primaryZoneRegion = "us-central0";
@@ -212,6 +217,16 @@ public class GridGeneratorTest {
     public Set<String> getImageSpecificLabelsKey() {
       return IMAGE_SPECIFIC_LABELS_KEY;
     }
+    
+    @Override
+    public Map<String, String> getInstanceSearchParams() {
+      return null;
+    }
+    
+    @Override
+    public Map<String, String> getImageSearchParams() {
+      return null;
+    }
   }
   
   private static class DummyGridProperties implements GridProperty {
@@ -227,7 +242,7 @@ public class GridGeneratorTest {
     }
     
     @Override
-    public boolean isPreemptible() {
+    public Boolean isPreemptible() {
       return PREEMPTIBLE;
     }
     

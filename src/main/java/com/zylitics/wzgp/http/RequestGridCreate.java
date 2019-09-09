@@ -1,6 +1,5 @@
 package com.zylitics.wzgp.http;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import javax.validation.Valid;
@@ -10,6 +9,7 @@ import javax.validation.constraints.NotEmpty;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.validation.annotation.Validated;
 
+import com.google.common.collect.ImmutableMap;
 import com.zylitics.wzgp.resource.BuildProperty;
 import com.zylitics.wzgp.resource.grid.GridProperty;
 import com.zylitics.wzgp.resource.search.ResourceSearchParam;
@@ -18,6 +18,8 @@ import com.zylitics.wzgp.resource.search.ResourceSearchParam;
  * Parsed from a json request via {@link HttpMessageConverter} that use jackson.
  * Some components are not declared for validation cause they may not be given every time and should
  * be validated manually.
+ * All setters in this class allow only first time access by container, after that no values can
+ * be mutated, getters of collections are also Immutable.
  * @author Praveen Tiwari
  *
  */
@@ -44,6 +46,11 @@ public class RequestGridCreate {
     return gridProperties;
   }
   
+  /**
+   * <p><b>Should be accessed only through the interface {@link BuildProperty}.</b></p>
+   * @author Praveen Tiwari
+   *
+   */
   public static class BuildProperties implements BuildProperty {
     
     @NotBlank
@@ -54,7 +61,9 @@ public class RequestGridCreate {
     }
 
     public void setBuildId(String buildId) {
-      this.buildId = buildId;
+      if (this.buildId == null) {
+        this.buildId = buildId;
+      }
     }
 
     @Override
@@ -93,11 +102,18 @@ public class RequestGridCreate {
     }
   }
 
+  /**
+   * <p><b>Should be accessed only through the interface {@link ResourceSearchParam}.</b></p>
+   * @author Praveen Tiwari
+   *
+   */
   public static class ResourceSearchParams implements ResourceSearchParam {
     
     private String os;
     private String browser;
-    private boolean shots = false;
+    private Boolean shots;
+    private Map<String, String> customInstanceSearchParams;
+    private Map<String, String> customImageSearchParams;
     
     @Override
     public String getOS() {
@@ -105,7 +121,9 @@ public class RequestGridCreate {
     }
     
     public void setOS(String os) {
-      this.os = os;
+      if (this.os == null) {
+        this.os = os;
+      }
     }
     
     @Override
@@ -114,21 +132,49 @@ public class RequestGridCreate {
     }
     
     public void setBrowser(String browser) {
-      this.browser = browser;
+      if (this.browser == null) {
+        this.browser = browser;
+      }
     }
     
     @Override
-    public boolean isShots() {
-      return shots;
+    public Boolean isShots() {
+      return shots == null ? false : shots;
     }
     
-    public void setShots(boolean shots) {
-      this.shots = shots;
+    public void setShots(Boolean shots) {
+      if (this.shots == null) {
+        this.shots = shots;
+      }
+    }
+    
+    @Override
+    public Map<String, String> getCustomInstanceSearchParams() {
+      return customInstanceSearchParams;
+    }
+
+    public void setCustomInstanceSearchParams(Map<String, String> customInstanceSearchParams) {
+      if (this.customInstanceSearchParams == null && customInstanceSearchParams != null) {
+        this.customInstanceSearchParams = ImmutableMap.copyOf(customInstanceSearchParams);
+      }
+    }
+
+    @Override
+    public Map<String, String> getCustomImageSearchParams() {
+      return customImageSearchParams;
+    }
+    
+    public void setCustomImageSearchParams(Map<String, String> customImageSearchParams) {
+      if (this.customImageSearchParams == null && customImageSearchParams != null) {
+        this.customImageSearchParams = ImmutableMap.copyOf(customImageSearchParams);;
+      }
     }
 
     @Override
     public String toString() {
-      return "ResourceSearchParams [os=" + os + ", browser=" + browser + ", shots=" + shots + "]";
+      return "ResourceSearchParams [os=" + os + ", browser=" + browser + ", shots=" + shots
+          + ", customInstanceSearchParams=" + customInstanceSearchParams
+          + ", customImageSearchParams=" + customImageSearchParams + "]";
     }
 
     @Override
@@ -136,6 +182,10 @@ public class RequestGridCreate {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((browser == null) ? 0 : browser.hashCode());
+      result = prime * result
+          + ((customImageSearchParams == null) ? 0 : customImageSearchParams.hashCode());
+      result = prime * result
+          + ((customInstanceSearchParams == null) ? 0 : customInstanceSearchParams.hashCode());
       result = prime * result + ((os == null) ? 0 : os.hashCode());
       result = prime * result + (shots ? 1231 : 1237);
       return result;
@@ -160,6 +210,20 @@ public class RequestGridCreate {
       } else if (!browser.equals(other.browser)) {
         return false;
       }
+      if (customImageSearchParams == null) {
+        if (other.customImageSearchParams != null) {
+          return false;
+        }
+      } else if (!customImageSearchParams.equals(other.customImageSearchParams)) {
+        return false;
+      }
+      if (customInstanceSearchParams == null) {
+        if (other.customInstanceSearchParams != null) {
+          return false;
+        }
+      } else if (!customInstanceSearchParams.equals(other.customInstanceSearchParams)) {
+        return false;
+      }
       if (os == null) {
         if (other.os != null) {
           return false;
@@ -174,16 +238,21 @@ public class RequestGridCreate {
     }
   }
   
+  /**
+   * <p><b>Should be accessed only through the interface {@link GridProperty}.</b></p>
+   * @author Praveen Tiwari
+   *
+   */
   public static class GridProperties implements GridProperty {
     
     private String machineType;
     private String serviceAccount;
-    private boolean preemptible = false;
+    private Boolean preemptible;
     
-    private final Map<String, String> customLabels = new HashMap<>();
+    private Map<String, String> customLabels;
     
     @NotEmpty
-    private final Map<String, String> metadata = new HashMap<>();
+    private Map<String, String> metadata;
     
     @Override
     public String getMachineType() {
@@ -191,7 +260,9 @@ public class RequestGridCreate {
     }
     
     public void setMachineType(String machineType) {
-      this.machineType = machineType;
+      if (this.machineType == null) {
+        this.machineType = machineType;
+      }
     }
     
     @Override
@@ -200,16 +271,20 @@ public class RequestGridCreate {
     }
     
     public void setServiceAccount(String serviceAccount) {
-      this.serviceAccount = serviceAccount;
+      if (this.serviceAccount == null) {
+        this.serviceAccount = serviceAccount;
+      }
     }
     
     @Override
-    public boolean isPreemptible() {
-      return preemptible;
+    public Boolean isPreemptible() {
+      return preemptible == null ? false : preemptible;
     }
     
-    public void setPreemptible(boolean preemptible) {
-      this.preemptible = preemptible;
+    public void setPreemptible(Boolean preemptible) {
+      if (this.preemptible == null) {
+        this.preemptible = preemptible;
+      }
     }
     
     @Override
@@ -217,9 +292,21 @@ public class RequestGridCreate {
       return customLabels;
     }
     
+    public void setCustomLabels(Map<String, String> customLabels) {
+      if (this.customLabels == null && customLabels != null) {
+        this.customLabels = ImmutableMap.copyOf(customLabels);
+      }
+    }
+
     @Override
     public Map<String, String> getMetadata() {
       return metadata;
+    }
+
+    public void setMetadata(Map<String, String> metadata) {
+      if (this.metadata == null && metadata != null) {
+        this.metadata = ImmutableMap.copyOf(metadata);
+      }
     }
 
     @Override

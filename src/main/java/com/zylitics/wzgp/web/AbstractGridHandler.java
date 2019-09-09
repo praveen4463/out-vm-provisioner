@@ -9,15 +9,18 @@ public abstract class AbstractGridHandler {
   protected final APICoreProperties apiCoreProps;
   protected final ResourceExecutor executor;
   protected final ComputeService computeSrv;
+  protected final FingerprintBasedUpdater fingerprintBasedUpdater;
   protected final String zone;
   
   public AbstractGridHandler(APICoreProperties apiCoreProps
       , ResourceExecutor executor
       , ComputeService computeSrv
+      , FingerprintBasedUpdater fingerprintBasedUpdater
       , String zone) {
     this.apiCoreProps = apiCoreProps;
     this.executor = executor;
     this.computeSrv = computeSrv;
+    this.fingerprintBasedUpdater = fingerprintBasedUpdater;
     this.zone = zone;
   }
 }

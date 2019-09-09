@@ -17,6 +17,7 @@ public interface GridStartHandler {
     GridStartHandler create(APICoreProperties apiCoreProps
         , ResourceExecutor executor
         , ComputeService computeSrv
+        , FingerprintBasedUpdater fingerprintBasedUpdater
         , String zone
         , RequestGridCreate request);
   }

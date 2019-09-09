@@ -1,14 +1,25 @@
 package com.zylitics.wzgp.resource.search;
 
+import java.util.Map;
+
 import org.springframework.util.Assert;
 
+/**
+ * All implementations must be strictly immutable for all accesses except spring container's.
+ * @author Praveen Tiwari
+ *
+ */
 public interface ResourceSearchParam {
 
   String getOS();
   
   String getBrowser();
   
-  boolean isShots();
+  Boolean isShots();
+  
+  Map<String, String> getCustomInstanceSearchParams();
+  
+  Map<String, String> getCustomImageSearchParams();
   
   /**
    * Validates the required search fields as per api documentation.

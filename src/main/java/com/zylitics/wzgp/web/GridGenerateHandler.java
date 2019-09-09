@@ -21,6 +21,7 @@ public interface GridGenerateHandler {
       , APICoreProperties apiCoreProps
       , ResourceExecutor executor
       , ComputeService computeSrv
+      , FingerprintBasedUpdater fingerprintBasedUpdater
       , String zone
       , RequestGridCreate request);
   }

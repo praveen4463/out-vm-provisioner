@@ -9,9 +9,9 @@ Note that we should configure log levels for spring internal logs. -->
     
     <!-- Note that to run stackdriver logging, agent should be installed on server/container. -->
     <appender name="STACKDRIVER" class="com.google.cloud.logging.logback.LoggingAppender">
-      <encoder>
+      <!--<encoder>
         <pattern>${STACKDRIVER_LOG_PATTERN}</pattern>
-      </encoder>
+      </encoder>-->
       <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
         <level>INFO</level>
       </filter>

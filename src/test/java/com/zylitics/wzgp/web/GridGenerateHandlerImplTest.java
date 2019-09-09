@@ -15,6 +15,10 @@ import java.util.function.Function;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -41,6 +45,8 @@ import com.zylitics.wzgp.test.dummy.FakeCompute;
 import com.zylitics.wzgp.test.util.ResourceTestUtil;
 import com.zylitics.wzgp.web.exceptions.GridNotCreatedException;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness=Strictness.STRICT_STUBS)
 public class GridGenerateHandlerImplTest {
   
   private static final String ZONE = "us-central0-g";
@@ -70,8 +76,11 @@ public class GridGenerateHandlerImplTest {
         .setFamily(sourceImageFamily)
         .setLabels(ImmutableMap.of("os","win7"));
     
+    Instance generatedInstance = getGeneratedInstance();
+    
     ResourceExecutor executor = mock(ResourceExecutor.class);
     ComputeService computeSrv = mock(ComputeService.class);
+    FingerprintBasedUpdater fingerprintBasedUpdater = mock(FingerprintBasedUpdater.class);
     
     when(computeSrv.getImageFromFamily(sourceImageFamily, BUILD_PROP))
         .thenReturn(image);
@@ -79,11 +88,12 @@ public class GridGenerateHandlerImplTest {
     stubGridGenerate(executor, sourceImageFamily, true);
     
     when(computeSrv.getInstance(GENERATED_INSTANCE_NAME, ZONE, BUILD_PROP))
-        .thenReturn(getGeneratedInstance());
+        .thenReturn(generatedInstance);
     
-    Operation lockGridOperation = stubGridLocking(executor, computeSrv);
+    Operation lockGridOperation = stubGridLocking(executor, fingerprintBasedUpdater
+        , generatedInstance);
 
-    GridGenerateHandler handler = getHandler(executor, computeSrv);
+    GridGenerateHandler handler = getHandler(executor, computeSrv, fingerprintBasedUpdater);
     
     handler.setSourceImageFamily(sourceImageFamily);
     
@@ -103,8 +113,11 @@ public class GridGenerateHandlerImplTest {
         .setFamily(searchedImageFamily)
         .setLabels(ImmutableMap.of("os","win7"));
     
+    Instance generateInstance = getGeneratedInstance();
+    
     ResourceExecutor executor = mock(ResourceExecutor.class);
     ComputeService computeSrv = mock(ComputeService.class);
+    FingerprintBasedUpdater fingerprintBasedUpdater = mock(FingerprintBasedUpdater.class);
     
     when(computeSrv.listImages(anyString(), eq(1L), eq(BUILD_PROP)))
         .thenReturn(ImmutableList.of(searchedImage));
@@ -112,11 +125,12 @@ public class GridGenerateHandlerImplTest {
     stubGridGenerate(executor, searchedImageFamily, true);
     
     when(computeSrv.getInstance(GENERATED_INSTANCE_NAME, ZONE, BUILD_PROP))
-        .thenReturn(getGeneratedInstance());
+        .thenReturn(generateInstance);
     
-    Operation lockGridOperation = stubGridLocking(executor, computeSrv);
+    Operation lockGridOperation = stubGridLocking(executor, fingerprintBasedUpdater
+        , generateInstance);
 
-    GridGenerateHandler handler = getHandler(executor, computeSrv);
+    GridGenerateHandler handler = getHandler(executor, computeSrv, fingerprintBasedUpdater);
     
     ResponseEntity<ResponseGridCreate> response = handler.handle();
     
@@ -136,6 +150,7 @@ public class GridGenerateHandlerImplTest {
     
     ResourceExecutor executor = mock(ResourceExecutor.class);
     ComputeService computeSrv = mock(ComputeService.class);
+    FingerprintBasedUpdater fingerprintBasedUpdater = mock(FingerprintBasedUpdater.class);
     
     when(computeSrv.listImages(anyString(), eq(1L), eq(BUILD_PROP)))
         .thenReturn(ImmutableList.of(searchedImage));
@@ -144,14 +159,15 @@ public class GridGenerateHandlerImplTest {
     
     // No other stubbing required as we want grid generator to respond negatively.
     
-    GridGenerateHandler handler = getHandler(executor, computeSrv);
+    GridGenerateHandler handler = getHandler(executor, computeSrv, fingerprintBasedUpdater);
     
     assertThrows(GridNotCreatedException.class, () -> handler.handle());
   }
   
-  private GridGenerateHandler getHandler(ResourceExecutor executor, ComputeService computeSrv) {
+  private GridGenerateHandler getHandler(ResourceExecutor executor, ComputeService computeSrv
+      , FingerprintBasedUpdater finerprintUpdater) {
     return new GridGenerateHandlerImpl.Factory().create(
-        COMPUTE, API_CORE_PROPS, executor, computeSrv, ZONE, REQ_CREATE);
+        COMPUTE, API_CORE_PROPS, executor, computeSrv, finerprintUpdater, ZONE, REQ_CREATE);
   }
   
   private Instance getGeneratedInstance() {
@@ -180,12 +196,12 @@ public class GridGenerateHandlerImplTest {
         });
   }
   
-  private Operation stubGridLocking(ResourceExecutor executor, ComputeService computeSrv)
-      throws Exception {
+  private Operation stubGridLocking(ResourceExecutor executor
+      , FingerprintBasedUpdater fingerprintBasedUpdater, Instance gridInstance) throws Exception {
     Map<String, String> lockGridLabel =
         ImmutableMap.of(ResourceUtil.LABEL_LOCKED_BY_BUILD, BUILD_PROP.getBuildId());
     Operation lockGridOperation = new Operation().setStatus("RUNNING");
-    when(computeSrv.setLabels(GENERATED_INSTANCE_NAME, lockGridLabel, ZONE, BUILD_PROP))
+    when(fingerprintBasedUpdater.updateLabels(gridInstance, lockGridLabel, BUILD_PROP))
         .thenReturn(lockGridOperation);
     when(executor.blockUntilComplete(lockGridOperation, BUILD_PROP))
         .then(inv -> {

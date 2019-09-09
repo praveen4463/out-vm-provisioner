@@ -22,6 +22,10 @@ import org.assertj.core.util.Strings;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -38,6 +42,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.services.compute.Compute;
+import com.google.common.collect.ImmutableMap;
 import com.zylitics.wzgp.http.RequestGridCreate;
 import com.zylitics.wzgp.http.ResponseGridCreate;
 import com.zylitics.wzgp.http.ResponseGridDelete;
@@ -47,10 +52,13 @@ import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 import com.zylitics.wzgp.resource.service.ComputeService;
 import com.zylitics.wzgp.test.dummy.DummyRequestGridCreate;
 import com.zylitics.wzgp.test.dummy.FakeCompute;
+import com.zylitics.wzgp.web.FingerprintBasedUpdater;
 import com.zylitics.wzgp.web.GridDeleteHandler;
 import com.zylitics.wzgp.web.GridGenerateHandler;
 import com.zylitics.wzgp.web.GridStartHandler;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness=Strictness.STRICT_STUBS)
 @SpringBootTest(webEnvironment=WebEnvironment.MOCK)
 @AutoConfigureMockMvc
 @ActiveProfiles("integration")
@@ -91,6 +99,9 @@ public class GridControllerIntegrationTest {
   @Autowired
   private ComputeService computeSrv;
   
+  @Autowired
+  private FingerprintBasedUpdater fingerprintBasedUpdater;
+  
   private JacksonTester<RequestGridCreate> createReq;
   
   @BeforeEach
@@ -117,8 +128,9 @@ public class GridControllerIntegrationTest {
     RequestGridCreate requestSent = new DummyRequestGridCreate().get();
     
     when(GENERATE_HANDLER_FACTORY.create(eq(compute), eq(apiCoreProps), eq(executor)
-        , eq(computeSrv), eq(ZONE), any(RequestGridCreate.class))).then(invocation -> {
-          RequestGridCreate requestReceived = invocation.getArgument(5);
+        , eq(computeSrv), eq(fingerprintBasedUpdater), eq(ZONE)
+        , any(RequestGridCreate.class))).then(invocation -> {
+          RequestGridCreate requestReceived = invocation.getArgument(6);
           assertEquals(requestSent, requestReceived);
           return GENERATE_HANDLER;
         });
@@ -144,15 +156,16 @@ public class GridControllerIntegrationTest {
   }
   
   @Test
-  @DisplayName("verify unsufficient request fails and returns error")
-  void postReqUnsufficientData() throws Exception {
+  @DisplayName("verify insufficient request fails and returns error")
+  void postReqInsufficientData() throws Exception {
     ObjectMapper mapper = new ObjectMapper();
     JacksonTester.initFields(this, mapper);
     
     String sourceImageFamily = "family-1";
     
-    RequestGridCreate requestSent = new DummyRequestGridCreate().get();
+    RequestGridCreate requestSent = new RequestGridCreate();
     requestSent.getBuildProperties().setBuildId(null);
+    requestSent.getGridProperties().setMetadata(ImmutableMap.of("screen", "1x1"));
     
     mvc.perform(
           post("/{version}/zones/{zone}/grids", env.getProperty(APP_VER_KEY), ZONE)
@@ -175,8 +188,8 @@ public class GridControllerIntegrationTest {
   void deleteReqEndpointTest() throws Exception {
     String sessionId = "session-1";
     
-    when(DELETE_HANDLER_FACTORY.create(apiCoreProps, executor, computeSrv, ZONE, GRID_NAME))
-        .thenReturn(DELETE_HANDLER);
+    when(DELETE_HANDLER_FACTORY.create(apiCoreProps, executor, computeSrv, fingerprintBasedUpdater
+        , ZONE, GRID_NAME)).thenReturn(DELETE_HANDLER);
     
     when(DELETE_HANDLER.handle()).thenReturn(
           ResponseEntity.status(HttpStatus.OK).body(gridDeleteResponse()));
@@ -214,6 +227,8 @@ public class GridControllerIntegrationTest {
     assertTrue(gridDefault.getLabels().size() > 0);
     assertTrue(gridDefault.getMetadata().size() > 0);
     assertTrue(gridDefault.getImageSpecificLabelsKey().size() > 0);
+    assertTrue(gridDefault.getInstanceSearchParams().size() > 0);
+    assertTrue(gridDefault.getImageSearchParams().size() > 0);
   }
   
   private ResponseGridCreate gridCreateResponse() {

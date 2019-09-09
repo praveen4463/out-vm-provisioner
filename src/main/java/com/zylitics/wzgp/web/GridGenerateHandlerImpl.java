@@ -37,9 +37,10 @@ public class GridGenerateHandlerImpl extends AbstractGridCreateHandler
       , APICoreProperties apiCoreProps
       , ResourceExecutor executor
       , ComputeService computeSrv
+      , FingerprintBasedUpdater fingerprintBasedUpdater
       , String zone
       , RequestGridCreate request) {
-    super(apiCoreProps, executor, computeSrv, zone, request);
+    super(apiCoreProps, executor, computeSrv, fingerprintBasedUpdater, zone, request);
     
     this.compute = compute;
   }
@@ -87,7 +88,7 @@ public class GridGenerateHandlerImpl extends AbstractGridCreateHandler
         , image);
     CompletedOperation completedOperation = generator.create(zone);
     Operation operation = completedOperation.get();
-    if (!ResourceUtil.isOperationSuccess(operation))  {
+    if (!ResourceUtil.isOperationSuccess(operation)) {
       throw new GridNotCreatedException(
           String.format("Couldn't generate a new grid using image %s, operation: %s %s"
           , image.getName()
@@ -109,7 +110,7 @@ public class GridGenerateHandlerImpl extends AbstractGridCreateHandler
   
   private void onGridGeneratedEventHandler(Instance gridInstance) throws Exception {
     // label buildId to the created grid instance
-    lockGridInstance(gridInstance.getName(), nameFromUrl(gridInstance.getZone()));
+    lockGridInstance(gridInstance);
     // verify the grid is running and there's nothing wrong
     if (!isRunning(gridInstance)) {
       // shouldn't happen
@@ -124,11 +125,11 @@ public class GridGenerateHandlerImpl extends AbstractGridCreateHandler
   public static class Factory implements GridGenerateHandler.Factory {
     
     @Override
-    public GridGenerateHandler create(Compute compute, APICoreProperties apiCoreProps,
-        ResourceExecutor executor, ComputeService computeSrv, String zone,
-        RequestGridCreate request) {
-      return new GridGenerateHandlerImpl(compute, apiCoreProps, executor, computeSrv, zone
-          , request);
+    public GridGenerateHandler create(Compute compute, APICoreProperties apiCoreProps
+        , ResourceExecutor executor, ComputeService computeSrv
+        , FingerprintBasedUpdater fingerprintBasedUpdater, String zone, RequestGridCreate request) {
+      return new GridGenerateHandlerImpl(compute, apiCoreProps, executor, computeSrv
+          , fingerprintBasedUpdater, zone, request);
     }
   }
 }

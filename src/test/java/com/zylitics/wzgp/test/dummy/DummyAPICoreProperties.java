@@ -78,5 +78,18 @@ public class DummyAPICoreProperties implements APICoreProperties {
     public Set<String> getImageSpecificLabelsKey() {
       return ImmutableSet.of("test-vms");
     }
+    
+    @Override
+    public Map<String, String> getInstanceSearchParams() {
+      return ImmutableMap.of(
+            "labels.platform", "windows",
+            "status", "TERMINATED"
+          );
+    }
+    
+    @Override
+    public Map<String, String> getImageSearchParams() {
+      return ImmutableMap.of("labels.platform", "windows");
+    }
   }
 }

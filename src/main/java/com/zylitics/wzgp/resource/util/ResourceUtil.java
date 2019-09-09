@@ -18,8 +18,6 @@ public class ResourceUtil {
   public static final String LABEL_IS_PRODUCTION_INSTANCE = "is-production-instance";
   
   public static final String METADATA_CURRENT_TEST_SESSIONID = "current-test-sessionId";
-  
-  public static final String INSTANCE_STALE_FINGERPRINT = "stale-fingerprint";
 
   public static boolean isOperationSuccess(Operation operation) {
     if (operation.getStatus().equals("DONE")

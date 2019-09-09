@@ -16,11 +16,13 @@ import com.zylitics.wzgp.resource.BuildProperty;
 import com.zylitics.wzgp.resource.CompletedOperation;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 import com.zylitics.wzgp.resource.service.ComputeService;
+import com.zylitics.wzgp.web.FingerprintBasedUpdater;
 
 public class GridStarter {
   
   private final ResourceExecutor executor;
   private final ComputeService computeSrv;
+  private final FingerprintBasedUpdater fingerprintBasedUpdater;
   private final BuildProperty buildProp;
   private final GridProperty gridProp;
   private final Instance gridInstance;
@@ -28,13 +30,15 @@ public class GridStarter {
 
   public GridStarter(ResourceExecutor executor
       , ComputeService computeSrv
+      , FingerprintBasedUpdater fingerprintBasedUpdater
       , BuildProperty buildProp
       , GridProperty gridProp
       , Instance gridInstance) {
     this.executor = executor;
+    this.computeSrv = computeSrv;
+    this.fingerprintBasedUpdater = fingerprintBasedUpdater;
     this.buildProp = buildProp;
     this.gridProp = gridProp;
-    this.computeSrv = computeSrv;
     Assert.notNull(gridInstance, "'gridInstance' can't be null.");
     Assert.hasText(gridInstance.getName(), "'gridInstance' name is missing, object seems invalid.");
     this.gridInstance = gridInstance;
@@ -125,10 +129,8 @@ public class GridStarter {
       return Optional.empty();
     }
     
-    return Optional.ofNullable(computeSrv.setLabels(
-        gridInstance.getName()
+    return Optional.ofNullable(fingerprintBasedUpdater.updateLabels(gridInstance
         , gridProp.getCustomLabels()
-        , zone
         , buildProp));
   }
   
@@ -137,10 +139,8 @@ public class GridStarter {
       return Optional.empty();
     }
     
-    return Optional.ofNullable(computeSrv.setMetadata(
-        gridInstance.getName()
+    return Optional.ofNullable(fingerprintBasedUpdater.updateMetadata(gridInstance
         , gridProp.getMetadata()
-        , zone
         , buildProp));
   }
   

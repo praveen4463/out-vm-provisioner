@@ -4,6 +4,7 @@ import java.util.Optional;
 
 import com.google.api.services.compute.model.Image;
 import com.google.api.services.compute.model.Instance;
+import com.zylitics.wzgp.resource.APICoreProperties;
 import com.zylitics.wzgp.resource.BuildProperty;
 import com.zylitics.wzgp.resource.service.ComputeService;
 
@@ -21,6 +22,7 @@ public interface ResourceSearch {
       return new ResourceSearchImpl.Factory();
     }
     
-    ResourceSearch create(ComputeService computeSrv, ResourceSearchParam searchParam);
+    ResourceSearch create(APICoreProperties apiCoreProps, ComputeService computeSrv
+        , ResourceSearchParam searchParam);
   }
 }
