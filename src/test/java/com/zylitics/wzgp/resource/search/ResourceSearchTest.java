@@ -18,7 +18,7 @@ import com.google.api.services.compute.model.Instance;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.zylitics.wzgp.resource.APICoreProperties;
-import com.zylitics.wzgp.resource.service.ComputeService;
+import com.zylitics.wzgp.resource.compute.ComputeService;
 import com.zylitics.wzgp.test.dummy.DummyRequestGridCreate;
 import com.zylitics.wzgp.test.util.ResourceTestUtil;
 
@@ -114,7 +114,7 @@ public class ResourceSearchTest {
     sb.append(" OR ");
     sb.append(String.format("(labels.browser6 = \"%s\")", SEARCH_PARAMS.getBrowser()));
     sb.append(" AND ");
-    sb.append(String.format("(labels.shots = \"%s\")", SEARCH_PARAMS.isShots()));
+    sb.append(String.format("(labels.shots = \"%s\")", SEARCH_PARAMS.getShots()));
     return sb.toString();
   }
 }

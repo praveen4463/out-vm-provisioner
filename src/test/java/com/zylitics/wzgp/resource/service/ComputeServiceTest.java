@@ -20,8 +20,10 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import com.google.api.services.compute.Compute;
+import com.google.api.services.compute.Compute.Disks;
 import com.google.api.services.compute.Compute.Images;
 import com.google.api.services.compute.Compute.Instances;
+import com.google.api.services.compute.model.Disk;
 import com.google.api.services.compute.model.Image;
 import com.google.api.services.compute.model.ImageList;
 import com.google.api.services.compute.model.Instance;
@@ -34,6 +36,7 @@ import com.google.api.services.compute.model.Operation;
 import com.google.common.collect.ImmutableList;
 import com.zylitics.wzgp.resource.APICoreProperties;
 import com.zylitics.wzgp.resource.APICoreProperties.GridDefault;
+import com.zylitics.wzgp.resource.compute.ComputeService;
 import com.zylitics.wzgp.resource.BuildProperty;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 import com.zylitics.wzgp.resource.util.ResourceUtil;
@@ -276,6 +279,24 @@ public class ComputeServiceTest {
             List<Instance> instances = computeSrv.listInstances(filter, maxResult, ZONE
                 , BUILD_PROP);
             assertEquals(maxResult, instances.size());
+          }),
+          
+          dynamicTest("verify disk get provides valid arguments to execute", () -> {
+            String diskName = "disk-1";
+            ResourceExecutor executor = mock(ResourceExecutor.class);
+            when(executor.executeWithReattempt(any(Disks.Get.class), eq(BUILD_PROP)))
+                .then(ivocation -> {
+                  Disks.Get getDisk = ivocation.getArgument(0);
+                  if (!(getDisk.getProject().equals(project)
+                      && getDisk.getZone().equals(ZONE)
+                      && getDisk.getDisk().equals(diskName))) {
+                    throw new RuntimeException("invalid parameter given to Disks.Get.");
+                  }
+                  return new Disk().setName(diskName);
+            });
+            ComputeService computeSrv = new ComputeService(COMPUTE, executor, API_CORE_PROPS);
+            Disk disk = computeSrv.getDisk(diskName, ZONE, BUILD_PROP);
+            assertEquals(diskName, disk.getName());
           })
         );
   }

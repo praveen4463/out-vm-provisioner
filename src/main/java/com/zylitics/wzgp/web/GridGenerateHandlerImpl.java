@@ -17,10 +17,10 @@ import com.zylitics.wzgp.http.RequestGridCreate;
 import com.zylitics.wzgp.http.ResponseGridCreate;
 import com.zylitics.wzgp.resource.APICoreProperties;
 import com.zylitics.wzgp.resource.CompletedOperation;
+import com.zylitics.wzgp.resource.compute.ComputeService;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 import com.zylitics.wzgp.resource.grid.GridGenerator;
 import com.zylitics.wzgp.resource.search.ResourceSearch;
-import com.zylitics.wzgp.resource.service.ComputeService;
 import com.zylitics.wzgp.resource.util.ResourceUtil;
 import com.zylitics.wzgp.web.exceptions.GridNotCreatedException;
 import com.zylitics.wzgp.web.exceptions.GridNotRunningException;
@@ -37,10 +37,11 @@ public class GridGenerateHandlerImpl extends AbstractGridCreateHandler
       , APICoreProperties apiCoreProps
       , ResourceExecutor executor
       , ComputeService computeSrv
+      , ResourceSearch search
       , FingerprintBasedUpdater fingerprintBasedUpdater
       , String zone
       , RequestGridCreate request) {
-    super(apiCoreProps, executor, computeSrv, fingerprintBasedUpdater, zone, request);
+    super(apiCoreProps, executor, computeSrv, search, fingerprintBasedUpdater, zone, request);
     
     this.compute = compute;
   }
@@ -68,8 +69,7 @@ public class GridGenerateHandlerImpl extends AbstractGridCreateHandler
   }
   
   private Image searchImage() throws Exception {
-    ResourceSearch search = getSearch();
-    Optional<Image> image = search.searchImage();
+    Optional<Image> image = search.searchImage(request.getResourceSearchParams(), buildProp);
     if (!image.isPresent()) {
       throw new ImageNotFoundException(
           String.format("No image matches the given search terms, search terms: %s %s"
@@ -126,9 +126,9 @@ public class GridGenerateHandlerImpl extends AbstractGridCreateHandler
     
     @Override
     public GridGenerateHandler create(Compute compute, APICoreProperties apiCoreProps
-        , ResourceExecutor executor, ComputeService computeSrv
+        , ResourceExecutor executor, ComputeService computeSrv, ResourceSearch search
         , FingerprintBasedUpdater fingerprintBasedUpdater, String zone, RequestGridCreate request) {
-      return new GridGenerateHandlerImpl(compute, apiCoreProps, executor, computeSrv
+      return new GridGenerateHandlerImpl(compute, apiCoreProps, executor, computeSrv, search
           , fingerprintBasedUpdater, zone, request);
     }
   }

@@ -13,7 +13,7 @@ public interface GridProperty {
   
   String getServiceAccount();
   
-  Boolean isPreemptible();
+  Boolean getPreemptible();
   
   Map<String, String> getCustomLabels();
   

@@ -41,5 +41,7 @@ public interface APICoreProperties {
     Map<String, String> getInstanceSearchParams();
     
     Map<String, String> getImageSearchParams();
+    
+    int getMaxStoppedInstanceInSearch();
   }
 }

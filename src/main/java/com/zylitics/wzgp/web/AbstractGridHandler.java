@@ -1,8 +1,8 @@
 package com.zylitics.wzgp.web;
 
 import com.zylitics.wzgp.resource.APICoreProperties;
+import com.zylitics.wzgp.resource.compute.ComputeService;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
-import com.zylitics.wzgp.resource.service.ComputeService;
 
 public abstract class AbstractGridHandler {
 

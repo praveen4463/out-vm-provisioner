@@ -14,33 +14,23 @@ import com.google.api.services.compute.model.Instance;
 import com.google.api.services.compute.model.Metadata;
 import com.google.api.services.compute.model.Operation;
 import com.zylitics.wzgp.resource.BuildProperty;
-import com.zylitics.wzgp.resource.service.ComputeService;
+import com.zylitics.wzgp.resource.compute.ComputeService;
 import com.zylitics.wzgp.resource.util.ResourceUtil;
 
-// This updater doesn't worry about updates made to the same instance by some other process, for
-// example when instance is getting started or deleted. It just manages the local updates done by
-// the current process. Usually when some other process makes updates to the instance at the same
-// time, the best way is to give up the current process rather than working on the same instance.
-// Thus, if during start/delete, any other process tries to work on same resource, these will raise
-// exception and should be handled appropriately, for example if start fails for any reason, a fresh
-// instance should be created. 
 /**
  * <p>This class is used to update resources that requires up-to-date fingerprint matching with GCP,
- * for example, labels, metadata, tags, network-interfaces. It keep the state within
- * {@link Instance} itself to learn whether a particular resource is out-of-sync with GCP and if so,
- * updates the Instances object with GCP before attempting an update.</p>
+ * for example, labels, metadata, tags, network-interfaces. It doesn't keep any state of fingerprint
+ * and simply fetches fresh every time which is the safest way to resolve any future issues and
+ * guaranteed latest fingerprint value.</p>
  * <p> During the update, it fetches the latest set of values of the resources, merges the given
  * values with it to derive a full set of values so that GCP can replace the whole set of values
  * with what currently set there. </p>
  * @author Praveen Tiwari
  *
  */
- // !!! This class mutates the state of Instance object, carefully review/test the code.
 @Component
 @Scope("singleton")
 public class FingerprintBasedUpdater {
-  
-  public static final String STALE_FINGERPRINT_IDENTIFIER = "stale-fingerprint";
   
   private final ComputeService computeSrv;
   
@@ -65,13 +55,7 @@ public class FingerprintBasedUpdater {
     Assert.isTrue(labels.size() > 0, "'labels' can't be empty");
     
     String zoneName = ResourceUtil.nameFromUrl(instance.getZone());
-    
-    if (instance.getLabelFingerprint().equals(STALE_FINGERPRINT_IDENTIFIER)) {
-      // update resources for this instance. If fingerprint is stale, this means labels are stale
-      // too. We'll update labels too so that we get fresh set of labels to be merged with the
-      // given labels.
-      updateInstance(instance, zoneName, buildProp);
-    }
+    instance = computeSrv.getInstance(instance.getName(), zoneName, buildProp);
     
     // first put instance labels, then requested.
     Map<String, String> mergedLabels = new HashMap<>();
@@ -82,9 +66,6 @@ public class FingerprintBasedUpdater {
     
     Operation operation = computeSrv.setLabels(instance.getName(), mergedLabels, zoneName
         , instance.getLabelFingerprint(), buildProp);
-    
-    // set fingerprint to stale.
-    instance.setLabelFingerprint(STALE_FINGERPRINT_IDENTIFIER);
     
     return operation;
   }
@@ -105,17 +86,10 @@ public class FingerprintBasedUpdater {
     Assert.isTrue(metadata.size() > 0, "'metadata' can't be empty");
     
     String zoneName = ResourceUtil.nameFromUrl(instance.getZone());
-    
+    instance = computeSrv.getInstance(instance.getName(), zoneName, buildProp);
     Metadata gcpMetadata = instance.getMetadata();
     
-    if (gcpMetadata.getFingerprint().equals(STALE_FINGERPRINT_IDENTIFIER)) {
-      // update resources for this instance. If fingerprint is stale, this means metadata are stale
-      // too. We'll update metadata too so that we get fresh set of metadata to be merged with the
-      // given metadata.
-      updateInstance(instance, zoneName, buildProp);
-    }
-    
-    // first put metadata labels, then requested.
+    // first put instance metadata, then requested.
     Map<String, String> mergedMetadata = new HashMap<>();
     if (gcpMetadata.getItems() != null) {
       gcpMetadata.getItems().forEach(items -> mergedMetadata.put(items.getKey(), items.getValue()));
@@ -125,27 +99,22 @@ public class FingerprintBasedUpdater {
     Operation operation = computeSrv.setMetadata(instance.getName(), mergedMetadata, zoneName
         , gcpMetadata.getFingerprint(), buildProp);
     
-    // set fingerprint to stale.
-    gcpMetadata.setFingerprint(STALE_FINGERPRINT_IDENTIFIER);
-    
     return operation;
   }
   
-  private void updateInstance(Instance instance, String zoneName
-      , @Nullable BuildProperty buildProp) throws Exception {
-    Instance fresh = computeSrv.getInstance(instance.getName(), zoneName, buildProp);
+  public Operation deleteAllMetadata(Instance instance, @Nullable BuildProperty buildProp)
+      throws Exception {
+    Assert.notNull(instance, "'instance' can't be null");
     
-    // set labels and its fingerprint
-    instance.setLabelFingerprint(fresh.getLabelFingerprint());
-    instance.setLabels(fresh.getLabels());
-    
-    // set metadata object that contains both metadata map and fingerprint
+    String zoneName = ResourceUtil.nameFromUrl(instance.getZone());
+    instance = computeSrv.getInstance(instance.getName(), zoneName, buildProp);
     Metadata gcpMetadata = instance.getMetadata();
-    if (gcpMetadata != null) {
-      gcpMetadata.setFingerprint(fresh.getMetadata().getFingerprint());
-      gcpMetadata.setItems(fresh.getMetadata().getItems());
-    }
     
-    // TODO: write more set methods if we support updating tags, network-interfaces
+    Map<String, String> emptyMetadata = new HashMap<>();
+    
+    Operation operation = computeSrv.setMetadata(instance.getName(), emptyMetadata, zoneName
+        , gcpMetadata.getFingerprint(), buildProp);
+    
+    return operation;
   }
 }

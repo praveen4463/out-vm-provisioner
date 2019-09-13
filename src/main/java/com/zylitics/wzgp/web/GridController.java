@@ -25,8 +25,9 @@ import com.zylitics.wzgp.http.ResponseGridDelete;
 import com.zylitics.wzgp.http.ResponseStatus;
 import com.zylitics.wzgp.resource.APICoreProperties;
 import com.zylitics.wzgp.resource.BuildProperty;
+import com.zylitics.wzgp.resource.compute.ComputeService;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
-import com.zylitics.wzgp.resource.service.ComputeService;
+import com.zylitics.wzgp.resource.search.ResourceSearch;
 import com.zylitics.wzgp.web.exceptions.GridStartHandlerFailureException;
 
 /*
@@ -65,6 +66,7 @@ public class GridController {
   private final APICoreProperties apiCoreProps;
   private final ResourceExecutor executor;
   private final ComputeService computeSrv;
+  private final ResourceSearch search;
   private final FingerprintBasedUpdater fingerprintBasedUpdater;
   private final GridGenerateHandler.Factory gridGenerateHandlerFactory;
   private final GridStartHandler.Factory gridStartHandlerFactory;
@@ -78,6 +80,7 @@ public class GridController {
       , APICoreProperties apiCoreProps
       , ResourceExecutor executor
       , ComputeService computeSrv
+      , ResourceSearch search
       , FingerprintBasedUpdater fingerprintBasedUpdater
       , GridGenerateHandler.Factory gridGenerateHandlerFactory
       , GridStartHandler.Factory gridStartHandlerFactory
@@ -86,6 +89,7 @@ public class GridController {
     this.apiCoreProps = apiCoreProps;
     this.executor = executor;
     this.computeSrv = computeSrv;
+    this.search = search;
     this.fingerprintBasedUpdater = fingerprintBasedUpdater;
     this.gridGenerateHandlerFactory = gridGenerateHandlerFactory;
     this.gridStartHandlerFactory = gridStartHandlerFactory;
@@ -104,6 +108,7 @@ public class GridController {
           , apiCoreProps
           , executor
           , computeSrv
+          , search
           , fingerprintBasedUpdater
           , zone
           , gridCreateReq);
@@ -117,6 +122,7 @@ public class GridController {
     GridStartHandler startHandler = gridStartHandlerFactory.create(apiCoreProps
         , executor
         , computeSrv
+        , search
         , fingerprintBasedUpdater
         , zone
         , gridCreateReq);
@@ -124,7 +130,7 @@ public class GridController {
       return startHandler.handle();
     } catch (Exception failure) {
       if (!(failure instanceof GridStartHandlerFailureException)) {
-        LOG.error("start handler experienced an unexpected exception, trying to create a fresh grid"
+        LOG.error("start handler experienced an unexpected exception, trying to create fresh grid "
             + addToException(gridCreateReq.getBuildProperties()), failure);
       }
       // we couldn't get a stopped grid instance, fallback to a fresh one.
@@ -132,6 +138,7 @@ public class GridController {
           , apiCoreProps
           , executor
           , computeSrv
+          , search
           , fingerprintBasedUpdater
           , zone
           , gridCreateReq).handle();

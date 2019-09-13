@@ -48,4 +48,5 @@ api-core:
       labels.is-deleting: false
     image-search-params:
       labels.platform: windows
+    max-stopped-instance-in-search: 10
 ---

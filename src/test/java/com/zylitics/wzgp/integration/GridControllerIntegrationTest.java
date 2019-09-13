@@ -21,6 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.assertj.core.util.Strings;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -48,8 +49,8 @@ import com.zylitics.wzgp.http.ResponseGridCreate;
 import com.zylitics.wzgp.http.ResponseGridDelete;
 import com.zylitics.wzgp.http.ResponseStatus;
 import com.zylitics.wzgp.resource.APICoreProperties;
+import com.zylitics.wzgp.resource.compute.ComputeService;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
-import com.zylitics.wzgp.resource.service.ComputeService;
 import com.zylitics.wzgp.test.dummy.DummyRequestGridCreate;
 import com.zylitics.wzgp.test.dummy.FakeCompute;
 import com.zylitics.wzgp.web.FingerprintBasedUpdater;
@@ -57,6 +58,8 @@ import com.zylitics.wzgp.web.GridDeleteHandler;
 import com.zylitics.wzgp.web.GridGenerateHandler;
 import com.zylitics.wzgp.web.GridStartHandler;
 
+@Tag("integration")
+@Tag("in-container")
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness=Strictness.STRICT_STUBS)
 @SpringBootTest(webEnvironment=WebEnvironment.MOCK)
@@ -229,6 +232,7 @@ public class GridControllerIntegrationTest {
     assertTrue(gridDefault.getImageSpecificLabelsKey().size() > 0);
     assertTrue(gridDefault.getInstanceSearchParams().size() > 0);
     assertTrue(gridDefault.getImageSearchParams().size() > 0);
+    assertTrue(gridDefault.getMaxStoppedInstanceInSearch() > 0);
   }
   
   private ResponseGridCreate gridCreateResponse() {

@@ -75,7 +75,6 @@ public class GridGenerator {
   
   private Compute.Instances.Insert buildNewGrid(String gridZone) {
     GridDefault gridDefault = apiCoreProps.getGridDefault();
-    
     Set<String> tags = gridDefault.getTags();
     Map<String, String> labels = buildGridLabels(sourceImage
         , gridDefault.getLabels()
@@ -88,7 +87,7 @@ public class GridGenerator {
     String network = gridDefault.getNetwork();
     String serviceAccountEmail =
         Optional.ofNullable(gridProp.getServiceAccount()).orElse(gridDefault.getServiceAccount());
-    boolean preemptible = gridProp.isPreemptible();
+    boolean preemptible = gridProp.getPreemptible();
     
     // ************************************************************************
     

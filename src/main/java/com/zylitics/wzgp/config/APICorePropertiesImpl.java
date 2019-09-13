@@ -161,6 +161,9 @@ public class APICorePropertiesImpl implements APICoreProperties {
     @NotEmpty
     private Map<String, String> imageSearchParams;
     
+    @Min(1)
+    private int maxStoppedInstanceInSearch;
+    
     @Override
     public String getMachineType() {
       return machineType;
@@ -257,6 +260,17 @@ public class APICorePropertiesImpl implements APICoreProperties {
     public void setImageSearchParams(Map<String, String> imageSearchParams) {
       if (this.imageSearchParams == null) {
         this.imageSearchParams = ImmutableMap.copyOf(imageSearchParams);
+      }
+    }
+    
+    @Override
+    public int getMaxStoppedInstanceInSearch() {
+      return maxStoppedInstanceInSearch;
+    }
+
+    public void setMaxStoppedInstanceInSearch(int maxStoppedInstanceInSearch) {
+      if (this.maxStoppedInstanceInSearch == 0) {
+        this.maxStoppedInstanceInSearch = maxStoppedInstanceInSearch;
       }
     }
   }

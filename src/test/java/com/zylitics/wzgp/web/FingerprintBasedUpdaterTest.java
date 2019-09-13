@@ -24,7 +24,7 @@ import com.google.api.services.compute.model.Instance;
 import com.google.api.services.compute.model.Metadata;
 import com.google.api.services.compute.model.Operation;
 import com.google.common.collect.ImmutableMap;
-import com.zylitics.wzgp.resource.service.ComputeService;
+import com.zylitics.wzgp.resource.compute.ComputeService;
 import com.zylitics.wzgp.resource.util.ResourceUtil;
 import com.zylitics.wzgp.test.util.ResourceTestUtil;
 
@@ -239,10 +239,7 @@ public class FingerprintBasedUpdaterTest {
     
     // ======================
 
-    Map<String, String> metadataUpdate =
-        ImmutableMap.of(
-              "no-start-shut-script", "1"
-            );
+    Map<String, String> metadataUpdate = ImmutableMap.of("no-start-shut-script", "1");
     
     updater.updateMetadata(instance, metadataUpdate, null);
     

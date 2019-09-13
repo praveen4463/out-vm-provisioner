@@ -138,7 +138,7 @@ public class RequestGridCreate {
     }
     
     @Override
-    public Boolean isShots() {
+    public Boolean getShots() {
       return shots == null ? false : shots;
     }
     
@@ -277,7 +277,7 @@ public class RequestGridCreate {
     }
     
     @Override
-    public Boolean isPreemptible() {
+    public Boolean getPreemptible() {
       return preemptible == null ? false : preemptible;
     }
     

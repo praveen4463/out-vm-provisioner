@@ -14,8 +14,8 @@ import com.google.api.services.compute.model.Operation;
 import com.google.api.services.compute.model.ServiceAccount;
 import com.zylitics.wzgp.resource.BuildProperty;
 import com.zylitics.wzgp.resource.CompletedOperation;
+import com.zylitics.wzgp.resource.compute.ComputeService;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
-import com.zylitics.wzgp.resource.service.ComputeService;
 import com.zylitics.wzgp.web.FingerprintBasedUpdater;
 
 public class GridStarter {
@@ -60,7 +60,8 @@ public class GridStarter {
     updateOperations.add(customLabelsUpdateHandler());
     updateOperations.add(metadataUpdateHandler());
     // We've started all the updates at ones sequentially, they will most likely complete near
-    // together, but we'll verify completion of all of them before beginning start.
+    // together and THERE WILL BE NOT ORDER IN COMPLETION, MEANS A METADATA UPDATE CAN HAPPEN BEFORE
+    // LABEL UPDATE, but we'll verify completion of all of them before beginning start.
     for (Optional<Operation> optOperation : updateOperations) {
       if (optOperation.isPresent()) {
         executor.blockUntilComplete(optOperation.get(), buildProp);

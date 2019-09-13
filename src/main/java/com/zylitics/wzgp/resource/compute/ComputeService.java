@@ -1,4 +1,4 @@
-package com.zylitics.wzgp.resource.service;
+package com.zylitics.wzgp.resource.compute;
 
 import java.util.Collections;
 import java.util.Map;
@@ -13,6 +13,7 @@ import com.google.api.services.compute.Compute;
 import com.google.api.services.compute.Compute.Images;
 import com.google.api.services.compute.Compute.Instances;
 import com.google.api.services.compute.ComputeScopes;
+import com.google.api.services.compute.model.Disk;
 import com.google.api.services.compute.model.Image;
 import com.google.api.services.compute.model.ImageList;
 import com.google.api.services.compute.model.Instance;
@@ -170,5 +171,13 @@ public class ComputeService {
     listBuilder.setFilter(filter);
     InstanceList list = executor.executeWithReattempt(listBuilder, buildProp);
     return list.getItems();
+  }
+  
+  //TODO: pending unit test
+  public Disk getDisk(String diskName
+      , String zoneName
+      , @Nullable BuildProperty buildProp) throws Exception {
+    Compute.Disks.Get getDisk = compute.disks().get(project, zoneName, diskName);
+    return executor.executeWithReattempt(getDisk, buildProp);
   }
 }

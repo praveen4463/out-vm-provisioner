@@ -15,6 +15,8 @@ public class ResourceUtil {
   public static final String LABEL_LOCKED_BY_BUILD = "locked-by-build";
   public static final String LABEL_IS_DELETING = "is-deleting";
   public static final String LABEL_SOURCE_FAMILY = "source-image-family";
+  public static final String LABEL_STOPPED_INSTANCE_CUSTOM_IDENTIFIER =
+      "stopped-instance-custom-identifier";
   public static final String LABEL_IS_PRODUCTION_INSTANCE = "is-production-instance";
   
   public static final String METADATA_CURRENT_TEST_SESSIONID = "current-test-sessionId";

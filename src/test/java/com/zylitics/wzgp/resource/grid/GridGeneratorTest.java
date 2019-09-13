@@ -242,7 +242,7 @@ public class GridGeneratorTest {
     }
     
     @Override
-    public Boolean isPreemptible() {
+    public Boolean getPreemptible() {
       return PREEMPTIBLE;
     }
     

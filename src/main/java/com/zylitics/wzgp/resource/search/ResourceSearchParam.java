@@ -15,7 +15,7 @@ public interface ResourceSearchParam {
   
   String getBrowser();
   
-  Boolean isShots();
+  Boolean getShots();
   
   Map<String, String> getCustomInstanceSearchParams();
   

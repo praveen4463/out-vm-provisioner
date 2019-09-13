@@ -13,35 +13,30 @@ import com.zylitics.wzgp.http.ResponseGridCreate;
 import com.zylitics.wzgp.http.ResponseStatus;
 import com.zylitics.wzgp.resource.APICoreProperties;
 import com.zylitics.wzgp.resource.BuildProperty;
+import com.zylitics.wzgp.resource.compute.ComputeService;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 import com.zylitics.wzgp.resource.search.ResourceSearch;
-import com.zylitics.wzgp.resource.service.ComputeService;
 import com.zylitics.wzgp.resource.util.ResourceUtil;
 
 public abstract class AbstractGridCreateHandler extends AbstractGridHandler {
 
+  protected final ResourceSearch search;
   protected final RequestGridCreate request;
   protected final BuildProperty buildProp;
   
   public AbstractGridCreateHandler(APICoreProperties apiCoreProps
       , ResourceExecutor executor
       , ComputeService computeSrv
+      , ResourceSearch search
       , FingerprintBasedUpdater fingerprintBasedUpdater
       , String zone
       , RequestGridCreate request) {
     super(apiCoreProps, executor, computeSrv, fingerprintBasedUpdater, zone);
 
+    this.search = search;
     Assert.notNull(request, "RequestGridCreate can't be null");
     this.request = request;
     buildProp = request.getBuildProperties();
-  }
-  
-  protected ResourceSearch getSearch() {
-    ResourceSearch search = ResourceSearch.Factory.getDefault().create(apiCoreProps
-        , computeSrv
-        , request.getResourceSearchParams());
-    search.setBuildProperty(buildProp);
-    return search;
   }
   
   protected ResponseGridCreate prepareResponse(Instance gridInstance, HttpStatus status) {
