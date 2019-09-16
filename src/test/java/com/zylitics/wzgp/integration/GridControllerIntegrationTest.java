@@ -51,6 +51,7 @@ import com.zylitics.wzgp.http.ResponseStatus;
 import com.zylitics.wzgp.resource.APICoreProperties;
 import com.zylitics.wzgp.resource.compute.ComputeService;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
+import com.zylitics.wzgp.resource.search.ResourceSearch;
 import com.zylitics.wzgp.test.dummy.DummyRequestGridCreate;
 import com.zylitics.wzgp.test.dummy.FakeCompute;
 import com.zylitics.wzgp.web.FingerprintBasedUpdater;
@@ -103,6 +104,9 @@ public class GridControllerIntegrationTest {
   private ComputeService computeSrv;
   
   @Autowired
+  private ResourceSearch search;
+  
+  @Autowired
   private FingerprintBasedUpdater fingerprintBasedUpdater;
   
   private JacksonTester<RequestGridCreate> createReq;
@@ -131,9 +135,9 @@ public class GridControllerIntegrationTest {
     RequestGridCreate requestSent = new DummyRequestGridCreate().get();
     
     when(GENERATE_HANDLER_FACTORY.create(eq(compute), eq(apiCoreProps), eq(executor)
-        , eq(computeSrv), eq(fingerprintBasedUpdater), eq(ZONE)
+        , eq(computeSrv), eq(search), eq(fingerprintBasedUpdater), eq(ZONE)
         , any(RequestGridCreate.class))).then(invocation -> {
-          RequestGridCreate requestReceived = invocation.getArgument(6);
+          RequestGridCreate requestReceived = invocation.getArgument(7);
           assertEquals(requestSent, requestReceived);
           return GENERATE_HANDLER;
         });

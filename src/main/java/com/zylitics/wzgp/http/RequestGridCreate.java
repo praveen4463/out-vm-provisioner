@@ -369,6 +369,12 @@ public class RequestGridCreate {
   }
 
   @Override
+  public String toString() {
+    return "RequestGridCreate [buildProperties=" + buildProperties + ", resourceSearchParams="
+        + resourceSearchParams + ", gridProperties=" + gridProperties + "]";
+  }
+
+  @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;

@@ -227,6 +227,11 @@ public class GridGeneratorTest {
     public Map<String, String> getImageSearchParams() {
       return null;
     }
+    
+    @Override
+    public int getMaxStoppedInstanceInSearch() {
+      return 10;
+    }
   }
   
   private static class DummyGridProperties implements GridProperty {

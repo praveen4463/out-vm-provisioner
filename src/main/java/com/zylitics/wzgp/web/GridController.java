@@ -103,7 +103,11 @@ public class GridController {
       , @RequestParam(defaultValue="false") boolean noRush
       , @RequestParam(required=false) String sourceImageFamily) throws Exception {
     
+    LOG.debug("received request: {}", gridCreateReq.toString());
+    
     if (!Strings.isNullOrEmpty(sourceImageFamily) || noRush) {
+      LOG.debug("Going to create a new instance, noRush: {}, sourceImageFamily: {} {}", noRush
+          , sourceImageFamily, addToException(gridCreateReq.getBuildProperties()));
       GridGenerateHandler generateHandler = gridGenerateHandlerFactory.create(compute
           , apiCoreProps
           , executor
@@ -133,6 +137,8 @@ public class GridController {
         LOG.error("start handler experienced an unexpected exception, trying to create fresh grid "
             + addToException(gridCreateReq.getBuildProperties()), failure);
       }
+      LOG.debug("Couldn't get a stopped instance, going to create a fresh one. {}"
+          , addToException(gridCreateReq.getBuildProperties()));
       // we couldn't get a stopped grid instance, fallback to a fresh one.
       return gridGenerateHandlerFactory.create(compute
           , apiCoreProps

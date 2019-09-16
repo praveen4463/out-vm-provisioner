@@ -60,6 +60,8 @@ public abstract class AbstractGridE2ETest {
   
   private static final Logger LOG = LoggerFactory.getLogger(AbstractGridE2ETest.class);
   
+  private static final String API_BASE_PATH = "/{version}/zones/{zone}/grids";
+  
   private static final String ZONE_PROP = "zl.wgzp.e2e.zone";
   
   private static final String ZONE = Preconditions.checkNotNull(System.getProperty(ZONE_PROP)
@@ -470,9 +472,15 @@ public abstract class AbstractGridE2ETest {
    */
   private String deleteGridWithApi(String gridName, String gridZone, boolean noRush) {
     String sessionId = "session-" + new Randoms().generateRandom(10);
-    ResponseGridDelete responseDelete = client.delete()
-        .uri("/{version}/zones/{zone}/grids/{gridName}?noRush={noRush}&sessionId={sessionId}"
-            , apiVersion, gridZone, gridName, noRush, sessionId)
+    
+    ResponseGridDelete response = client.delete()
+        .uri(uriBuilder -> {
+          return uriBuilder.path(API_BASE_PATH)
+              .pathSegment("{gridName}")
+              .queryParam("noRush", noRush)
+              .queryParam("sessionId", sessionId)
+              .build(apiVersion, gridZone, gridName);
+        })
         .accept(MediaType.APPLICATION_JSON_UTF8)
         .exchange()
         .expectStatus().isOk()
@@ -480,8 +488,8 @@ public abstract class AbstractGridE2ETest {
         .expectBody(ResponseGridDelete.class)
         .returnResult().getResponseBody();
     
-    assertNotNull(responseDelete);
-    assertEquals(ResponseStatus.SUCCESS.name(), responseDelete.getStatus());
+    assertNotNull(response);
+    assertEquals(ResponseStatus.SUCCESS.name(), response.getStatus());
     return sessionId;
   }
   
@@ -557,7 +565,7 @@ public abstract class AbstractGridE2ETest {
       , boolean addSourceImageFamily) {
     ResponseGridCreate response = client.post()
         .uri(uriBuilder -> {
-          UriBuilder builder = uriBuilder.path("/{version}/zones/{zone}/grids")
+          UriBuilder builder = uriBuilder.path(API_BASE_PATH)
               .queryParam("noRush", noRush);
           if (addSourceImageFamily) {
             builder.queryParam("sourceImageFamily", SOURCE_IMAGE_FAMILY);

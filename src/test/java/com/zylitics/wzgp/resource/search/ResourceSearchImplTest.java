@@ -1,10 +1,13 @@
 package com.zylitics.wzgp.resource.search;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,21 +27,10 @@ import com.zylitics.wzgp.test.util.ResourceTestUtil;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness=Strictness.STRICT_STUBS)
-public class ResourceSearchTest {
+public class ResourceSearchImplTest {
   
   private static final ResourceSearchParam SEARCH_PARAMS =
       new DummyRequestGridCreate().get().getResourceSearchParams();
-  
-  @Test
-  @DisplayName("verify instantiating ResourceSearch with incorrect ResourceSearchParam throws")
-  void instantiateWithIncorrectParams() {
-    ResourceSearchParam searchParams = spy(SEARCH_PARAMS);
-    when(searchParams.getBrowser()).thenReturn(null);
-    assertThrows(IllegalArgumentException.class, () -> {
-      ResourceSearch.Factory.getDefault().create(mock(APICoreProperties.class)
-          , mock(ComputeService.class), searchParams); 
-    });
-  }
 
   @Test
   @DisplayName("verify image search parameters are valid")
@@ -60,22 +52,41 @@ public class ResourceSearchTest {
     
     when(computeSrv.listImages(filter, 1L, null))
         .thenReturn(ImmutableList.of(new Image().setName(imageName)));
-    Image image = ResourceSearch.Factory.getDefault().create(apiCoreProps, computeSrv
-        , searchParams).searchImage().get();
+    Image image = new ResourceSearchImpl(apiCoreProps, computeSrv)
+        .searchImage(searchParams, null).get();
     assertEquals(imageName, image.getName());
   }
   
   @Test
   @DisplayName("verify instance search parameters are valid")
   void searchStoppedInstanceTest() throws Exception {
-    String instanceName = "instance-1";
+    // The search program is designed to return a random instance from the search result so that
+    // instance that is in index 0 isn't always returned. This aids the re-attempt logic at
+    // 'start handler' so that requests those fail to acquire a stopped instance can re-attempt and
+    // get a distinct instance to try between re-attempts.
+    // We try to verify that the search behaves the same way. We'll return a certain number of
+    // instances from search (defined as maxInstancesInSearch) and hit the 'search' a few times to
+    // see the same instance is not returned until a defined (maxTimesInvokeSearch) number of times
+    // elapse. This will prove our program is reliable enough.
+    int maxInstancesInSearch = 3;
+    int maxTimesInvokeSearch = 5;
     String zone = "zone-1";
+    String zoneURL = ResourceTestUtil.getZoneLink(zone);
+    
+    List<Instance> instances = new ArrayList<>();
+    for (int i = 1; i <= maxInstancesInSearch; i++) {
+      instances.add(new Instance().setName("instance-" + i).setZone(zoneURL));
+    }
     
     ComputeService computeSrv = mock(ComputeService.class);
     APICoreProperties apiCoreProps = mock(APICoreProperties.class);
     ResourceSearchParam searchParams = spy(SEARCH_PARAMS);
     
     APICoreProperties.GridDefault gridDefault = mock(APICoreProperties.GridDefault.class);
+    
+    // let's set max stopped instance in search to something and try returning that many.
+    when(gridDefault.getMaxStoppedInstanceInSearch()).thenReturn(maxInstancesInSearch);
+    
     when(gridDefault.getInstanceSearchParams()).thenReturn(
         ImmutableMap.of("labels.is-production-instance", "true", "status", "TERMINATED"));
     
@@ -88,14 +99,27 @@ public class ResourceSearchTest {
     String filter = "(labels.is-production-instance = \"false\") AND (status = \"TERMINATED\") AND "
         + getRequestFilters();
     
-    when(computeSrv.listInstances(filter, 1L, zone, null))
-        .thenReturn(ImmutableList.of(
-            new Instance().setName(instanceName).setZone(ResourceTestUtil.getZoneLink(zone))));
+    when(computeSrv.listInstances(filter, maxInstancesInSearch, zone, null))
+        .thenReturn(ImmutableList.copyOf(instances));
     
-    Instance instance = ResourceSearch.Factory.getDefault().create(apiCoreProps, computeSrv
-        , searchParams).searchStoppedInstance(zone).get();
+    ResourceSearch search = new ResourceSearchImpl(apiCoreProps, computeSrv);
     
-    assertEquals(instanceName, instance.getName());
+    // we'll verify that multiple calls to find stopped instance will get a different instance
+    // and not the same. A different instance may not be returned everytime as we're using random
+    // number but if we try a few times, a different instance must return.
+    // lets invoke search times and see if we get a different instance.
+    String lastInstanceName = null;
+    boolean success = false;
+    for (int i = 0; i < maxTimesInvokeSearch; i++) {
+      Instance instance = search.searchStoppedInstance(searchParams, zone, null).get();
+      
+      if (lastInstanceName != null && !lastInstanceName.equals(instance.getName())) {
+        success = true;
+        break;
+      }
+      lastInstanceName = instance.getName();
+    }
+    assertTrue(success);
   }
   
   private String getRequestFilters() {

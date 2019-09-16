@@ -91,5 +91,10 @@ public class DummyAPICoreProperties implements APICoreProperties {
     public Map<String, String> getImageSearchParams() {
       return ImmutableMap.of("labels.platform", "windows");
     }
+    
+    @Override
+    public int getMaxStoppedInstanceInSearch() {
+      return 10;
+    }
   }
 }

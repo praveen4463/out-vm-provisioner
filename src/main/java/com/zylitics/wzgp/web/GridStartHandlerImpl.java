@@ -24,10 +24,10 @@ import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 import com.zylitics.wzgp.resource.grid.GridStarter;
 import com.zylitics.wzgp.resource.search.ResourceSearch;
 import com.zylitics.wzgp.resource.util.ResourceUtil;
+import com.zylitics.wzgp.web.exceptions.AcquireStoppedMaxReattemptException;
 import com.zylitics.wzgp.web.exceptions.GridBeingDeletedFromOutsideException;
 import com.zylitics.wzgp.web.exceptions.GridNotRunningException;
 import com.zylitics.wzgp.web.exceptions.GridNotStartedException;
-import com.zylitics.wzgp.web.exceptions.GridOccupiedByOtherException;
 import com.zylitics.wzgp.web.exceptions.GridStartHandlerFailureException;
 
 public class GridStartHandlerImpl extends AbstractGridCreateHandler implements GridStartHandler {
@@ -70,7 +70,7 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
   // TODO: may need to update size of map later on when we've large no. of stopped instances.
   private static final Map<BigInteger, String> FOUND_INSTANCES = new ConcurrentHashMap<>(100);
   
-  private static final int SEARCH_MAX_REATTEMPTS = 5;
+  public static final int SEARCH_MAX_REATTEMPTS = 5;
 
   private GridStartHandlerImpl(APICoreProperties apiCoreProps
       , ResourceExecutor executor
@@ -113,18 +113,23 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
       } finally {
         // we started the grid instance, lets remove our build from the map, so that once we're done
         // with it, another requests can use the instance. Use a finally block to guarantee removal.
+        // Note that another request can't get this instance in search until we've shutdown the
+        // instance (which will reset instance lock), thus its safe to remove from map here.
         FOUND_INSTANCES.remove(gridInstance.getId(), buildProp.getBuildId());
       }
     }
     
     LOG.error("maximum re-attempts reached while looking for a stopped instance, going to get a"
         + " fresh one {}", addToException()); 
-    throw new GridStartHandlerFailureException();  // give up
+    throw new GridStartHandlerFailureException(
+        "maximum re-attempts reached while looking for a stopped instance"
+        , new AcquireStoppedMaxReattemptException());  // give up
   }
   
   private Instance searchStoppedInstance() throws Exception {
     Optional<Instance> instance = search.searchStoppedInstance(request.getResourceSearchParams()
         , zone, buildProp);
+    
     if (!instance.isPresent()) {
       LOG.warn("No stopped instance found that matches the given search terms, search terms: {} {}"
           , request.getResourceSearchParams().toString()
@@ -169,7 +174,8 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
     gridInstance = computeSrv.getInstance(gridInstance.getName()
         , nameFromUrl(gridInstance.getZone())
         , buildProp);
-    
+    LOG.debug("started a grid instance {}:{} {}", gridInstance.getName(), gridInstance.getZone()
+        , addToException());
     onGridStartEventHandler(gridInstance);
     
     ResponseGridCreate response = prepareResponse(gridInstance, HttpStatus.OK);
@@ -195,8 +201,7 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
           , gridInstance.toPrettyString()
           , addToException());
       throw new GridStartHandlerFailureException(
-          "Looks like some other request took out our instance while it was starting up"
-          , new GridOccupiedByOtherException());  // give up
+          "Looks like some other request took out our instance while it was starting up");
     }
     
     // ==========verify that an ongoing deployment is not going to delete it

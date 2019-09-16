@@ -27,7 +27,7 @@ public class GridStarter {
   private final GridProperty gridProp;
   private final Instance gridInstance;
   private final String zone;
-
+  
   public GridStarter(ResourceExecutor executor
       , ComputeService computeSrv
       , FingerprintBasedUpdater fingerprintBasedUpdater
@@ -42,7 +42,7 @@ public class GridStarter {
     Assert.notNull(gridInstance, "'gridInstance' can't be null.");
     Assert.hasText(gridInstance.getName(), "'gridInstance' name is missing, object seems invalid.");
     this.gridInstance = gridInstance;
-    zone = nameFromUrl(gridInstance.getZone()); 
+    zone = nameFromUrl(gridInstance.getZone());
   }
   
   public CompletedOperation start() throws Exception {
@@ -60,7 +60,7 @@ public class GridStarter {
     updateOperations.add(customLabelsUpdateHandler());
     updateOperations.add(metadataUpdateHandler());
     // We've started all the updates at ones sequentially, they will most likely complete near
-    // together and THERE WILL BE NOT ORDER IN COMPLETION, MEANS A METADATA UPDATE CAN HAPPEN BEFORE
+    // together and THERE MAY NOT BE ANY COMPLETION ORDER, MEANS A METADATA UPDATE CAN HAPPEN BEFORE
     // LABEL UPDATE, but we'll verify completion of all of them before beginning start.
     for (Optional<Operation> optOperation : updateOperations) {
       if (optOperation.isPresent()) {

@@ -5,6 +5,7 @@ import java.util.Set;
 
 import javax.annotation.concurrent.ThreadSafe;
 import javax.validation.Valid;
+import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
@@ -162,6 +163,7 @@ public class APICorePropertiesImpl implements APICoreProperties {
     private Map<String, String> imageSearchParams;
     
     @Min(1)
+    @Max(500)
     private int maxStoppedInstanceInSearch;
     
     @Override

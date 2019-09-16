@@ -4,6 +4,8 @@ import static com.zylitics.wzgp.resource.util.ResourceUtil.nameFromUrl;
 
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.Assert;
@@ -29,6 +31,8 @@ import com.zylitics.wzgp.web.exceptions.ImageNotFoundException;
 public class GridGenerateHandlerImpl extends AbstractGridCreateHandler
     implements GridGenerateHandler {
   
+  private static final Logger LOG = LoggerFactory.getLogger(GridGenerateHandlerImpl.class);
+  
   private final Compute compute;
   
   private String sourceImageFamily;
@@ -52,10 +56,12 @@ public class GridGenerateHandlerImpl extends AbstractGridCreateHandler
     // First try if we can get image from the inputs.
     if (!Strings.isNullOrEmpty(sourceImageFamily)) {
       image = computeSrv.getImageFromFamily(sourceImageFamily, buildProp);
+      LOG.debug("found image {} from family {} {}", image, sourceImageFamily, addToException());
     }
     // If nothing worked, search an image.
     if (image == null) {
       image = searchImage();
+      LOG.debug("found image {} after a search {}", image, addToException());
     }
     // we've image, go ahead.
     return generateGrid(image);
@@ -100,6 +106,8 @@ public class GridGenerateHandlerImpl extends AbstractGridCreateHandler
         nameFromUrl(operation.getTargetLink())
         , nameFromUrl(operation.getZone())
         , buildProp);
+    LOG.debug("generated a new grid {}:{} {}", gridInstance.getName(), gridInstance.getZone()
+        , addToException());
     onGridGeneratedEventHandler(gridInstance);
     
     ResponseGridCreate response = prepareResponse(gridInstance, HttpStatus.CREATED);

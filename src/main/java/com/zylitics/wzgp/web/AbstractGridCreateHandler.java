@@ -51,6 +51,9 @@ public abstract class AbstractGridCreateHandler extends AbstractGridHandler {
   }
   
   protected void lockGridInstance(Instance gridInstance) throws Exception {
+    // TODO: we may later apply a check that a lock-by-build label can be applied only if the value
+    // is "none". If its anything else, the label must not be set. This means one can set its
+    // buildId only when the current value is "none".
     Operation operation = fingerprintBasedUpdater.updateLabels(gridInstance
         , ImmutableMap.of(ResourceUtil.LABEL_LOCKED_BY_BUILD, buildProp.getBuildId()), buildProp);
     executor.blockUntilComplete(operation, buildProp);

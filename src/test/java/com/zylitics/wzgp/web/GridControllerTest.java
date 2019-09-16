@@ -18,6 +18,7 @@ import com.zylitics.wzgp.http.RequestGridCreate;
 import com.zylitics.wzgp.resource.APICoreProperties;
 import com.zylitics.wzgp.resource.compute.ComputeService;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
+import com.zylitics.wzgp.resource.search.ResourceSearch;
 import com.zylitics.wzgp.test.dummy.DummyAPICoreProperties;
 import com.zylitics.wzgp.test.dummy.FakeCompute;
 import com.zylitics.wzgp.web.exceptions.GridStartHandlerFailureException;
@@ -37,6 +38,8 @@ public class GridControllerTest {
   private static final ResourceExecutor EXECUTOR = mock(ResourceExecutor.class);
   
   private static final ComputeService COMPUTE_SRV = mock(ComputeService.class);
+  
+  private static final ResourceSearch SEARCH = mock(ResourceSearch.class);
   
   private static final FingerprintBasedUpdater FINGERPRINT_BASED_UPDATER =
       mock(FingerprintBasedUpdater.class);
@@ -157,25 +160,25 @@ public class GridControllerTest {
   
   private GridController getGridController(GridGenerateHandler.Factory gridGenerateHandlerFactory
       , GridStartHandler.Factory gridStartHandlerFactory) {
-    return new GridController(COMPUTE, API_CORE_PROPS, EXECUTOR, COMPUTE_SRV
+    return new GridController(COMPUTE, API_CORE_PROPS, EXECUTOR, COMPUTE_SRV, SEARCH
         , FINGERPRINT_BASED_UPDATER, gridGenerateHandlerFactory, gridStartHandlerFactory
         , mock(GridDeleteHandler.Factory.class));
   }
   
   private GridController getGridController(GridGenerateHandler.Factory gridGenerateHandlerFactory) {
-    return new GridController(COMPUTE, API_CORE_PROPS, EXECUTOR, COMPUTE_SRV
+    return new GridController(COMPUTE, API_CORE_PROPS, EXECUTOR, COMPUTE_SRV, SEARCH
         , FINGERPRINT_BASED_UPDATER, gridGenerateHandlerFactory
         , mock(GridStartHandler.Factory.class), mock(GridDeleteHandler.Factory.class));
   }
   
   private GridController getGridController(GridStartHandler.Factory gridStartHandlerFactory) {
-    return new GridController(COMPUTE, API_CORE_PROPS, EXECUTOR, COMPUTE_SRV
+    return new GridController(COMPUTE, API_CORE_PROPS, EXECUTOR, COMPUTE_SRV, SEARCH
         , FINGERPRINT_BASED_UPDATER, mock(GridGenerateHandler.Factory.class)
         , gridStartHandlerFactory, mock(GridDeleteHandler.Factory.class));
   }
   
   private GridController getGridController(GridDeleteHandler.Factory gridDeleteHandlerFactory) {
-    return new GridController(COMPUTE, API_CORE_PROPS, EXECUTOR, COMPUTE_SRV
+    return new GridController(COMPUTE, API_CORE_PROPS, EXECUTOR, COMPUTE_SRV, SEARCH
         , FINGERPRINT_BASED_UPDATER, mock(GridGenerateHandler.Factory.class)
         , mock(GridStartHandler.Factory.class), gridDeleteHandlerFactory);
   }
@@ -183,16 +186,16 @@ public class GridControllerTest {
   private GridGenerateHandler.Factory getGridGenerateHandlerFactory(GridGenerateHandler handler
       , RequestGridCreate request) {
     GridGenerateHandler.Factory factory = mock(GridGenerateHandler.Factory.class);
-    when(factory.create(COMPUTE, API_CORE_PROPS, EXECUTOR, COMPUTE_SRV, FINGERPRINT_BASED_UPDATER
-        , ZONE, request)).thenReturn(handler);
+    when(factory.create(COMPUTE, API_CORE_PROPS, EXECUTOR, COMPUTE_SRV, SEARCH
+        , FINGERPRINT_BASED_UPDATER, ZONE, request)).thenReturn(handler);
     return factory;
   }
   
   private GridStartHandler.Factory getGridStartHandlerFactory(GridStartHandler handler
       , RequestGridCreate request) {
     GridStartHandler.Factory factory = mock(GridStartHandler.Factory.class);
-    when(factory.create(API_CORE_PROPS, EXECUTOR, COMPUTE_SRV, FINGERPRINT_BASED_UPDATER, ZONE
-        , request)).thenReturn(handler);
+    when(factory.create(API_CORE_PROPS, EXECUTOR, COMPUTE_SRV, SEARCH, FINGERPRINT_BASED_UPDATER
+        , ZONE, request)).thenReturn(handler);
     return factory;
   }
   

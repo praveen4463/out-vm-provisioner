@@ -13,6 +13,7 @@ import org.springframework.util.Assert;
 import com.google.api.services.compute.model.Instance;
 import com.google.api.services.compute.model.Metadata;
 import com.google.api.services.compute.model.Operation;
+import com.google.common.collect.ImmutableMap;
 import com.zylitics.wzgp.resource.BuildProperty;
 import com.zylitics.wzgp.resource.compute.ComputeService;
 import com.zylitics.wzgp.resource.util.ResourceUtil;
@@ -110,7 +111,7 @@ public class FingerprintBasedUpdater {
     instance = computeSrv.getInstance(instance.getName(), zoneName, buildProp);
     Metadata gcpMetadata = instance.getMetadata();
     
-    Map<String, String> emptyMetadata = new HashMap<>();
+    Map<String, String> emptyMetadata = ImmutableMap.of();
     
     Operation operation = computeSrv.setMetadata(instance.getName(), emptyMetadata, zoneName
         , gcpMetadata.getFingerprint(), buildProp);
