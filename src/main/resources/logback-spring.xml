@@ -1,35 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- !!! We should move to spring cloud gcp once its version 1.2.x is out in mavencentral. -->
 <configuration>
 <!-- Spring uses commons logging, which is an adapter to a plugged in logging implementation. By
-using Logback, we're plugging in Logback to be used by spring internal and our app.
-Note that we should configure log levels for spring internal logs. -->
+     using Logback, we're plugging in Logback to be used by spring internal and our app. -->
   <springProfile name="production">
-    <property name="STACKDRIVER_LOG_PATTERN" value="%d %-5p ${PID:- } [%t] %-40.40logger{39}: %m %ex%n"/>
-    <property name="STACKDRIVER_LOG_NAME" value="app-zl-wzgp.log"/>
-    
-    <!-- Note that to run stackdriver logging, agent should be installed on server/container. -->
+    <!-- Note that to run stackdriver logging, agent should be installed on server. -->
     <appender name="STACKDRIVER" class="com.google.cloud.logging.logback.LoggingAppender">
-      <!--<encoder>
-        <pattern>${STACKDRIVER_LOG_PATTERN}</pattern>
-      </encoder>-->
-      <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-        <level>INFO</level>
-      </filter>
-      <log>${STACKDRIVER_LOG_NAME}</log>
-      <flushLevel>ERROR</flushLevel>
+      <log>app-zl-wzgp.log</log>
+      <flushLevel>WARN</flushLevel>
     </appender>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml" />
 
     <root level="INFO">
       <appender-ref ref="STACKDRIVER" />
     </root>
-    
-    <logger name="org.apache.catalina.startup.DigesterFactory" level="ERROR"/>
-	<logger name="org.apache.catalina.util.LifecycleBase" level="ERROR"/>
-	<logger name="org.apache.coyote.http11.Http11NioProtocol" level="WARN"/>
-	<logger name="org.apache.sshd.common.util.SecurityUtils" level="WARN"/>
-	<logger name="org.apache.tomcat.util.net.NioSelectorPool" level="WARN"/>
-	<logger name="org.eclipse.jetty.util.component.AbstractLifeCycle" level="ERROR"/>
-	<logger name="org.hibernate.validator.internal.util.Version" level="WARN"/>
   </springProfile>
   <!-- ======================================================================================= -->
   <!-- ======================================================================================= -->
