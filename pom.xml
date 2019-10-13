@@ -5,17 +5,18 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.zylitics</groupId>
   <artifactId>zl-wzgp</artifactId>
-  <version>0.2.0-SNAPSHOT</version>
+  <version>0.1.0-SNAPSHOT</version>
   <name>zl-wzgp</name>
   <url>http://maven.apache.org</url>
   <properties>
     <mockito.version>3.0.0</mockito.version>
     <google-auth-library-oauth2-http.version>0.16.2</google-auth-library-oauth2-http.version>
-    <stackdriver.logback.version>0.109.0-alpha</stackdriver.logback.version>
-    <compute.api.version>v1-rev20190624-1.30.1</compute.api.version>
+    <stackdriver.logback.version>0.111.0-alpha</stackdriver.logback.version>
+    <compute.api.version>v1-rev20190825-1.30.3</compute.api.version>
     <guava.version>28.0-jre</guava.version>
-    <skipUTests>false</skipUTests>
-    <skipITTests>true</skipITTests>
+    <jib.maven.plugin.version>1.6.1</jib.maven.plugin.version>
+    <skipTest>false</skipTest>
+    <projectId>zl-win-nodes</projectId>
   </properties>
   <parent>
     <groupId>org.springframework.boot</groupId>
@@ -26,6 +27,10 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
     <dependency>
       <groupId>com.google.cloud</groupId>
@@ -75,7 +80,7 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-junit-jupiter</artifactId>
-      <version>${mockito.version}</version><!--$NO-MVN-MAN-VER$-->
+      <version>${mockito.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -86,26 +91,47 @@
         <artifactId>spring-boot-maven-plugin</artifactId>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
+        <groupId>com.google.cloud.tools</groupId>
+        <artifactId>jib-maven-plugin</artifactId>
+        <version>${jib.maven.plugin.version}</version>
         <configuration>
-          <skipTests>${skipUTests}</skipTests>
+          <from><!-- we'll use openjdk for linux servers -->
+            <!-- TODO: revert to non-debug image once going to production, using this for busybox to ssh into container -->
+            <image>gcr.io/distroless/java:8-debug</image>
+            <credHelper>gcloud</credHelper>
+          </from>
+          <to>
+            <image>us.gcr.io/${projectId}/zl-wzgp:${project.version}</image> <!-- for now just push in US region -->
+            <credHelper>gcloud</credHelper>
+            <tags>
+              <tag>latest</tag>
+            </tags>
+          </to>
+          <container>
+            <jvmFlags>
+              <jvmFlag>-Xms512m</jvmFlag>
+              <jvmFlag>-noverify</jvmFlag>
+              <jvmFlag>-XX:+UnlockExperimentalVMOptions</jvmFlag>
+              <jvmFlag>-XX:+UseCGroupMemoryLimitForHeap</jvmFlag>
+              <jvmFlag>-Dspring.profiles.active=production</jvmFlag>
+            </jvmFlags>
+            <mainClass>com.zylitics.wzgp.Launcher</mainClass>
+            <ports>
+              <port>8080</port>
+            </ports>
+            <labels>
+              <key1>base-distroless</key1>
+              <key2>openjdk-8u222</key2>
+            </labels>
+          </container>
         </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-failsafe-plugin</artifactId>
+        <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
-          <skipTests>${skipITTests}</skipTests>
+          <skipTests>${skipTest}</skipTests>
         </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>integration-test</goal>
-              <goal>verify</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>

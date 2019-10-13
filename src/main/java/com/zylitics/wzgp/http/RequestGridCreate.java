@@ -308,7 +308,18 @@ public class RequestGridCreate {
         this.metadata = ImmutableMap.copyOf(metadata);
       }
     }
-
+  
+    @Override
+    public String toString() {
+      return "GridProperties{" +
+          "machineType='" + machineType + '\'' +
+          ", serviceAccount='" + serviceAccount + '\'' +
+          ", preemptible=" + preemptible +
+          ", customLabels=" + customLabels +
+          ", metadata=" + metadata +
+          '}';
+    }
+  
     @Override
     public int hashCode() {
       final int prime = 31;

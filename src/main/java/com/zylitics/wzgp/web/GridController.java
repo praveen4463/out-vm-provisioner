@@ -103,7 +103,7 @@ public class GridController {
       , @RequestParam(defaultValue="false") boolean noRush
       , @RequestParam(required=false) String sourceImageFamily) throws Exception {
     
-    LOG.debug("received request: {}", gridCreateReq.toString());
+    LOG.info("received request: {}", gridCreateReq.toString());
     
     if (!Strings.isNullOrEmpty(sourceImageFamily) || noRush) {
       LOG.debug("Going to create a new instance, noRush: {}, sourceImageFamily: {} {}", noRush

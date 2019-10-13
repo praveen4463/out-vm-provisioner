@@ -83,7 +83,7 @@ public class ResourceExecutorImplTest {
       new ResourceExecutorImpl(COMPUTE, API_CORE_PROPS);
   
   @TestFactory
-  Stream<DynamicTest> executeComputeRequestTest() throws Exception {
+  Stream<DynamicTest> executeComputeRequestTest() {
     
     HttpResponseException httpResponseException500 =
         new HttpResponseException.Builder(HttpStatus.INTERNAL_SERVER_ERROR.value()
@@ -113,14 +113,13 @@ public class ResourceExecutorImplTest {
   }
   
   @TestFactory
-  Stream<DynamicTest> executeComputeRequestWithZonalReattemptTest() throws Exception {
+  Stream<DynamicTest> executeComputeRequestWithZonalReattemptTest() {
     List<String> zonalErrors = new ArrayList<>(API_CORE_PROPS.getGceZonalReattemptErrors());
     
     return Stream.of(
           dynamicTest("verify execute returns successful 'Operation' when no api error", () -> {
             
-            Operation successfulOperation = getSuccessfulOperation(INSTANCE_NAME, PRIMARY_ZONE
-                , "DONE"); // DONE is used so that blockUntilComplete method doesn't run fully.
+            Operation successfulOperation = getSuccessfulOperation(PRIMARY_ZONE);
             
             Instances.Insert mockInsertInstance = getMockInsertInstance(PRIMARY_ZONE, INSTANCE);
             
@@ -134,8 +133,8 @@ public class ResourceExecutorImplTest {
           
           dynamicTest("verify 'Operation' fails before reattempting when code mismatch", () ->
           {
-            Operation unsuccessfulOperation = getUnSuccessfulOperation(INSTANCE_NAME, PRIMARY_ZONE
-                , "DONE", "UNKNOWN_CODE1", "UNKNOWN_CODE2");
+            Operation unsuccessfulOperation = getUnSuccessfulOperation(PRIMARY_ZONE, "UNKNOWN_CODE1"
+                , "UNKNOWN_CODE2");
             // send unknown codes.
             
             Instances.Insert mockInsertInstance = getMockInsertInstance(PRIMARY_ZONE, INSTANCE);
@@ -155,8 +154,8 @@ public class ResourceExecutorImplTest {
           }),
           
           dynamicTest("verify 'Operation' succeeds on reattempts", () -> {
-            Operation unsuccessfulOperation = getUnSuccessfulOperation(INSTANCE_NAME, PRIMARY_ZONE
-                , "DONE", zonalErrors.get(0));  // send a known code.
+            // send a known code.
+            Operation unsuccessfulOperation = getUnSuccessfulOperation(PRIMARY_ZONE, zonalErrors.get(0));
             
             Instances.Insert mockInsertInstancePrimaryZone =
                 getMockInsertInstance(PRIMARY_ZONE, INSTANCE);
@@ -185,8 +184,8 @@ public class ResourceExecutorImplTest {
               //TODO: we may apply some logic so that if random.nextBoolean() is false for max
               // re-attempt times, we force it to true so tests won't fail.  
               Operation operation = random.nextBoolean()
-                  ? getSuccessfulOperation(INSTANCE_NAME, randomZone, "DONE")
-                  : getUnSuccessfulOperation(INSTANCE_NAME, randomZone, "DONE", zonalErrors.get(0));
+                  ? getSuccessfulOperation(randomZone)
+                  : getUnSuccessfulOperation(randomZone, zonalErrors.get(0));
               when(mockInsertInstanceRandomZone.execute()).thenReturn(operation);
               
               return mockInsertInstanceRandomZone;
@@ -208,8 +207,7 @@ public class ResourceExecutorImplTest {
           }),
           
           dynamicTest("verify 'Operation' fails after reattempting when code mismatch", () -> {
-            Operation unsuccessfulOperation = getUnSuccessfulOperation(INSTANCE_NAME, PRIMARY_ZONE
-                , "DONE", zonalErrors.get(0));  // send a known code.
+            Operation unsuccessfulOperation = getUnSuccessfulOperation(PRIMARY_ZONE, zonalErrors.get(0));
             
             Instances.Insert mockInsertInstancePrimaryZone =
                 getMockInsertInstance(PRIMARY_ZONE, INSTANCE);
@@ -237,7 +235,7 @@ public class ResourceExecutorImplTest {
               String errorCode = random.nextBoolean() ? "UNKNOWN_CODE1" : zonalErrors.get(0);
               
               Operation unsuccessfulOpRandomCode =
-                  getUnSuccessfulOperation(INSTANCE_NAME, randomZone, "DONE", errorCode);
+                  getUnSuccessfulOperation(randomZone, errorCode);
               
               when(mockInsertInstanceRandomZone.execute()).thenReturn(unsuccessfulOpRandomCode);
               
@@ -251,8 +249,7 @@ public class ResourceExecutorImplTest {
           }),
           
           dynamicTest("verify 'Operation' fails when max reattempt reaches", () -> {
-            Operation unsuccessfulOperation = getUnSuccessfulOperation(INSTANCE_NAME, PRIMARY_ZONE
-                , "DONE", zonalErrors.get(0));  // send a known code.
+            Operation unsuccessfulOperation = getUnSuccessfulOperation(PRIMARY_ZONE, zonalErrors.get(0));
             
             Instances.Insert mockInsertInstancePrimaryZone =
                 getMockInsertInstance(PRIMARY_ZONE, INSTANCE);
@@ -275,7 +272,7 @@ public class ResourceExecutorImplTest {
                   getMockInsertInstance(randomZone, newZoneInstance);
               
               Operation unsuccessfulOpKnownCode =
-                  getUnSuccessfulOperation(INSTANCE_NAME, randomZone, "DONE", zonalErrors.get(0));
+                  getUnSuccessfulOperation(randomZone, zonalErrors.get(0));
               
               when(mockInsertInstanceRandomZone.execute()).thenReturn(unsuccessfulOpKnownCode);
               
@@ -295,7 +292,7 @@ public class ResourceExecutorImplTest {
   }
   
   @TestFactory
-  Stream<DynamicTest> blockUntilCompleteTest() throws Exception {
+  Stream<DynamicTest> blockUntilCompleteTest() {
     
     return Stream.of(
           dynamicTest("verify 'Operation' completes before timeout", () -> {
@@ -336,10 +333,8 @@ public class ResourceExecutorImplTest {
                 })
                 .when(executor).executeWithReattempt(any(ZoneOperations.Get.class), eq(BUILD_PROP));
             
-            assertThrows(TimeoutException.class, () -> {
-              executor.blockUntilComplete(
-                  getOpForStatusCheck("PENDING"), 0, flexiClock, BUILD_PROP);
-            });
+            assertThrows(TimeoutException.class, () -> executor.blockUntilComplete(
+                getOpForStatusCheck("PENDING"), 0, flexiClock, BUILD_PROP));
           })
         );
   }
@@ -351,16 +346,15 @@ public class ResourceExecutorImplTest {
         .setZone(ResourceTestUtil.getZoneLink(PRIMARY_ZONE));
   }
   
-  private Operation getSuccessfulOperation(String resourceName, String zone, String status) {
+  private Operation getSuccessfulOperation(String zone) {
     return new Operation()
-        .setStatus(status)
+        .setStatus("DONE")
         .setName("operation-" + UUID.randomUUID())
-        .setTargetLink(ResourceTestUtil.getOperationTargetLink(resourceName, zone))
+        .setTargetLink(ResourceTestUtil.getOperationTargetLink(INSTANCE_NAME, zone))
         .setZone(ResourceTestUtil.getZoneLink(zone));
   }
   
-  private Operation getUnSuccessfulOperation(String resourceName, String zone, String status
-      , String... codes) {
+  private Operation getUnSuccessfulOperation(String zone, String... codes) {
     java.util.List<Error.Errors> listErrors = new ArrayList<>();
     for(String code : codes) {
       Error.Errors newError = new Error.Errors();
@@ -372,9 +366,9 @@ public class ResourceExecutorImplTest {
     
     return new Operation()
         .setHttpErrorStatusCode(HttpStatus.TOO_MANY_REQUESTS.value())
-        .setStatus(status)
+        .setStatus("DONE")
         .setName("operation-" + UUID.randomUUID())
-        .setTargetLink(ResourceTestUtil.getOperationTargetLink(resourceName, zone))
+        .setTargetLink(ResourceTestUtil.getOperationTargetLink(INSTANCE_NAME, zone))
         .setZone(ResourceTestUtil.getZoneLink(zone))
         .setError(error);
   }

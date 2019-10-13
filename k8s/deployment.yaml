@@ -1,0 +1,77 @@
+# https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#deployment-v1-apps
+# !! Take care before an update is sent, read here how updates work
+#    https://kubernetes.io/docs/tasks/manage-kubernetes-objects/declarative-config/
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zl-wgzp-deployment
+  labels: &LABELS # will be assigned to nodes
+    app.kubernetes.io/name: &APP zl-wzgp
+    app.kubernetes.io/version: &VERSION 0.1.0-SNAPSHOT
+    environment: &ENVIRONMENT production
+spec: # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#deploymentspec-v1-apps
+  minReadySeconds: 5 # we'll also use a readiness-probe to precisely tell container is available.
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    # Only pods matching this set of labels will be selected for this deployment. This helps during update.
+    matchLabels:
+      app.kubernetes.io/name: *APP
+  template:
+    metadata:
+      labels: *LABELS # will be assigned to pods
+    spec: # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#podspec-v1-core
+      containers: # each pod contains two containers, the API and ESP proxy
+        - name: esp
+          image: gcr.io/endpoints-release/endpoints-runtime:1
+          args: [
+            "--http_port=4000",
+            "--backend=127.0.0.1:8080",
+            "--service=zl-wzgp.endpoints.zl-win-nodes.cloud.goog",
+            "--rollout_strategy=managed",
+          ]
+          ports:
+            - containerPort: 4000
+        - name: *APP
+          image: us.gcr.io/zl-win-nodes/zl-wzgp:0.1.0-SNAPSHOT
+          imagePullPolicy: Always # TODO: remove this once going to production.
+          ports:
+            - name: &CONTAINER_PORT container-port
+              containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: &HEALTH /actuator/health
+              port: *CONTAINER_PORT
+            # once we can use startupProbe, lower initialDelay together with period and threshold to something like
+            # 3, 3, 3 because liveness won't start until startup is finished, for now we need to stop running it
+            # before app is started.
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            failureThreshold: 5
+          # currently we're ok with the default diskspace implementation of health endpoint as it works only after the
+          # app is started, we can put more precise logic later if required.
+          readinessProbe:
+            httpGet:
+              path: *HEALTH
+              port: *CONTAINER_PORT
+            initialDelaySeconds: 3
+            periodSeconds: 3
+            failureThreshold: 20
+          # resources: mention this once you know how much resources the app usually consume
+          #   https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
+          #   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#resourcerequirements-v1-core
+---
+# https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#service-v1-core
+apiVersion: v1
+kind: Service
+metadata:
+  name: zl-wzgp-service
+spec:
+  clusterIP: 10.29.4.4
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 4000 # Target esp container that transfers traffic to application.
+      name: http
+  selector:
+    app.kubernetes.io/name: zl-wzgp

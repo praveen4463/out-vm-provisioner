@@ -1,0 +1,248 @@
+# References:
+#   https://github.com/GoogleCloudPlatform/java-docs-samples/blob/master/endpoints/getting-started/openapi.yaml
+#   https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md
+#   https://swagger.io/docs/specification/2-0/basic-structure/
+# Use editor for validation https://editor.swagger.io/?_ga=2.32662974.1285027542.1569748387-946701013.1569748387
+swagger: "2.0"
+info:
+  description: "Windows Zylitics Grid Provisioner api provisions and manage grid instances on GCP"
+  title: "Windows Zylitics Grid Provisioner"
+  version: "0.1.0-SNAPSHOT"
+host: "wzgp.api.internal.zylitics.io"
+# TODO: for now use cloud.goog domain for testing and move to our own before launch, to add own domain,
+# Verify domain to the google account you use in k8s, use the domain here and remove x-google-endpoints block, we'll
+# use cloud DNS so create a zone for that, change nameservers in google domain to the ones given by cloud DNS.
+x-google-endpoints:
+  - name: "zl-wzgp.endpoints.zl-win-nodes.cloud.goog"
+    target: "10.29.4.4"
+basePath: "/beta"
+schemes:
+  - "http"
+consumes:
+  - "application/json"
+produces:
+  - "application/json"
+paths:
+  "/zones/{zone}/grids":
+    post:
+      description: "Create a grid by finding stopped instances and fallback to images. it accepts OS, browser, browser
+        version etc for finding instance or image."
+      operationId: "create_new_grid"
+      produces:
+        - "application/json"
+      parameters:
+        - $ref: "#/parameters/zonePathParameter"
+        - $ref: "#/parameters/noRushQueryParameter"
+        - name: sourceImageFamily
+          in: query
+          type: string
+          description: "if given, the new grid instance is created using a latest image from this family and skips
+            finding a suitable instance. When provided, fields like os, browsers, browserVersion in request body aren't
+            required. Note that sending this parameter tells that caller want a new instance from image and doesn't
+            intend existing stopped instance."
+        - name: grid
+          in: body
+          required: true
+          description: "The request body to create, search and start the grid"
+          schema:
+            type: object
+            required:
+              - gridProperties
+              - buildProperties
+            properties:
+              resourceSearchParams:
+                type: object
+                required:
+                  - os
+                  - browser
+                properties:
+                  os:
+                    type: string
+                    enum:
+                      - win7
+                      - win8.1
+                      - win10
+                    description: "name of os to find this resource. The format is win{version}"
+                  browser:
+                    type: string
+                    enum:
+                      - chrome
+                      - firefox
+                      - ie
+                    description: "name of desired browser to find this resource."
+                  shots:
+                    type: boolean
+                    default: false
+                  customInstanceSearchParams:
+                    type: object
+                    description: "json object key-value as string when provided, gets added into the default instance
+                      search parameters. If any key matches the default instance search parameters key, it gets replaced
+                      by the provided value. It should be in form of fully qualified key-identifier, for example
+                      labels.zl-selenium-grid : true. This is useful when you willing to add more search parameter for a
+                      custom instance or for testing purposes where the default instance search parameters don’t apply.
+                      Remember, currently all the given parameters are joined together with AND condition means instance
+                      is searched when all given parameters are matched."
+                  customImageSearchParams:
+                    type: object
+                    description: "json object key-value as string when provided, gets added into the default image
+                      search parameters. If any key matches the default image search parameters key, it gets replaced by
+                      the provided value. It should be in form of fully qualified key-identifier, for example
+                      labels.image-version : v2. This is useful when you willing to add more search parameter for a
+                      custom image or for testing purposes where the default image search parameters don’t apply.
+                      Remember, currently all the given parameters are joined together with AND condition means image is
+                      searched when all given parameters are matched."
+              gridProperties:
+                type: object
+                required:
+                  - metadata
+                properties:
+                  machineType:
+                    type: string
+                    description: "just the name of machine type, not url. When creating instance from image, this
+                      machine type is used. Check in api docs on how to give machine type for a custom machine. If not
+                      provided, server sets a machine type from its config."
+                  serviceAccount:
+                    type: string
+                    description: "The service account to be assigned to created grid instances. If not given, server
+                      sets from its config."
+                  preemptible:
+                    type: boolean
+                    description: "If an existing instance is found, this will make no effect, can’t be set to existing
+                      instance"
+                    default: false
+                  customLabels:
+                    type: object
+                    description: "json object key-value as string type, when creating a new grid server arranges all the
+                      required labels by looking into labels in image and defaults from its config, however sometimes we
+                      may need custom labels out of the scope of predefined ones of requiring a distinct value than the
+                      defaults. For example, if its an integration test, we may want to mark the grid as
+                      is-production-instance=false"
+                  metadata:
+                    type: object
+                    description: "json object key-value as string type, metadata to be assigned to the created grid
+                      instance. Note that server also applies some metadata, if any of given metadata match, it
+                      overrides the metadata set by server. Also overrides if same metadata key is found on a stopped
+                      instance (when a stopped instance is found)."
+              buildProperties:
+                type: object
+                required:
+                  - buildId
+                properties:
+                  buildId:
+                    type: string
+                    description: "Id of the currently running build."
+      responses:
+        200:
+          description: "Response to be returned on grid create success"
+          schema:
+            $ref: "#/definitions/gridCreateSuccessResponse"
+        default:
+          description: "Response to be returned on grid create error"
+          schema:
+            $ref: "#/definitions/gridErrorResponse"
+  "/zones/{zone}/grids/{gridName}":
+    delete:
+      description: "Stops or deletes a grid instance."
+      operationId: "delete_grid"
+      produces:
+        - "application/json"
+      parameters:
+        - $ref: "#/parameters/zonePathParameter"
+        - name: gridName
+          in: path
+          required: true
+          type: string
+          description: "The name of the grid resource to delete"
+        - $ref: "#/parameters/noRushQueryParameter"
+        - name: sessionId
+          in: query
+          type: string
+          description: "If given, sets this sessionId to current-test-sessionId metadata entry before attempting a
+              delete. This is optional so that even if its empty for some reason, we’ll be able to delete the instance
+              and don’t decline the request."
+      responses:
+        200:
+          description: "Response to be returned on grid delete success"
+          schema:
+            $ref: "#/definitions/gridDeleteSuccessResponse"
+        default:
+          description: "Response to be returned on grid delete error"
+          schema:
+            $ref: "#/definitions/gridErrorResponse"
+parameters:
+  zonePathParameter:
+    in: path
+    name: zone
+    required: true
+    type: string
+    description: "The zone where the grid instance needs to be created or located"
+  noRushQueryParameter:
+    in: query
+    name: noRush
+    type: boolean
+    description: "indicates that this test doesn't fall in quick test category (such as a recurring test) and hence can
+        wait for the resource allocation. This allows us to apply optimisations, it also helps our infrastructure
+        management. For example, we can find an image rather than stopped instance, and can create grid using the image
+        thus decreasing the need to create more on-demand instances."
+
+definitions:
+  gridCreateSuccessResponse:
+    type: object
+    properties:
+      gridInternalIP:
+        type: string
+        description: "The internal 32 bit ip address of the created grid instance."
+      gridId:
+        type: integer
+        description: "type: BigInteger, The instanceId of the created grid instance."
+      gridName:
+        type: string
+        description: "The instanceName of the created grid instance. Empty if an error occurred."
+      gridImageFamily:
+        type: string
+        description: "Name of image family used to start this grid."
+      zone:
+        type: string
+        description: "just the name of the zone where grid resides, this could be different from the zone provided to
+          api in path parameter if api chose to create the grid in a different zone. clients should save this zone for
+          each request to know the location of grid and send the correct zone when sending other requests for the
+          created grid such as a delete request."
+      status:
+        $ref: "#/definitions/gridErrorResponse/properties/status"
+      error:
+        $ref: "#/definitions/gridErrorResponse/properties/error"
+      httpStatusCode:
+        $ref: "#/definitions/gridErrorResponse/properties/httpStatusCode"
+  gridDeleteSuccessResponse:
+    type: object
+    properties:
+      zone:
+        type: string
+        description: "zone where the deletion occurred, same as the supplied zone."
+      status:
+        $ref: "#/definitions/gridErrorResponse/properties/status"
+      error:
+        $ref: "#/definitions/gridErrorResponse/properties/error"
+      httpStatusCode:
+        $ref: "#/definitions/gridErrorResponse/properties/httpStatusCode"
+  gridErrorResponse:
+    type: object
+    properties:
+      status:
+        type: string
+        enum:
+          - SUCCESS
+          - FAILURE
+        description: "Tells whether the operation succeeded"
+      error:
+        type: string
+        description: "simplified error message of the actual issue. client should show a generic message on front end
+          and should evaluate issue by seeing server logs (being its an internal api)"
+      httpStatusCode:
+        type: integer
+        description: "Http status code of the operation"
+
+# we'll not have any authentication for this api, as it will be accessible only within the cluster, below are the
+# references to authentication method we'd apply here should we require it in future.
+# https://cloud.google.com/endpoints/docs/openapi/service-account-authentication
+# https://cloud.google.com/endpoints/docs/openapi/authentication-method
