@@ -1,3 +1,120 @@
+# !!! we may make this deployment common to all the projects hosted on our kube cluster, or use separate deployments for
+# all projects (preferred), if you prefer separate deployments, try removing common parts from it, like configuring the
+# certificate issuers.
+# Before running:
+  # cluster should be up and running and known to gcloud/kubectl. Following apps should be installed on cluster:
+    # 1. ingress-nginx https://kubernetes.github.io/ingress-nginx/deploy/
+    # 2. cert-manager https://docs.cert-manager.io/en/latest/getting-started/install/kubernetes.html
+    # 3. create secret for user 'prod-test', and secret name 'prod-test-basic-auth'. The chosen/generated password
+       # should be atleast 15 chars long and be written in file at
+       # ~/.zl-default-k8s-cluster/secrets/prod-test-basic-auth/pwd, use reference https://kubernetes.github.io/ingress-nginx/examples/auth/basic/
+
+# TODO: The configs on the top are required cluster wide, they should be moved to a separate file/project.
+
+# https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/static/provider/cloud-generic.yaml, the
+# same service that we've installed during the controller installation, to acquire a static ip for controller. Check
+# for any changes, or if there may be changes several times, probably just patch service during installation and assign
+# an IP. https://github.com/kubernetes/ingress-nginx/tree/master/docs/examples/static-ip
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingress-nginx
+  namespace: ingress-nginx
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+spec:
+  externalTrafficPolicy: Local
+  type: LoadBalancer
+  # This IP should be a reserved IP address.
+  loadBalancerIP: 35.230.120.18
+  selector:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+    - name: https
+      port: 443
+      targetPort: https
+---
+apiVersion: v1
+data:
+  keep-alive: "600"
+  upstream-keepalive-timeout: "600"
+kind: ConfigMap
+metadata:
+  name: nginx-configuration
+---
+# reference: https://docs.cert-manager.io/en/latest/tutorials/acme/quick-start/index.html
+apiVersion: cert-manager.io/v1alpha2 # version from https://github.com/jetstack/cert-manager/releases
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: admin@zylitics.io
+    # a secret will be created to store the private key for this ACME account.
+    privateKeySecretRef:
+      # !!! whenever there is any debugging required, use 'staging' issuers to keep let's encrypt limits from reaching.
+      name: letsencrypt-staging
+    solvers:
+      - http01:
+          ingress:
+            class: nginx
+            # we're telling to create the new ingress-resource under this controller that fulfills the ACME challenge
+            # validation requests like putting a file under domain.
+            # https://docs.cert-manager.io/en/latest/tasks/issuers/setup-acme/http01/index.html#ingressclass
+---
+# https://docs.cert-manager.io/en/latest/tutorials/acme/quick-start/index.html
+apiVersion: cert-manager.io/v1alpha2 # version from https://github.com/jetstack/cert-manager/releases
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: admin@zylitics.io
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:
+      - http01:
+          ingress:
+            class: nginx
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: zl-k8s-univ-cert
+spec:
+  secretName: zl-k8s-univ-cert
+  # we're giving a list of hosts that will have the same certificate that will be stored in following secret.
+  # all hosts here should be pointing to the same load-balancer-ip.
+  # add more hosts here, if we send the same hosts more than 5 times on prod env to let's encrypt, you will be
+  # blocked for a week, so take care using prod env.
+  dnsNames:
+    - wzgp.api.zylitics.io
+    - app.zylitics.io
+  acme:
+    config:
+      - http01:
+          ingressClass: nginx
+        domains:
+          - wzgp.api.zylitics.io
+          - app.zylitics.io
+  issuerRef:
+    # when you delete cluster and
+    # create a new, cert-manager sends a new certificate req to letsencrypt, if the issuer is prod, this can be done
+    # only 5 times a week unless the hostnames in the list are different or its a renewal (happens only when the last
+    # issued certificate has reached expiry date otherwise its treated as duplicate which limits to 5). Remember that
+    # staging env is just to test whether cert can be issued correctly and isn't a valid CA so you can't use https.
+    # While debugging, its better to access app under http. The limit is imposed per host.
+    # https://letsencrypt.org/docs/rate-limits/
+    name: letsencrypt-staging
+    kind: ClusterIssuer
+--- # End cluster wide config
 # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#deployment-v1-apps
 # !! Take care before an update is sent, read here how updates work
 #    https://kubernetes.io/docs/tasks/manage-kubernetes-objects/declarative-config/
@@ -10,8 +127,7 @@ metadata:
     app.kubernetes.io/version: &VERSION 0.1.0-SNAPSHOT
     environment: &ENVIRONMENT production
 spec: # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#deploymentspec-v1-apps
-  minReadySeconds: 5 # we'll also use a readiness-probe to precisely tell container is available.
-  replicas: 1
+  replicas: 1 # TODO: change it per requirement
   revisionHistoryLimit: 1
   selector:
     # Only pods matching this set of labels will be selected for this deployment. This helps during update.
@@ -27,7 +143,7 @@ spec: # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#dep
           args: [
             "--http_port=4000",
             "--backend=127.0.0.1:8080",
-            "--service=zl-wzgp.endpoints.zl-win-nodes.cloud.goog",
+            "--service=wzgp.api.internal.zylitics.io", # TODO: test this endpoint by calling serivce within cluster.
             "--rollout_strategy=managed",
           ]
           ports:
@@ -38,6 +154,8 @@ spec: # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#dep
           ports:
             - name: &CONTAINER_PORT container-port
               containerPort: 8080
+          # TODO: test whether probes are working correctly within nginx-ingress, also see if we require targeting
+          # service rather than pods from ingress https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#service-upstream
           livenessProbe:
             httpGet:
               path: &HEALTH /actuator/health
@@ -57,7 +175,7 @@ spec: # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#dep
             initialDelaySeconds: 3
             periodSeconds: 3
             failureThreshold: 20
-          # resources: mention this once you know how much resources the app usually consume
+          # resources: TODO: mention this once you know how much resources the app usually consume
           #   https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
           #   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#resourcerequirements-v1-core
 ---
@@ -75,3 +193,41 @@ spec:
       name: http
   selector:
     app.kubernetes.io/name: zl-wzgp
+---
+# This is an ingress resource, we can create a separate ingress resources that target the same ingress controller
+# instance. The annotations you provide here applies to the set of rules mentioned for this ingress resource.
+# https://kubernetes.io/docs/concepts/services-networking/ingress/#the-ingress-resource
+# Multiple ingress resources makes sense when you want different annotations for different resources, for example a
+# web socket resource might require a higher timeout values than a normal http resource.
+# We've kept certificate separate from ingress resources, cert-manager won't look into our ingress resources to create
+# a certificate, thus we can mention several ingress resources.
+apiVersion: extensions/v1beta1 # version of kubernetes ingress controller
+kind: Ingress
+metadata:
+  name: wzgp-ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: prod-test-basic-auth
+    nginx.ingress.kubernetes.io/auth-realm: 'Authentication Required - prod-test'
+    # following timeouts signifies, when nginx at node sends request to a pod, it expects a response within 'read'
+    # timeout, also it expects to send another request to same pod within 'send' timeout during a connection. if it
+    # won't hear from server or won't hear from client, connection will be closed.
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    # TODO: remove this on production, allows http access. https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#server-side-https-enforcement-through-redirect
+    # https://github.com/kubernetes/ingress-nginx/issues/1567
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  tls: # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#ingresstls-v1beta1-extensions
+    - secretName: zl-k8s-univ-cert
+  rules:
+    # we can add a default backend later on, that server requests that don't match any path.
+    - host: wzgp.api.zylitics.io
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: zl-wzgp-service
+              servicePort: 80
+---

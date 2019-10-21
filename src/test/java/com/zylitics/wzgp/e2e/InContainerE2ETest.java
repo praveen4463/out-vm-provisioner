@@ -46,7 +46,7 @@ public class InContainerE2ETest extends AbstractGridE2ETest {
   
   @BeforeEach
   void setup() throws Exception {
-    super.client = client.mutate().responseTimeout(Duration.ofMinutes(6)).build();
+    super.client = client.mutate().responseTimeout(Duration.ofMinutes(10)).build();
     apiVersion = env.getProperty(APP_VER_KEY);
     super.env = env;
     super.apiCoreProps = apiCoreProps;

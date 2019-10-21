@@ -1,6 +1,11 @@
 package com.zylitics.wzgp.e2e;
 
+import java.io.*;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.Base64;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -8,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.core.env.Environment;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
@@ -24,6 +30,8 @@ import com.zylitics.wzgp.web.FingerprintBasedUpdater;
  * 2. PRODUCTION_API_VERSION system property
  * 3. Should run from a GCP VM so that internal api could be accessed and container can start
  *    without having needed a service account file explicitly.
+ * When you want to debug any production element like logging, change the profile via sys prop to choose production
+ * profile in test configuration.
  * 
  * This test also starts the container so that api properties and apis could be used for any
  * information/processing that is not available from the production api and required to thoroughly
@@ -63,8 +71,19 @@ public class ProductionE2ETest extends AbstractGridE2ETest {
 
   @BeforeEach
   void setup() throws Exception {
+    // authentication for the production service
+    String authUser = "prod-test";
+    String authUserPwdEnvVar = "KUBE_INGRESS_USER_PROD_TEST_PWD";
+    Preconditions.checkNotNull(System.getenv(authUserPwdEnvVar), authUserPwdEnvVar + " env variable is missing.");
+    
+    String pwd = null;
+    try (BufferedReader input = new BufferedReader(new FileReader(System.getenv(authUserPwdEnvVar)))) {
+      pwd = input.readLine(); // just read the first line
+    }
+    String encodedCred = Base64.getEncoder().encodeToString((authUser + ":" + pwd).getBytes());
     client = WebTestClient.bindToServer().baseUrl(PRODUCTION_API_ROOT_URL)
-        .responseTimeout(Duration.ofMinutes(6)).build();
+        .defaultHeader(HttpHeaders.AUTHORIZATION, "Basic " + encodedCred)
+        .responseTimeout(Duration.ofMinutes(10)).build();
     apiVersion = PRODUCTION_API_VERSION;
     super.env = env;
     super.apiCoreProps = apiCoreProps;

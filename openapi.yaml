@@ -9,12 +9,6 @@ info:
   title: "Windows Zylitics Grid Provisioner"
   version: "0.1.0-SNAPSHOT"
 host: "wzgp.api.internal.zylitics.io"
-# TODO: for now use cloud.goog domain for testing and move to our own before launch, to add own domain,
-# Verify domain to the google account you use in k8s, use the domain here and remove x-google-endpoints block, we'll
-# use cloud DNS so create a zone for that, change nameservers in google domain to the ones given by cloud DNS.
-x-google-endpoints:
-  - name: "zl-wzgp.endpoints.zl-win-nodes.cloud.goog"
-    target: "10.29.4.4"
 basePath: "/beta"
 schemes:
   - "http"
@@ -242,7 +236,11 @@ definitions:
         type: integer
         description: "Http status code of the operation"
 
-# we'll not have any authentication for this api, as it will be accessible only within the cluster, below are the
-# references to authentication method we'd apply here should we require it in future.
+# This api is accessed by services within the cluster only, some tests may access it from outside cluster using an
+# ingress only until we've setup a CI pipeline, to protect the ingress intermittently, we will use ingress-nginx's
+# basic authentication https://kubernetes.github.io/ingress-nginx/examples/auth/basic/, and once we've setup a CI
+# pipeline, we can remove the ingress for this api.
+# If we require to protect this service within the cluster in future, service-service auth can be used. We'd use a
+# secret on cluster to store the json config of service account created just for the auth, and application that need
+# to authenticate will read config from secret and create a singed JWT token.
 # https://cloud.google.com/endpoints/docs/openapi/service-account-authentication
-# https://cloud.google.com/endpoints/docs/openapi/authentication-method
