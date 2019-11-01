@@ -60,7 +60,7 @@ public abstract class AbstractGridE2ETest {
   
   private static final String API_BASE_PATH = "/{version}/zones/{zone}/grids";
   
-  private static final String ZONE_PROP = "zl.wgzp.e2e.zone";
+  private static final String ZONE_PROP = "zl.wzgp.e2e.zone";
   
   private static final String ZONE = Preconditions.checkNotNull(System.getProperty(ZONE_PROP)
       , ZONE_PROP + " system property is missing");

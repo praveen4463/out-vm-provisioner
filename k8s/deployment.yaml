@@ -1,7 +1,12 @@
 # Before running:
-    # 1. create secret for user 'prod-test', and secret name 'prod-test-basic-auth'. The chosen/generated password
-       # should be atleast 15 chars long and be written in file at
-       # ~/.zl-default-k8s-cluster/secrets/prod-test-basic-auth/pwd, use reference https://kubernetes.github.io/ingress-nginx/examples/auth/basic/
+    # 1. create secret for user 'prod-test' by using reference use reference https://kukubernetes.github.io/ingress-nginx/examples/auth/basic/
+         # The secret should be named (could be any) 'prod-test-basic-auth'.
+         # The password that we choose/generate for the user can be generated using utilities like openssl, should be
+         # atleast 15 chars long, and be written in file at ~/.zl-default-k8s-cluster/secrets/prod-test-basic-auth/pwd
+         # pointed by env KUBE_INGRESS_USER_PROD_TEST_PWD. This password will be read by applications authenticating
+         # to the ingress (using authentication header's username:password value).
+         # So, first generated a password, save it to the specified file, set the env to point there. Use htpasswd, use
+         # the username and this password to create a 'auth' file. Once all done, delete 'auth' file.
 
 # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#deployment-v1-apps
 # !! Take care before an update is sent, read here how updates work
