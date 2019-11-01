@@ -44,7 +44,8 @@ import com.zylitics.wzgp.web.FingerprintBasedUpdater;
  */
 @Tag("production-e2e")
 @SpringBootTest(webEnvironment=WebEnvironment.NONE)
-@ActiveProfiles("e2e")
+@ActiveProfiles("e2e") // !!! When you need to test something that is activate on production profile, change the profile
+// through system property and supply it in test, for example testing stackdriver logging.
 public class ProductionE2ETest extends AbstractGridE2ETest {
   
   private static final String PRODUCTION_API_ROOT_URL_PROP = "zl.wzgp.productionRootURL";
@@ -54,7 +55,7 @@ public class ProductionE2ETest extends AbstractGridE2ETest {
      Preconditions.checkNotNull(System.getProperty(PRODUCTION_API_ROOT_URL_PROP)
          , PRODUCTION_API_ROOT_URL_PROP + " system property is missing");
   private static final String PRODUCTION_API_VERSION =
-      Preconditions.checkNotNull(System.getProperty("zl.wzgp.productionVersion")
+      Preconditions.checkNotNull(System.getProperty(PRODUCTION_API_VERSION_PROP)
           , PRODUCTION_API_VERSION_PROP + " system property is missing");
   
   @Autowired

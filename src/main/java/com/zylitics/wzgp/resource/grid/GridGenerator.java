@@ -88,6 +88,7 @@ public class GridGenerator {
     String serviceAccountEmail =
         Optional.ofNullable(gridProp.getServiceAccount()).orElse(gridDefault.getServiceAccount());
     boolean preemptible = gridProp.getPreemptible();
+    boolean createExternalIP = gridProp.getCreateExternalIP();
     
     // ************************************************************************
     
@@ -103,10 +104,12 @@ public class GridGenerator {
     NetworkInterface nif = new NetworkInterface();
     nif.setNetwork(String.format("global/networks/%s", network));
     nif.setSubnetwork(ResourceUtil.getSubnetURLFromZone(gridZone));
-    AccessConfig accessConfig = new AccessConfig();
-    accessConfig.setType("ONE_TO_ONE_NAT");
-    accessConfig.setName("External NAT");
-    nif.setAccessConfigs(Collections.singletonList(accessConfig));
+    if (createExternalIP) {
+      AccessConfig accessConfig = new AccessConfig();
+      accessConfig.setType("ONE_TO_ONE_NAT");
+      accessConfig.setName("External NAT");
+      nif.setAccessConfigs(Collections.singletonList(accessConfig));
+    }
     instance.setNetworkInterfaces(Collections.singletonList(nif));
     
     // Attach disk

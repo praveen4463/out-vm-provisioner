@@ -7,11 +7,13 @@ swagger: "2.0"
 info:
   description: "Windows Zylitics Grid Provisioner api provisions and manage grid instances on GCP"
   title: "Windows Zylitics Grid Provisioner"
-  version: "0.1.0-SNAPSHOT"
+  # This version no. is just to showing in the console and has no affect on functionality, although it should be
+  # updated whenever production version is updated.
+  version: "0.1.1"
 host: "wzgp.api.internal.zylitics.io"
 basePath: "/beta"
 schemes:
-  - "http"
+  - "http" # TLS is terminated before hitting ESP, so only http.
 consumes:
   - "application/json"
 produces:
@@ -104,6 +106,10 @@ paths:
                     description: "If an existing instance is found, this will make no effect, can’t be set to existing
                       instance"
                     default: false
+                  createExternalIP:
+                    type: boolean
+                    description: "Whether the generated instance have an external ip, can't be set to existing instance"
+                    default: false
                   customLabels:
                     type: object
                     description: "json object key-value as string type, when creating a new grid server arranges all the
@@ -127,6 +133,10 @@ paths:
                     description: "Id of the currently running build."
       responses:
         200:
+          description: "Response to be returned on grid create success"
+          schema:
+            $ref: "#/definitions/gridCreateSuccessResponse"
+        201:
           description: "Response to be returned on grid create success"
           schema:
             $ref: "#/definitions/gridCreateSuccessResponse"
@@ -186,6 +196,9 @@ definitions:
       gridInternalIP:
         type: string
         description: "The internal 32 bit ip address of the created grid instance."
+      gridExternalIP:
+        type: string
+        description: "The external 32 bit ip address of the created grid instance, empty if not opted."
       gridId:
         type: integer
         description: "type: BigInteger, The instanceId of the created grid instance."

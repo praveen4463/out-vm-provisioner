@@ -1,0 +1,62 @@
+# Deployment for running production tests before a new version is deployed to production.
+# This deployment will create a Pod with the given version, with different labels than the production deployment.
+# Whenever there is a new version of app needs to be deployed, we'll first test that on production, just change the
+# version number here, deploy it, perform the test and once successful, delete this deployment. We've
+# created a permanent ingress rule that will direct test endpoints to the test service.
+
+# Steps to follow:
+  # 1. Use jib and create new version's build and push. Update the version here.
+  # 2. apply the deployment.
+  # 3. wait for few seconds (as there is just 1 replica), run tests and verify result.
+  # 4. if all good, delete deployment and service using `kubectl delete -f <yaml_config>`, deploy production version.
+  # 5. watch for any changes to production deployment, port any changes from there to here.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zl-wgzp-prod-test-deployment
+  labels: &LABELS
+    app.kubernetes.io/name: &APP zl-wzgp-prod-test
+    app.kubernetes.io/version: &VERSION 0.1.1
+    environment: production-test
+spec:
+  replicas: 1
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: *APP
+  template:
+    metadata:
+      labels: *LABELS
+    spec:
+      containers:
+        - name: esp-prod-test
+          image: gcr.io/endpoints-release/endpoints-runtime:1
+          # we'll let test requests to go to production esp service, otherwise another esp service will need to be
+          # be created for these test and we don't want that. Requests from tests should be identifiable by seeing
+          # request body.
+          args: [
+            "--http_port=4000",
+            "--backend=127.0.0.1:8080",
+            "--service=wzgp.api.internal.zylitics.io",
+            "--rollout_strategy=managed",
+          ]
+          ports:
+            - containerPort: 4000
+        - name: *APP
+          image: us.gcr.io/zl-win-nodes/zl-wzgp:0.1.1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zl-wzgp-prod-test-service
+spec:
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 4000
+      name: http
+  selector:
+    app.kubernetes.io/name: zl-wzgp-prod-test

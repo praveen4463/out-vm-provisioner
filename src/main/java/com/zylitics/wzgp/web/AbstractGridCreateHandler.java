@@ -2,6 +2,7 @@ package com.zylitics.wzgp.web;
 
 import static com.zylitics.wzgp.resource.util.ResourceUtil.nameFromUrl;
 
+import com.google.api.services.compute.model.NetworkInterface;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.Assert;
 
@@ -41,7 +42,11 @@ public abstract class AbstractGridCreateHandler extends AbstractGridHandler {
   
   protected ResponseGridCreate prepareResponse(Instance gridInstance, HttpStatus status) {
     ResponseGridCreate response = new ResponseGridCreate();
-    response.setGridInternalIP(gridInstance.getNetworkInterfaces().get(0).getNetworkIP());
+    NetworkInterface netInterface = gridInstance.getNetworkInterfaces().get(0);
+    response.setGridInternalIP(netInterface.getNetworkIP());
+    if (netInterface.getAccessConfigs() != null && netInterface.getAccessConfigs().get(0) != null) {
+      response.setGridExternalIP(netInterface.getAccessConfigs().get(0).getNatIP());
+    }
     response.setGridId(gridInstance.getId());
     response.setGridName(gridInstance.getName());
     response.setHttpStatusCode(status.value());

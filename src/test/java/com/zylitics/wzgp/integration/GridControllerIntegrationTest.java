@@ -113,7 +113,7 @@ public class GridControllerIntegrationTest {
   
   @BeforeEach
   void setup() {
-    // Rest all handler mocks so that distinct stubbing can take place in distinct test methods. We
+    // Reset all handler mocks so that distinct stubbing can take place in distinct test methods. We
     // had to reset rather than creating new mock because container use the same handler factory
     // objects in all tests
     reset(GENERATE_HANDLER_FACTORY);

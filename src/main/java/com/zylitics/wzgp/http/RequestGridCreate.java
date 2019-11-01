@@ -1,6 +1,7 @@
 package com.zylitics.wzgp.http;
 
 import java.util.Map;
+import java.util.Objects;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
@@ -248,6 +249,7 @@ public class RequestGridCreate {
     private String machineType;
     private String serviceAccount;
     private Boolean preemptible;
+    private Boolean createExternalIP;
     
     private Map<String, String> customLabels;
     
@@ -286,7 +288,18 @@ public class RequestGridCreate {
         this.preemptible = preemptible;
       }
     }
-    
+  
+    @Override
+    public Boolean getCreateExternalIP() {
+      return createExternalIP == null ? false : createExternalIP;
+    }
+  
+    public void setCreateExternalIP(Boolean createExternalIP) {
+      if (this.createExternalIP == null) {
+        this.createExternalIP = createExternalIP;
+      }
+    }
+  
     @Override
     public Map<String, String> getCustomLabels() {
       return customLabels;
@@ -315,6 +328,7 @@ public class RequestGridCreate {
           "machineType='" + machineType + '\'' +
           ", serviceAccount='" + serviceAccount + '\'' +
           ", preemptible=" + preemptible +
+          ", createExternalIP=" + createExternalIP +
           ", customLabels=" + customLabels +
           ", metadata=" + metadata +
           '}';
@@ -328,10 +342,11 @@ public class RequestGridCreate {
       result = prime * result + ((machineType == null) ? 0 : machineType.hashCode());
       result = prime * result + ((metadata == null) ? 0 : metadata.hashCode());
       result = prime * result + (preemptible ? 1231 : 1237);
+      result = prime * result + (createExternalIP ? 1231 : 1237);
       result = prime * result + ((serviceAccount == null) ? 0 : serviceAccount.hashCode());
       return result;
     }
-
+  
     @Override
     public boolean equals(Object obj) {
       if (this == obj) {
@@ -366,6 +381,9 @@ public class RequestGridCreate {
         return false;
       }
       if (preemptible != other.preemptible) {
+        return false;
+      }
+      if (createExternalIP != other.createExternalIP) {
         return false;
       }
       if (serviceAccount == null) {

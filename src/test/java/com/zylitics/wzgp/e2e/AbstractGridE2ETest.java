@@ -1,8 +1,6 @@
 package com.zylitics.wzgp.e2e;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static com.zylitics.wzgp.resource.util.ResourceUtil.nameFromUrl;
 
@@ -170,9 +168,12 @@ public abstract class AbstractGridE2ETest {
       assertEquals(gridDefault.getNetwork()
           , nameFromUrl(grid.getNetworkInterfaces().get(0).getNetwork()));
       
-      // external ip
-      String externalIP = grid.getNetworkInterfaces().get(0).getAccessConfigs().get(0).getNatIP();
-      assertTrue(externalIP.matches(IP4_PATTERN));
+      // internal ip
+      String internalIP = grid.getNetworkInterfaces().get(0).getNetworkIP();
+      assertTrue(internalIP.matches(IP4_PATTERN));
+      
+      // external ip shouldn't be there as we didn't ask for it
+      assertNull(grid.getNetworkInterfaces().get(0).getAccessConfigs());
       
       // disk source image. We need to get the disk to match source-image (not family) and disk type
       // because initialize-parameters are not written back in the response, they're tied to disk.
@@ -464,7 +465,6 @@ public abstract class AbstractGridE2ETest {
   }
   
   /**
-   * 
    * @param gridName
    * @param gridZone
    * @param noRush
@@ -580,7 +580,6 @@ public abstract class AbstractGridE2ETest {
         .expectHeader().contentType(MediaType.APPLICATION_JSON_UTF8)
         .expectBody(ResponseGridCreate.class)
         .returnResult().getResponseBody();
-    
     
     assertNotNull(response);
     assertEquals(ResponseStatus.SUCCESS.name(), response.getStatus());

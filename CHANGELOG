@@ -1,0 +1,9 @@
+**********
+v0.1.0
+**********
+* Functionality to support all basic operations completed.
+
+**********
+v0.1.1
+**********
+* Added support for external IP on generated instance, it's an opt-in feature that should be enabled explicitly.

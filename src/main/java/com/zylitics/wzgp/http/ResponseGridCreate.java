@@ -5,6 +5,7 @@ import java.math.BigInteger;
 public class ResponseGridCreate extends AbstractResponse {
 
   private String gridInternalIP;
+  private String gridExternalIP;
   private BigInteger gridId;
   private String gridName;
   private String zone;
@@ -15,6 +16,14 @@ public class ResponseGridCreate extends AbstractResponse {
   
   public void setGridInternalIP(String gridInternalIP) {
     this.gridInternalIP = gridInternalIP;
+  }
+  
+  public String getGridExternalIP() {
+    return gridExternalIP;
+  }
+  
+  public void setGridExternalIP(String gridExternalIP) {
+    this.gridExternalIP = gridExternalIP;
   }
   
   public BigInteger getGridId() {

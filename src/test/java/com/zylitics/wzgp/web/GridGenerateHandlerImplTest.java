@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 
+import com.google.api.services.compute.model.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,10 +24,6 @@ import org.springframework.http.ResponseEntity;
 
 import com.google.api.services.compute.Compute;
 import com.google.api.services.compute.Compute.Instances;
-import com.google.api.services.compute.model.Image;
-import com.google.api.services.compute.model.Instance;
-import com.google.api.services.compute.model.NetworkInterface;
-import com.google.api.services.compute.model.Operation;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.zylitics.wzgp.http.RequestGridCreate;
@@ -55,6 +52,8 @@ public class GridGenerateHandlerImplTest {
   
   private static final BigInteger GENERATED_INSTANCE_ID = BigInteger.valueOf(2020239494);
   
+  private static final String GENERATED_INSTANCE_EXTERNAL_IP = "222.222.222.222";
+  
   private static final String GENERATED_INSTANCE_NETWORK_IP = "192.168.1.1";
   
   private static final String IMAGE_NAME = "image-1";
@@ -76,7 +75,7 @@ public class GridGenerateHandlerImplTest {
         .setFamily(sourceImageFamily)
         .setLabels(ImmutableMap.of("os","win7"));
     
-    Instance generatedInstance = getGeneratedInstance();
+    Instance generatedInstance = getGeneratedInstance(true);
     
     ResourceExecutor executor = mock(ResourceExecutor.class);
     ComputeService computeSrv = mock(ComputeService.class);
@@ -102,7 +101,7 @@ public class GridGenerateHandlerImplTest {
     
     assertEquals("DONE", lockGridOperation.getStatus());
     
-    validateResonse(response);
+    validateResponse(response, true);
   }
   
   @Test
@@ -114,7 +113,7 @@ public class GridGenerateHandlerImplTest {
         .setFamily(searchedImageFamily)
         .setLabels(ImmutableMap.of("os","win7"));
     
-    Instance generateInstance = getGeneratedInstance();
+    Instance generateInstance = getGeneratedInstance(false);
     
     ResourceExecutor executor = mock(ResourceExecutor.class);
     ComputeService computeSrv = mock(ComputeService.class);
@@ -138,7 +137,7 @@ public class GridGenerateHandlerImplTest {
     
     assertEquals("DONE", lockGridOperation.getStatus());
     
-    validateResonse(response);
+    validateResponse(response, false);
   }
   
   @Test
@@ -168,17 +167,23 @@ public class GridGenerateHandlerImplTest {
   }
   
   private GridGenerateHandler getHandler(ResourceExecutor executor, ComputeService computeSrv
-      , ResourceSearch search, FingerprintBasedUpdater finerprintUpdater) {
+      , ResourceSearch search, FingerprintBasedUpdater fingerprintUpdater) {
     return new GridGenerateHandlerImpl.Factory().create(
-        COMPUTE, API_CORE_PROPS, executor, computeSrv, search, finerprintUpdater, ZONE, REQ_CREATE);
+        COMPUTE, API_CORE_PROPS, executor, computeSrv, search, fingerprintUpdater, ZONE, REQ_CREATE);
   }
   
-  private Instance getGeneratedInstance() {
+  private Instance getGeneratedInstance(boolean addExternalIP) {
+    NetworkInterface nif = new NetworkInterface();
+    nif.setNetworkIP(GENERATED_INSTANCE_NETWORK_IP);
+    if (addExternalIP) {
+      AccessConfig accessConfig = new AccessConfig();
+      accessConfig.setNatIP(GENERATED_INSTANCE_EXTERNAL_IP);
+      nif.setAccessConfigs(ImmutableList.of(accessConfig));
+    }
     return new Instance()
         .setId(GENERATED_INSTANCE_ID)
         .setName(GENERATED_INSTANCE_NAME)
-        .setNetworkInterfaces(
-            ImmutableList.of(new NetworkInterface().setNetworkIP(GENERATED_INSTANCE_NETWORK_IP)))
+        .setNetworkInterfaces(ImmutableList.of(nif))
         .setZone(ResourceTestUtil.getZoneLink(ZONE))
         .setStatus("RUNNING");
   }
@@ -214,11 +219,13 @@ public class GridGenerateHandlerImplTest {
     return lockGridOperation;
   }
   
-  private void validateResonse(ResponseEntity<ResponseGridCreate> response) {
+  private void validateResponse(ResponseEntity<ResponseGridCreate> response, boolean addedExternalIP) {
     assertEquals(HttpStatus.CREATED, response.getStatusCode());
     
     ResponseGridCreate responseBody = response.getBody();
     
+    String externalIP = addedExternalIP ? GENERATED_INSTANCE_EXTERNAL_IP : null;
+    assertEquals(externalIP, responseBody.getGridExternalIP());
     assertEquals(GENERATED_INSTANCE_NETWORK_IP, responseBody.getGridInternalIP());
     assertEquals(GENERATED_INSTANCE_ID, responseBody.getGridId());
     assertEquals(GENERATED_INSTANCE_NAME, responseBody.getGridName());

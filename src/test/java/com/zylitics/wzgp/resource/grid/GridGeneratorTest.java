@@ -41,7 +41,7 @@ import com.zylitics.wzgp.test.dummy.FakeCompute;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness=Strictness.STRICT_STUBS)
-public class GridGeneratorTest {
+class GridGeneratorTest {
 
   private static final String IMAGE_FAMILY = "win-2008-base";
   
@@ -60,6 +60,9 @@ public class GridGeneratorTest {
   private static final String NETWORK = "netowork-1";
   
   private static final boolean PREEMPTIBLE = false;
+  
+  // The default false condition is tested in e2e test.
+  private static final boolean CREATE_EXTERNAL_IP = true;
   
   private static final Set<String> TAGS = ImmutableSet.of("tag-1", "tag-2");
   
@@ -105,8 +108,7 @@ public class GridGeneratorTest {
    * details to be processed to a successful grid Operation.
    * We've taken two dummy classes separately for our test and not using the dummy objects already
    * available for test so that we can manually build list of labels, metadata and other thing to
-   * verify the logic at generator precisely. 
-   * @throws Exception
+   * verify the logic at generator precisely.
    */
   @SuppressWarnings("unchecked")
   @DisplayName("verify grid creates and validate its properties")
@@ -128,13 +130,12 @@ public class GridGeneratorTest {
     when(executor.executeWithZonalReattempt(any(Instances.Insert.class), any(Function.class)
         , eq(BUILD_PROP))).thenAnswer(invocation -> {
           
-          Instances.Insert insertInstanceProvided = (Instances.Insert) invocation.getArgument(0);
+          Instances.Insert insertInstanceProvided = invocation.getArgument(0);
           
           verifyGridConfiguration((Instance) insertInstanceProvided.getJsonContent()
               , primaryZoneRegion);
           
-          Function<String, Instances.Insert> insertInstanceFactory =
-              (Function<String, Instances.Insert>) invocation.getArgument(1);
+          Function<String, Instances.Insert> insertInstanceFactory = invocation.getArgument(1);
           
           Instances.Insert insertInstanceGenerated = insertInstanceFactory.apply(randomZone);
           
@@ -151,7 +152,7 @@ public class GridGeneratorTest {
         , BUILD_PROP, new DummyGridProperties(), image);
     
     // just verify that we get a completed operation, don't get into details whether it was
-    // successful because that something executor deals with.
+    // successful because that's something executor deals with.
     assertEquals("DONE", generator.create(primaryZone).get().getStatus());
   }
   
@@ -173,6 +174,8 @@ public class GridGeneratorTest {
     assertEquals(SERVICE_ACCOUNT, instance.getServiceAccounts().get(0).getEmail());
     
     assertEquals(PREEMPTIBLE, instance.getScheduling().getPreemptible());
+    
+    assertEquals(CREATE_EXTERNAL_IP, instance.getNetworkInterfaces().get(0).getAccessConfigs() != null);
     
     assertEquals(TAGS, new HashSet<>(instance.getTags().getItems()));
     
@@ -250,7 +253,12 @@ public class GridGeneratorTest {
     public Boolean getPreemptible() {
       return PREEMPTIBLE;
     }
-    
+  
+    @Override
+    public Boolean getCreateExternalIP() {
+      return CREATE_EXTERNAL_IP;
+    }
+  
     @Override
     public Map<String, String> getCustomLabels() {
       return CUSTOM_LABELS;

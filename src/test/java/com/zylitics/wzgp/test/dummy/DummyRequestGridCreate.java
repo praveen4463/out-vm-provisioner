@@ -27,6 +27,7 @@ public class DummyRequestGridCreate {
     gridProps.setMachineType("n2-standard");
     gridProps.setServiceAccount("dummy-service-account@gcp.com");
     gridProps.setPreemptible(false);
+    gridProps.setCreateExternalIP(false);
     gridProps.setCustomLabels(ImmutableMap.of("is-production-instance", "false"));
     gridProps.setMetadata(ImmutableMap.of("screen", "1x1"));
     return requestGridCreate;

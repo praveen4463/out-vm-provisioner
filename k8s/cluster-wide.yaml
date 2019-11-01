@@ -1,0 +1,112 @@
+# TODO: move this file in separate project.
+# Before running:
+  # cluster should be up and running and known to gcloud/kubectl. Following apps should be installed on cluster:
+  # 1. ingress-nginx https://kubernetes.github.io/ingress-nginx/deploy/
+  # 2. cert-manager https://docs.cert-manager.io/en/latest/getting-started/install/kubernetes.html
+
+# https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/static/provider/cloud-generic.yaml, the
+# same service that we've installed during the controller installation, to acquire a static ip for controller. Check
+# for any changes, or if there may be changes several times, probably just patch service during installation and assign
+# an IP. https://github.com/kubernetes/ingress-nginx/tree/master/docs/examples/static-ip
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingress-nginx
+  namespace: ingress-nginx
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+spec:
+  externalTrafficPolicy: Local
+  type: LoadBalancer
+  # This IP should be a reserved IP address.
+  loadBalancerIP: 35.230.120.18
+  selector:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+    - name: https
+      port: 443
+      targetPort: https
+---
+apiVersion: v1
+data:
+  keep-alive: "600"
+  upstream-keepalive-timeout: "600"
+kind: ConfigMap
+metadata:
+  name: nginx-configuration
+---
+# reference: https://docs.cert-manager.io/en/latest/tutorials/acme/quick-start/index.html
+apiVersion: cert-manager.io/v1alpha2 # version from https://github.com/jetstack/cert-manager/releases
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: admin@zylitics.io
+    # a secret will be created to store the private key for this ACME account.
+    privateKeySecretRef:
+      # !!! whenever there is any debugging required, use 'staging' issuers to keep let's encrypt limits from reaching.
+      name: letsencrypt-staging
+    solvers:
+      - http01:
+          ingress:
+            class: nginx
+            # we're telling to create the new ingress-resource under this controller that fulfills the ACME challenge
+            # validation requests like putting a file under domain.
+            # https://docs.cert-manager.io/en/latest/tasks/issuers/setup-acme/http01/index.html#ingressclass
+---
+# https://docs.cert-manager.io/en/latest/tutorials/acme/quick-start/index.html
+apiVersion: cert-manager.io/v1alpha2 # version from https://github.com/jetstack/cert-manager/releases
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: admin@zylitics.io
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:
+      - http01:
+          ingress:
+            class: nginx
+---
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: zl-k8s-univ-cert
+spec:
+  secretName: zl-k8s-univ-cert
+  # we're giving a list of hosts that will have the same certificate that will be stored in following secret.
+  # all hosts here should be pointing to the same load-balancer-ip.
+  # add more hosts here, if we send the same hosts more than 5 times on prod env to let's encrypt, you will be
+  # blocked for a week, so take care using prod env.
+  dnsNames:
+    - wzgp.api.zylitics.io
+    - wzgp-test.api.zylitics.io
+    - app.zylitics.io
+  acme:
+    config:
+      - http01:
+          ingressClass: nginx
+        domains:
+          - wzgp.api.zylitics.io
+          - wzgp-test.api.zylitics.io
+          - app.zylitics.io
+  issuerRef:
+    # when you delete cluster and
+    # create a new, cert-manager sends a new certificate req to letsencrypt, if the issuer is prod, this can be done
+    # only 5 times a week unless the hostnames in the list are different or its a renewal (happens only when the last
+    # issued certificate has reached expiry date otherwise its treated as duplicate which limits to 5). Remember that
+    # staging env is just to test whether cert can be issued correctly and isn't a valid CA so you can't use https.
+    # While debugging, its better to access app under http. The limit is imposed per host.
+    # https://letsencrypt.org/docs/rate-limits/
+    name: letsencrypt-staging
+    kind: ClusterIssuer
+---

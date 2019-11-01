@@ -15,6 +15,8 @@ public interface GridProperty {
   
   Boolean getPreemptible();
   
+  Boolean getCreateExternalIP();
+  
   Map<String, String> getCustomLabels();
   
   Map<String, String> getMetadata();
