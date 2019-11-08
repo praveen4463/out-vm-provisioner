@@ -36,7 +36,7 @@ import com.zylitics.wzgp.web.FingerprintBasedUpdater;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness=Strictness.STRICT_STUBS)
-public class GridStarterTest {
+class GridStarterTest {
   
   private static final BuildProperty BUILD_PROP =
       new DummyRequestGridCreate().get().getBuildProperties();
@@ -203,6 +203,7 @@ public class GridStarterTest {
         .setServiceAccounts(ImmutableList.of(new ServiceAccount().setEmail(GRID_SERVICE_ACCOUNT)));
   }
   
+  @SuppressWarnings("SameParameterValue")
   private Operation getOperation(String resourceName, String description) {
     return new Operation()
         .setStatus("RUNNING")

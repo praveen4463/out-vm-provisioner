@@ -1,7 +1,6 @@
 package com.zylitics.wzgp.resource.search;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -27,7 +26,7 @@ import com.zylitics.wzgp.test.util.ResourceTestUtil;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness=Strictness.STRICT_STUBS)
-public class ResourceSearchImplTest {
+class ResourceSearchImplTest {
   
   private static final ResourceSearchParam SEARCH_PARAMS =
       new DummyRequestGridCreate().get().getResourceSearchParams();
@@ -53,7 +52,8 @@ public class ResourceSearchImplTest {
     when(computeSrv.listImages(filter, 1L, null))
         .thenReturn(ImmutableList.of(new Image().setName(imageName)));
     Image image = new ResourceSearchImpl(apiCoreProps, computeSrv)
-        .searchImage(searchParams, null).get();
+        .searchImage(searchParams, null).orElse(null);
+    assertNotNull(image);
     assertEquals(imageName, image.getName());
   }
   
@@ -111,8 +111,8 @@ public class ResourceSearchImplTest {
     String lastInstanceName = null;
     boolean success = false;
     for (int i = 0; i < maxTimesInvokeSearch; i++) {
-      Instance instance = search.searchStoppedInstance(searchParams, zone, null).get();
-      
+      Instance instance = search.searchStoppedInstance(searchParams, zone, null).orElse(null);
+      assertNotNull(instance);
       if (lastInstanceName != null && !lastInstanceName.equals(instance.getName())) {
         success = true;
         break;
@@ -123,22 +123,20 @@ public class ResourceSearchImplTest {
   }
   
   private String getRequestFilters() {
-    StringBuilder sb = new StringBuilder();
-    sb.append(String.format("(labels.os = \"%s\")", SEARCH_PARAMS.getOS()));
-    sb.append(" AND ");
-    sb.append(String.format("(labels.browser1 = \"%s\")", SEARCH_PARAMS.getBrowser()));
-    sb.append(" OR ");
-    sb.append(String.format("(labels.browser2 = \"%s\")", SEARCH_PARAMS.getBrowser()));
-    sb.append(" OR ");
-    sb.append(String.format("(labels.browser3 = \"%s\")", SEARCH_PARAMS.getBrowser()));
-    sb.append(" OR ");
-    sb.append(String.format("(labels.browser4 = \"%s\")", SEARCH_PARAMS.getBrowser()));
-    sb.append(" OR ");
-    sb.append(String.format("(labels.browser5 = \"%s\")", SEARCH_PARAMS.getBrowser()));
-    sb.append(" OR ");
-    sb.append(String.format("(labels.browser6 = \"%s\")", SEARCH_PARAMS.getBrowser()));
-    sb.append(" AND ");
-    sb.append(String.format("(labels.shots = \"%s\")", SEARCH_PARAMS.getShots()));
-    return sb.toString();
+    return String.format("(labels.os = \"%s\")", SEARCH_PARAMS.getOS()) +
+        " AND " +
+        String.format("(labels.browser1 = \"%s\")", SEARCH_PARAMS.getBrowser()) +
+        " OR " +
+        String.format("(labels.browser2 = \"%s\")", SEARCH_PARAMS.getBrowser()) +
+        " OR " +
+        String.format("(labels.browser3 = \"%s\")", SEARCH_PARAMS.getBrowser()) +
+        " OR " +
+        String.format("(labels.browser4 = \"%s\")", SEARCH_PARAMS.getBrowser()) +
+        " OR " +
+        String.format("(labels.browser5 = \"%s\")", SEARCH_PARAMS.getBrowser()) +
+        " OR " +
+        String.format("(labels.browser6 = \"%s\")", SEARCH_PARAMS.getBrowser()) +
+        " AND " +
+        String.format("(labels.shots = \"%s\")", SEARCH_PARAMS.getShots());
   }
 }

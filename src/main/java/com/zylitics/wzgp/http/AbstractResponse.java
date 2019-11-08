@@ -14,6 +14,7 @@ public abstract class AbstractResponse {
     this.status = status;
   }
   
+  @SuppressWarnings("unused")
   public String getError() {
     return error;
   }

@@ -24,7 +24,7 @@ import com.zylitics.wzgp.test.util.ResourceTestUtil;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness=Strictness.STRICT_STUBS)
-public class FingerprintBasedUpdaterTest {
+class FingerprintBasedUpdaterTest {
 
   private static final String ZONE = "us-central0-g";
   

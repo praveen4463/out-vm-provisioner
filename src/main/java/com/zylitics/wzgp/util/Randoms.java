@@ -8,7 +8,7 @@ public class Randoms {
   
   private final Random random;
   
-  public Randoms(Random random) {
+  private Randoms(Random random) {
     this.random = random;
   }
   

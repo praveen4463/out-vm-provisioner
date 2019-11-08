@@ -1,6 +1,7 @@
 package com.zylitics.wzgp.web;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
@@ -59,7 +60,7 @@ import com.zylitics.wzgp.web.exceptions.GridStartHandlerFailureException;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness=Strictness.LENIENT)
-public class GridStartHandlerImplTest {
+class GridStartHandlerImplTest {
   
   private static final Logger LOG = LoggerFactory.getLogger(GridStartHandlerImplTest.class);
   
@@ -157,14 +158,18 @@ public class GridStartHandlerImplTest {
     assertEquals(1, futures.stream().filter(future -> {
       try {
         return future.get().equals(GridStartResponse.SUCCESS);
-      } catch (Exception ex) {}
+      } catch (Exception ex) {
+        // ignore
+      }
       return false;
     }).count());
     
     assertEquals(2, futures.stream().filter(future -> {
       try {
         return future.get().equals(GridStartResponse.FAILURE);
-      } catch (Exception ex) {}
+      } catch (Exception ex) {
+        // ignore
+      }
       return false;
     }).count());
   }
@@ -244,6 +249,8 @@ public class GridStartHandlerImplTest {
             , requestCreate);
         try {
           ResponseEntity<ResponseGridCreate> response = handler.handle();
+          assertNotNull(response);
+          assertNotNull(response.getBody());
           if (response.getBody().getGridName().equals(startedGrid1Fresh.getName())) {
             validateResponse(startedGrid1Fresh, response);
           } else {
@@ -273,14 +280,18 @@ public class GridStartHandlerImplTest {
     assertEquals(2, futures.stream().filter(future -> {
       try {
         return future.get().equals(GridStartResponse.SUCCESS);
-      } catch (Exception ex) {}
+      } catch (Exception ex) {
+        // ignore
+      }
       return false;
     }).count());
     
     assertEquals(2, futures.stream().filter(future -> {
       try {
         return future.get().equals(GridStartResponse.FAILURE);
-      } catch (Exception ex) {}
+      } catch (Exception ex) {
+        // ignore
+      }
       return false;
     }).count());
     
@@ -317,6 +328,7 @@ public class GridStartHandlerImplTest {
     } catch(GridStartHandlerFailureException ex) {
       t = ex;
     }
+    assertNotNull(t);
     assertEquals(GridNotStartedException.class, t.getCause().getClass());
     
     // just verify that this interaction happened.
@@ -359,6 +371,7 @@ public class GridStartHandlerImplTest {
     } catch(GridStartHandlerFailureException ex) {
       t = ex;
     }
+    assertNotNull(t);
     assertEquals(GridBeingDeletedFromOutsideException.class, t.getCause().getClass());
     
     verify(fingerprintBasedUpdater).updateLabels(gridInstance
@@ -389,6 +402,7 @@ public class GridStartHandlerImplTest {
         .thenReturn(getOperation(gridName, ZONE, shouldSucceed));
   }
   
+  @SuppressWarnings("SameParameterValue")
   private Operation getOperation(String resourceName, String zone, boolean isSuccess) {
     return new Operation()
         .setHttpErrorStatusCode(
@@ -404,6 +418,7 @@ public class GridStartHandlerImplTest {
     assertEquals(HttpStatus.OK, response.getStatusCode());
     
     ResponseGridCreate responseBody = response.getBody();
+    assertNotNull(responseBody);
     assertEquals(startedInstance.getId(), responseBody.getGridId());
     assertEquals("192.168.1.1", responseBody.getGridInternalIP());
     assertEquals(startedInstance.getName(), responseBody.getGridName());

@@ -8,6 +8,7 @@ public class GridNotDeletedException extends RuntimeException {
     super(message);
   }
   
+  @SuppressWarnings("unused")
   public GridNotDeletedException(String message, Throwable cause) {
     super(message, cause);
   }

@@ -8,10 +8,12 @@ public class AcquireStoppedMaxReattemptException extends RuntimeException {
     super();
   }
   
+  @SuppressWarnings("unused")
   public AcquireStoppedMaxReattemptException(String message) {
     super(message);
   }
   
+  @SuppressWarnings("unused")
   public AcquireStoppedMaxReattemptException(String message, Throwable cause) {
     super(message, cause);
   }

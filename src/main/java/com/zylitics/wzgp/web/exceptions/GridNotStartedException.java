@@ -8,10 +8,12 @@ public class GridNotStartedException extends RuntimeException {
     super();
   }
   
+  @SuppressWarnings("unused")
   public GridNotStartedException(String message) {
     super(message);
   }
   
+  @SuppressWarnings("unused")
   public GridNotStartedException(String message, Throwable cause) {
     super(message, cause);
   }

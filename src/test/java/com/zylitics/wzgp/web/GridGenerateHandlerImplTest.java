@@ -1,9 +1,8 @@
 package com.zylitics.wzgp.web;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 
 import java.math.BigInteger;
@@ -44,7 +43,7 @@ import com.zylitics.wzgp.web.exceptions.GridNotCreatedException;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness=Strictness.STRICT_STUBS)
-public class GridGenerateHandlerImplTest {
+class GridGenerateHandlerImplTest {
   
   private static final String ZONE = "us-central0-g";
   
@@ -163,7 +162,7 @@ public class GridGenerateHandlerImplTest {
     
     GridGenerateHandler handler = getHandler(executor, computeSrv, search, fingerprintBasedUpdater);
     
-    assertThrows(GridNotCreatedException.class, () -> handler.handle());
+    assertThrows(GridNotCreatedException.class, handler::handle);
   }
   
   private GridGenerateHandler getHandler(ResourceExecutor executor, ComputeService computeSrv
@@ -194,7 +193,7 @@ public class GridGenerateHandlerImplTest {
       throws Exception {
     when(executor.executeWithZonalReattempt(any(Instances.Insert.class), any(Function.class)
         , any(BuildProperty.class))).then(invocation -> {
-          Instances.Insert insertInstanceProvided = (Instances.Insert) invocation.getArgument(0);
+          Instances.Insert insertInstanceProvided = invocation.getArgument(0);
           Instance instance = (Instance) insertInstanceProvided.getJsonContent();
           if (!ResourceUtil.nameFromUrl(instance.getDisks().get(0).getInitializeParams()
               .getSourceImage()).equals(sourceImageFamily)) {
@@ -225,6 +224,7 @@ public class GridGenerateHandlerImplTest {
     ResponseGridCreate responseBody = response.getBody();
     
     String externalIP = addedExternalIP ? GENERATED_INSTANCE_EXTERNAL_IP : null;
+    assertNotNull(responseBody);
     assertEquals(externalIP, responseBody.getGridExternalIP());
     assertEquals(GENERATED_INSTANCE_NETWORK_IP, responseBody.getGridInternalIP());
     assertEquals(GENERATED_INSTANCE_ID, responseBody.getGridId());
@@ -234,6 +234,7 @@ public class GridGenerateHandlerImplTest {
     assertEquals(HttpStatus.CREATED.value(), responseBody.getHttpStatusCode());
   }
   
+  @SuppressWarnings("SameParameterValue")
   private Operation getOperation(String resourceName, String zone, boolean isSuccess) {
     return new Operation()
         .setHttpErrorStatusCode(

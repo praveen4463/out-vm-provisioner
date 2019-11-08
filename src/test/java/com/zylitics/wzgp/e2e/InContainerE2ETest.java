@@ -25,7 +25,8 @@ import com.zylitics.wzgp.web.FingerprintBasedUpdater;
 @Tag("in-container-e2e")
 @SpringBootTest(webEnvironment=WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("e2e")
-public class InContainerE2ETest extends AbstractGridE2ETest {
+@SuppressWarnings("unused")
+class InContainerE2ETest extends AbstractGridE2ETest {
   
   private static final String APP_VER_KEY = "app-short-version";
   

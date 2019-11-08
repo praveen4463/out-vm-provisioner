@@ -8,6 +8,7 @@ public class GridNotCreatedException extends RuntimeException {
     super(message);
   }
   
+  @SuppressWarnings("unused")
   public GridNotCreatedException(String message, Throwable cause) {
     super(message, cause);
   }

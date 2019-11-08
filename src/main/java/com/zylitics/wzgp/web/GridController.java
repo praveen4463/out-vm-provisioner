@@ -76,7 +76,7 @@ public class GridController {
   // rather than letting them generate. Domain objects are created per request and don't need to
   // worry about thread safety.
   @Autowired
-  public GridController(Compute compute
+  GridController(Compute compute
       , APICoreProperties apiCoreProps
       , ResourceExecutor executor
       , ComputeService computeSrv
@@ -172,6 +172,7 @@ public class GridController {
   /**
    * Invoked when @RequestBody binding is failed 
    */
+  @SuppressWarnings("unused")
   @ExceptionHandler
   public ResponseEntity<ResponseGridError> handleExceptions(MethodArgumentNotValidException ex) {
     return processErrResponse(ex, HttpStatus.BAD_REQUEST);
@@ -184,6 +185,7 @@ public class GridController {
    * @param ex the catched {@link Exception} type.
    * @return {@link ResponseEntity}
    */
+  @SuppressWarnings("unused")
   @ExceptionHandler
   public ResponseEntity<ResponseGridError> handleExceptions(Exception ex) {
     return processErrResponse(ex, HttpStatus.INTERNAL_SERVER_ERROR);

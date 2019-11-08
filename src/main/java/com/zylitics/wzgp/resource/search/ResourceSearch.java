@@ -12,25 +12,25 @@ public interface ResourceSearch {
 
   /**
    * 
-   * @param searchParam
-   * @param zone
-   * @param buildProp
+   * @param searchParam {@link ResourceSearchParam} object
+   * @param zone zone where to seach
+   * @param buildProp {@link BuildProperty} object
    * @return A randomly selected {@link Instance} from the list of fetched instances given
    *         availability, else an empty {@link Optional}. The random selection process choose an
    *         index between 0 to (total-fetched-instances - 1) randomly so that near parallel
    *         requests don't find the same instance upon search. 
-   * @throws Exception
+   * @throws Exception If there are problems searching
    */
   Optional<Instance> searchStoppedInstance(ResourceSearchParam searchParam
       , String zone, @Nullable BuildProperty buildProp) throws Exception;
   
   /**
    * 
-   * @param searchParam
-   * @param buildProp
+   * @param searchParam {@link ResourceSearchParam} object
+   * @param buildProp {@link BuildProperty} object
    * @return An {@link Image}, only one image is fetched and returned if available, else an empty
    *         {@link Optional}.
-   * @throws Exception
+   * @throws Exception If there are problems searching
    */
   Optional<Image> searchImage(ResourceSearchParam searchParam
       , @Nullable BuildProperty buildProp) throws Exception;

@@ -63,13 +63,13 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
    * As we use this api, we may see more GCE codes telling a zonal issues that will need to be
    * added into the list of codes. Unless added, those will be catched as 'resource issues'.
    */
-  public static final int ZONAL_ISSUES_MAX_REATTEMPTS = 5;
+  static final int ZONAL_ISSUES_MAX_REATTEMPTS = 5;
   
   private final Compute compute;
   private final APICoreProperties apiCoreProps;
   
   @Autowired
-  public ResourceExecutorImpl(Compute compute, APICoreProperties apiCoreProps) {
+  ResourceExecutorImpl(Compute compute, APICoreProperties apiCoreProps) {
     this.compute = compute;
     this.apiCoreProps = apiCoreProps;
   }
@@ -170,7 +170,7 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
    * @param generateObjToExecutePerZone a {@link Function} that is used to get new object for
    * selected zone.
    * @return Operation
-   * @throws IOException
+   * @throws Exception If there are problems in reattempting.
    */
   private <T extends ComputeRequest<Operation>> CompletedOperation perZoneReattemptHandler(
       Function<String, T> generateObjToExecutePerZone
@@ -276,7 +276,7 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
   private List<String> operationErrorsToCodes(Operation operation) {
     return operation.getError().getErrors()
         .stream()
-        .map(errors -> errors.getCode())
+        .map(Operation.Error.Errors::getCode)
         .collect(Collectors.toList());
   }
 }

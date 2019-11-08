@@ -54,7 +54,7 @@ import com.zylitics.wzgp.web.FingerprintBasedUpdater;
  * @author Praveen Tiwari
  *
  */
-public abstract class AbstractGridE2ETest {
+abstract class AbstractGridE2ETest {
   
   private static final Logger LOG = LoggerFactory.getLogger(AbstractGridE2ETest.class);
   
@@ -81,19 +81,19 @@ public abstract class AbstractGridE2ETest {
       "shots", "true"
     );
 
-  protected WebTestClient client;
+  WebTestClient client;
   
-  protected String apiVersion;
+  String apiVersion;
   
-  protected Environment env;
+  Environment env;
   
-  protected APICoreProperties apiCoreProps;
+  APICoreProperties apiCoreProps;
   
-  protected ComputeService computeSrv;
+  ComputeService computeSrv;
   
-  protected FingerprintBasedUpdater fingerprintBasedUpdater;
+  FingerprintBasedUpdater fingerprintBasedUpdater;
   
-  protected String stoppedInstanceCustomIdentifier;
+  String stoppedInstanceCustomIdentifier;
   
   // a test class is instantiated per test method, that's why we require to build some of the
   // members every time.
@@ -103,7 +103,7 @@ public abstract class AbstractGridE2ETest {
   /**
    * should be invoked after @BeforeEach of test class.
    */
-  protected void beforeEach() throws Exception {
+  void beforeEach() throws Exception {
     debug = Boolean.parseBoolean(env.getProperty("debug"));
     
     // verify that the image returned by this image family has all labels with defined search values
@@ -318,7 +318,7 @@ public abstract class AbstractGridE2ETest {
    *        like tests started from browser extension. These should use stopped instances to start
    *        them if there are available, else new instances will be created. This number should be
    *        larger or equal to totalStoppedInstances.
-   * @throws Exception
+   * @throws Exception If there are problems executing
    */
   private void gridParallelAcceessTest(int totalStoppedInstances, int totalNoRushInstances
       , int totalOnDemandInstances)
@@ -390,6 +390,7 @@ public abstract class AbstractGridE2ETest {
     LOG.info("All stopped grid(s) are deleted by on-demand-grid requests");
   }
   
+  @SuppressWarnings("SameParameterValue")
   private Callable<String> getAGrid(boolean noRush, String machineType, String userScreen
       , String userBrowser) {
     return () -> {
@@ -425,6 +426,7 @@ public abstract class AbstractGridE2ETest {
     };
   }
   
+  @SuppressWarnings("SameParameterValue")
   private ResponseGridCreate getStoppedInstance(String machineType
       , String userScreen, String userBrowser) throws Exception {
     String buildId = getNewBuildId();
@@ -452,7 +454,8 @@ public abstract class AbstractGridE2ETest {
     Instance grid = computeSrv.getInstance(generatedGridName, generatedGridZone, null);
     Items metadataItems = grid.getMetadata().getItems().stream()
         .filter(items -> items.getKey().equals(ResourceUtil.METADATA_CURRENT_TEST_SESSIONID))
-        .findFirst().get();
+        .findFirst().orElse(null);
+    assertNotNull(metadataItems);
     assertEquals(sessionId, metadataItems.getValue());
     
     // when an instance is stopped, shutdown script would reset some labels and delete
@@ -465,22 +468,20 @@ public abstract class AbstractGridE2ETest {
   }
   
   /**
-   * @param gridName
-   * @param gridZone
-   * @param noRush
+   * @param gridName name of grid to delete
+   * @param gridZone name of zone where grid resides
+   * @param noRush whether its a no-rush request
    * @return sessionId, sent to api to set as {@link ResourceUtil#METADATA_CURRENT_TEST_SESSIONID}
    */
   private String deleteGridWithApi(String gridName, String gridZone, boolean noRush) {
     String sessionId = "session-" + new Randoms().generateRandom(10);
     
     ResponseGridDelete response = client.delete()
-        .uri(uriBuilder -> {
-          return uriBuilder.path(API_BASE_PATH)
-              .pathSegment("{gridName}")
-              .queryParam("noRush", noRush)
-              .queryParam("sessionId", sessionId)
-              .build(apiVersion, gridZone, gridName);
-        })
+        .uri(uriBuilder -> uriBuilder.path(API_BASE_PATH)
+            .pathSegment("{gridName}")
+            .queryParam("noRush", noRush)
+            .queryParam("sessionId", sessionId)
+            .build(apiVersion, gridZone, gridName))
         .accept(MediaType.APPLICATION_JSON_UTF8)
         .exchange()
         .expectStatus().isOk()
@@ -512,6 +513,7 @@ public abstract class AbstractGridE2ETest {
       );
   }
   
+  @SuppressWarnings("SameParameterValue")
   private RequestGridCreate getCreateRequest(String buildId, String machineType
       , String serviceAccount, Map<String, String> customLabels, Map<String, String> metadata
       , boolean addSearchParams) {
@@ -583,8 +585,8 @@ public abstract class AbstractGridE2ETest {
     
     assertNotNull(response);
     assertEquals(ResponseStatus.SUCCESS.name(), response.getStatus());
-    assertTrue(!Strings.isNullOrEmpty(response.getGridName()));
-    assertTrue(!Strings.isNullOrEmpty(response.getGridInternalIP()));
+    assertFalse(Strings.isNullOrEmpty(response.getGridName()));
+    assertFalse(Strings.isNullOrEmpty(response.getGridInternalIP()));
     
     return response;
   }

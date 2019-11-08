@@ -1,7 +1,6 @@
 package com.zylitics.wzgp.http;
 
 import java.util.Map;
-import java.util.Objects;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
@@ -93,13 +92,8 @@ public class RequestGridCreate {
       }
       BuildProperties other = (BuildProperties) obj;
       if (buildId == null) {
-        if (other.buildId != null) {
-          return false;
-        }
-      } else if (!buildId.equals(other.buildId)) {
-        return false;
-      }
-      return true;
+        return other.buildId == null;
+      } else return buildId.equals(other.buildId);
     }
   }
 
@@ -165,9 +159,10 @@ public class RequestGridCreate {
       return customImageSearchParams;
     }
     
+    @SuppressWarnings("unused")
     public void setCustomImageSearchParams(Map<String, String> customImageSearchParams) {
       if (this.customImageSearchParams == null && customImageSearchParams != null) {
-        this.customImageSearchParams = ImmutableMap.copyOf(customImageSearchParams);;
+        this.customImageSearchParams = ImmutableMap.copyOf(customImageSearchParams);
       }
     }
 
@@ -232,10 +227,7 @@ public class RequestGridCreate {
       } else if (!os.equals(other.os)) {
         return false;
       }
-      if (shots != other.shots) {
-        return false;
-      }
-      return true;
+      return shots == other.shots;
     }
   }
   
@@ -387,13 +379,8 @@ public class RequestGridCreate {
         return false;
       }
       if (serviceAccount == null) {
-        if (other.serviceAccount != null) {
-          return false;
-        }
-      } else if (!serviceAccount.equals(other.serviceAccount)) {
-        return false;
-      }
-      return true;
+        return other.serviceAccount == null;
+      } else return serviceAccount.equals(other.serviceAccount);
     }
   }
 
@@ -441,12 +428,7 @@ public class RequestGridCreate {
       return false;
     }
     if (resourceSearchParams == null) {
-      if (other.resourceSearchParams != null) {
-        return false;
-      }
-    } else if (!resourceSearchParams.equals(other.resourceSearchParams)) {
-      return false;
-    }
-    return true;
+      return other.resourceSearchParams == null;
+    } else return resourceSearchParams.equals(other.resourceSearchParams);
   }
 }

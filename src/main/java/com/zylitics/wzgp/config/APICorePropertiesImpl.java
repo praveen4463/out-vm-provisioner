@@ -33,6 +33,7 @@ import com.zylitics.wzgp.resource.APICoreProperties;
 @Component
 @ConfigurationProperties(prefix="api-core")
 @Validated
+@SuppressWarnings("unused")
 public class APICorePropertiesImpl implements APICoreProperties {
   
   // How properties are matched and accessed by the container?
@@ -84,8 +85,9 @@ public class APICorePropertiesImpl implements APICoreProperties {
   public long getGceTimeoutMillis() {
     return gceTimeoutMillis;
   }
-
+  
   public void setGceTimeoutMillis(long gceTimeoutMillis) {
+    //noinspection ConstantConditions
     if (this.gceTimeoutMillis == 0L) {
       this.gceTimeoutMillis = gceTimeoutMillis;
     }
@@ -269,8 +271,9 @@ public class APICorePropertiesImpl implements APICoreProperties {
     public int getMaxStoppedInstanceInSearch() {
       return maxStoppedInstanceInSearch;
     }
-
+    
     public void setMaxStoppedInstanceInSearch(int maxStoppedInstanceInSearch) {
+      //noinspection ConstantConditions
       if (this.maxStoppedInstanceInSearch == 0) {
         this.maxStoppedInstanceInSearch = maxStoppedInstanceInSearch;
       }

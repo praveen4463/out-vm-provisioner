@@ -22,15 +22,12 @@ public class ResourceUtil {
   public static final String METADATA_CURRENT_TEST_SESSIONID = "current-test-sessionId";
 
   public static boolean isOperationSuccess(Operation operation) {
-    if (operation.getStatus().equals("DONE")
+    return operation.getStatus().equals("DONE")
         && (operation.getHttpErrorStatusCode() == null || (operation.getHttpErrorStatusCode() >= 200
             && operation.getHttpErrorStatusCode() < 300))
         && (operation.getError() == null || operation.getError().getErrors() == null
             || operation.getError().getErrors().size() == 0)
-        && !Strings.isNullOrEmpty(operation.getTargetLink())) {
-      return true;
-    }
-    return false;
+        && !Strings.isNullOrEmpty(operation.getTargetLink());
   }
   
   public static String nameFromUrl(String resourceAsUrl) {

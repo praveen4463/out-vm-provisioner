@@ -108,7 +108,7 @@ public class ComputeService {
    * be up-to-date with GCP (use get() to fetch up-to-date instance from GCP)
    * @param buildProp BuildProperty instance
    * @return {@link Operation} representing set-labels operation
-   * @throws Exception
+   * @throws Exception If there are problems setting.
    */
   public Operation setLabels(String instanceName
       , Map<String, String> labels
@@ -132,7 +132,7 @@ public class ComputeService {
    * to be up-to-date with GCP (use get() to fetch up-to-date instance from GCP)
    * @param buildProp BuildProperty instance
    * @return {@link Operation} representing set-metadata operation
-   * @throws Exception
+   * @throws Exception If there are problems setting.
    */
   public Operation setMetadata(String instanceName
       , Map<String, String> metadata

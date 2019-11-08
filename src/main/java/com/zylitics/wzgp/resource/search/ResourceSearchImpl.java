@@ -21,14 +21,13 @@ public class ResourceSearchImpl implements ResourceSearch {
   
   private static final FilterBuilder.ConditionalExpr AND = FilterBuilder.ConditionalExpr.AND;
   private static final FilterBuilder.ConditionalExpr OR = FilterBuilder.ConditionalExpr.OR;
-  private static final FilterBuilder.Operator EQ = FilterBuilder.Operator.EQ;
   
   private final APICoreProperties apiCoreProps;
   private final ComputeService computeServ;
   private final Random random;
 
   @Autowired
-  public ResourceSearchImpl(APICoreProperties apiCoreProps, ComputeService computeServ) {
+  ResourceSearchImpl(APICoreProperties apiCoreProps, ComputeService computeServ) {
     this.apiCoreProps = apiCoreProps;
     this.computeServ = computeServ;
     random = new Random();
@@ -66,10 +65,8 @@ public class ResourceSearchImpl implements ResourceSearch {
     }
     
     FilterBuilder filterBuilder = new FilterBuilder();
-    mergedSearchParams.entrySet().forEach(entry -> {
-      filterBuilder.addCondition(entry.getKey(), entry.getValue(), EQ)
-          .addConditionalExpr(AND);
-    });
+    mergedSearchParams.forEach((k, v) ->
+        filterBuilder.addCondition(k, v).addConditionalExpr(AND));
     return filterBuilder.build() + buildFromRequest(searchParam);
   }
   
@@ -80,52 +77,38 @@ public class ResourceSearchImpl implements ResourceSearch {
     if (searchParam.getCustomImageSearchParams() != null) {
       mergedSearchParams.putAll(searchParam.getCustomImageSearchParams());
     }
-    
+  
     FilterBuilder filterBuilder = new FilterBuilder();
-    mergedSearchParams.entrySet().forEach(entry -> {
-      filterBuilder.addCondition(entry.getKey(), entry.getValue(), EQ)
-          .addConditionalExpr(AND);
-    });
+    mergedSearchParams.forEach((k, v) ->
+        filterBuilder.addCondition(k, v).addConditionalExpr(AND));
     return filterBuilder.build() + buildFromRequest(searchParam);
   }
   
   private String buildFromRequest(ResourceSearchParam searchParam) {
     String browser = searchParam.getBrowser();
     return new FilterBuilder()
-        .addCondition("labels.os", searchParam.getOS(), EQ)
+        .addCondition("labels.os", searchParam.getOS())
         .addConditionalExpr(AND)
-        .addCondition("labels.browser1", browser, EQ)
+        .addCondition("labels.browser1", browser)
         .addConditionalExpr(OR)
-        .addCondition("labels.browser2", browser, EQ)
+        .addCondition("labels.browser2", browser)
         .addConditionalExpr(OR)
-        .addCondition("labels.browser3", browser, EQ)
+        .addCondition("labels.browser3", browser)
         .addConditionalExpr(OR)
-        .addCondition("labels.browser4", browser, EQ)
+        .addCondition("labels.browser4", browser)
         .addConditionalExpr(OR)
-        .addCondition("labels.browser5", browser, EQ)
+        .addCondition("labels.browser5", browser)
         .addConditionalExpr(OR)
-        .addCondition("labels.browser6", browser, EQ)
+        .addCondition("labels.browser6", browser)
         .addConditionalExpr(AND)
-        .addCondition("labels.shots", String.valueOf(searchParam.getShots()), EQ)
+        .addCondition("labels.shots", String.valueOf(searchParam.getShots()))
         .build();
   }
   
+  @SuppressWarnings("unused")
   private static final class FilterBuilder {
     
-    private static final String SEARCH_TMPL = "(L O R)";
-    
-    enum Operator {
-      EQ ("="),
-      NOT_EQ ("!="),
-      GTR (">"),
-      LES ("<");
-      
-      private final String symbol;
-      
-      private Operator(String symbol) {
-        this.symbol = symbol;
-      }
-    }
+    private static final String SEARCH_TMPL = "(L = R)";
     
     enum ConditionalExpr {
       AND,
@@ -134,19 +117,20 @@ public class ResourceSearchImpl implements ResourceSearch {
     
     private StringBuilder builder = new StringBuilder();
     
-    private FilterBuilder addCondition(String key, String value, Operator operator) {
+    private FilterBuilder addCondition(String key, String value) {
       Assert.hasText(key, "key can't be empty");
       Assert.notNull(value, "value can't be null");
       
       builder.append(SEARCH_TMPL
           .replace("L", key)
-          .replace("O", operator.symbol)
           .replace("R", "\"" + value + "\""));
       return this;
     }
     
     private FilterBuilder addConditionalExpr(ConditionalExpr conditionalExpr) {
-      builder.append(" " + conditionalExpr.name() + " ");
+      builder.append(" ")
+          .append(conditionalExpr.name())
+          .append(" ");
       return this;
     }
     

@@ -10,8 +10,6 @@
       <!-- If not given, logs appear under k8s container logs under type "container" -->
       <resourceType>global</resourceType>
       <flushLevel>INFO</flushLevel>
-      <!-- currently using a LoggingEventEnhancer causing none of logs being logged, try this in future stable version
-        or test it later to see why it's not working, LoggingEnhancer implementation work though-->
       <loggingEventEnhancer>com.zylitics.wzgp.logging.DefaultEnhancer</loggingEventEnhancer>
     </appender>
     <include resource="org/springframework/boot/logging/logback/defaults.xml" />
@@ -27,7 +25,7 @@
     <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
     <root level="INFO">
       <appender-ref ref="CONSOLE" />
-	</root>
+	  </root>
   </springProfile>
 
 </configuration>

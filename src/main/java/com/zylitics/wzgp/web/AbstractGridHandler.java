@@ -12,7 +12,7 @@ public abstract class AbstractGridHandler {
   protected final FingerprintBasedUpdater fingerprintBasedUpdater;
   protected final String zone;
   
-  public AbstractGridHandler(APICoreProperties apiCoreProps
+  AbstractGridHandler(APICoreProperties apiCoreProps
       , ResourceExecutor executor
       , ComputeService computeSrv
       , FingerprintBasedUpdater fingerprintBasedUpdater

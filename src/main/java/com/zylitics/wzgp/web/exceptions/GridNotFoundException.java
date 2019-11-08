@@ -13,6 +13,7 @@ public class GridNotFoundException extends RuntimeException {
     super(message);
   }
   
+  @SuppressWarnings("unused")
   public GridNotFoundException(String message, Throwable cause) {
     super(message, cause);
   }

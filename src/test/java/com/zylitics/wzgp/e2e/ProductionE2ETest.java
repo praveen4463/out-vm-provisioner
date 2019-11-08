@@ -1,9 +1,6 @@
 package com.zylitics.wzgp.e2e;
 
 import java.io.*;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Base64;
 
@@ -46,7 +43,8 @@ import com.zylitics.wzgp.web.FingerprintBasedUpdater;
 @SpringBootTest(webEnvironment=WebEnvironment.NONE)
 @ActiveProfiles("e2e") // !!! When you need to test something that is activate on production profile, change the profile
 // through system property and supply it in test, for example testing stackdriver logging.
-public class ProductionE2ETest extends AbstractGridE2ETest {
+@SuppressWarnings("unused")
+class ProductionE2ETest extends AbstractGridE2ETest {
   
   private static final String PRODUCTION_API_ROOT_URL_PROP = "zl.wzgp.productionRootURL";
   private static final String PRODUCTION_API_VERSION_PROP = "zl.wzgp.productionVersion";
@@ -77,7 +75,7 @@ public class ProductionE2ETest extends AbstractGridE2ETest {
     String authUserPwdEnvVar = "KUBE_INGRESS_USER_PROD_TEST_PWD";
     Preconditions.checkNotNull(System.getenv(authUserPwdEnvVar), authUserPwdEnvVar + " env variable is missing.");
     
-    String pwd = null;
+    String pwd;
     try (BufferedReader input = new BufferedReader(new FileReader(System.getenv(authUserPwdEnvVar)))) {
       pwd = input.readLine(); // just read the first line
     }

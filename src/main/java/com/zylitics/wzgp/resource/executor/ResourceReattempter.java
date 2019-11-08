@@ -6,6 +6,6 @@ package com.zylitics.wzgp.resource.executor;
  * @author Praveen Tiwari
  *
  */
-public interface ResourceReattempter {
+interface ResourceReattempter {
 
 }

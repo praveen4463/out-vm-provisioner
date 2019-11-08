@@ -8,11 +8,9 @@ import com.zylitics.wzgp.http.RequestGridCreate.ResourceSearchParams;
 import com.zylitics.wzgp.resource.util.ResourceUtil;
 
 public class DummyRequestGridCreate {
-
-  private RequestGridCreate requestGridCreate;
   
   public RequestGridCreate get() {
-    requestGridCreate = new RequestGridCreate();
+    RequestGridCreate requestGridCreate = new RequestGridCreate();
     BuildProperties buildProps = requestGridCreate.getBuildProperties();
     buildProps.setBuildId("build-007");
     

@@ -18,10 +18,12 @@ public class FlexibleOffsetClock extends Clock implements Serializable {
   private final Clock baseClock;
   private Duration offset;
   
+  @SuppressWarnings("unused")
   public FlexibleOffsetClock() {
     baseClock = Clock.systemDefaultZone();
   }
   
+  @SuppressWarnings("WeakerAccess")
   public FlexibleOffsetClock(Clock baseClock) {
     this.baseClock = baseClock;
   }

@@ -19,13 +19,13 @@ import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 import com.zylitics.wzgp.resource.search.ResourceSearch;
 import com.zylitics.wzgp.resource.util.ResourceUtil;
 
-public abstract class AbstractGridCreateHandler extends AbstractGridHandler {
+abstract class AbstractGridCreateHandler extends AbstractGridHandler {
 
-  protected final ResourceSearch search;
-  protected final RequestGridCreate request;
-  protected final BuildProperty buildProp;
+  final ResourceSearch search;
+  final RequestGridCreate request;
+  final BuildProperty buildProp;
   
-  public AbstractGridCreateHandler(APICoreProperties apiCoreProps
+  AbstractGridCreateHandler(APICoreProperties apiCoreProps
       , ResourceExecutor executor
       , ComputeService computeSrv
       , ResourceSearch search
@@ -40,7 +40,7 @@ public abstract class AbstractGridCreateHandler extends AbstractGridHandler {
     buildProp = request.getBuildProperties();
   }
   
-  protected ResponseGridCreate prepareResponse(Instance gridInstance, HttpStatus status) {
+  ResponseGridCreate prepareResponse(Instance gridInstance, HttpStatus status) {
     ResponseGridCreate response = new ResponseGridCreate();
     NetworkInterface netInterface = gridInstance.getNetworkInterfaces().get(0);
     response.setGridInternalIP(netInterface.getNetworkIP());
@@ -55,7 +55,7 @@ public abstract class AbstractGridCreateHandler extends AbstractGridHandler {
     return response;
   }
   
-  protected void lockGridInstance(Instance gridInstance) throws Exception {
+  void lockGridInstance(Instance gridInstance) throws Exception {
     // TODO: we may later apply a check that a lock-by-build label can be applied only if the value
     // is "none". If its anything else, the label must not be set. This means one can set its
     // buildId only when the current value is "none".
@@ -64,11 +64,11 @@ public abstract class AbstractGridCreateHandler extends AbstractGridHandler {
     executor.blockUntilComplete(operation, buildProp);
   }
   
-  protected boolean isRunning(Instance gridInstance) {
-    return gridInstance.getStatus().equals("RUNNING");
+  boolean isNotRunning(Instance gridInstance) {
+    return !gridInstance.getStatus().equals("RUNNING");
   }
   
-  protected String addToException() {
+  String addToException() {
     StringBuilder sb = new StringBuilder();
     if (buildProp != null) {
       sb.append(buildProp.toString());

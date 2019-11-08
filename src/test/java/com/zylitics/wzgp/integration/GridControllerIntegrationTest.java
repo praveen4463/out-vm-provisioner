@@ -1,5 +1,6 @@
 package com.zylitics.wzgp.integration;
 
+import static org.junit.Assert.assertFalse;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.reset;
@@ -66,7 +67,8 @@ import com.zylitics.wzgp.web.GridStartHandler;
 @SpringBootTest(webEnvironment=WebEnvironment.MOCK)
 @AutoConfigureMockMvc
 @ActiveProfiles("integration")
-public class GridControllerIntegrationTest {
+@SuppressWarnings("unused")
+class GridControllerIntegrationTest {
   
   private static final String ZONE = "us-central0-g";
   
@@ -228,8 +230,8 @@ public class GridControllerIntegrationTest {
     APICoreProperties.GridDefault gridDefault = apiCoreProps.getGridDefault();
     
     assertEquals("zl-default-vpc", gridDefault.getNetwork());
-    assertTrue(!Strings.isNullOrEmpty(gridDefault.getMachineType()));
-    assertTrue(!Strings.isNullOrEmpty(gridDefault.getServiceAccount()));
+    assertFalse(Strings.isNullOrEmpty(gridDefault.getMachineType()));
+    assertFalse(Strings.isNullOrEmpty(gridDefault.getServiceAccount()));
     assertTrue(gridDefault.getTags().size() > 0);
     assertTrue(gridDefault.getLabels().size() > 0);
     assertTrue(gridDefault.getMetadata().size() > 0);

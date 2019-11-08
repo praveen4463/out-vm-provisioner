@@ -91,18 +91,18 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
       
       Instance gridInstance = searchStoppedInstance();
       
-      String exisitngBuild = FOUND_INSTANCES.get(gridInstance.getId());
-      if (exisitngBuild != null) {
+      String existingBuild = FOUND_INSTANCES.get(gridInstance.getId());
+      if (existingBuild != null) {
         LOG.warn("The found stopped instance {} was reserved by another build {}, attempt #{} {}"
-            , gridInstance.getName(), exisitngBuild, attempts, addToException());
+            , gridInstance.getName(), existingBuild, attempts, addToException());
         continue;
       }
       
-      exisitngBuild = FOUND_INSTANCES.putIfAbsent(gridInstance.getId(), buildProp.getBuildId());
-      if (exisitngBuild != null) {
+      existingBuild = FOUND_INSTANCES.putIfAbsent(gridInstance.getId(), buildProp.getBuildId());
+      if (existingBuild != null) {
         LOG.warn("The found stopped instance {} was acquired by a concurrent request with build"
             + " {} as our put failed, attempt #{} {}"
-            , gridInstance.getName(), exisitngBuild, attempts, addToException());
+            , gridInstance.getName(), existingBuild, attempts, addToException());
         continue;
       }
       
@@ -222,7 +222,7 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
     }
     
     // verify the grid is running and there's nothing wrong
-    if (!isRunning(gridInstance)) {
+    if (isNotRunning(gridInstance)) {
       // shouldn't happen
       LOG.error(
           String.format("Grid instance found not running after start completed. grid instance %s %s"

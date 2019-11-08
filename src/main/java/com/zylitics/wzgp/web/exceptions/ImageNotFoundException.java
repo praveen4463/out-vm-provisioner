@@ -8,6 +8,7 @@ public class ImageNotFoundException extends RuntimeException {
     super(message);
   }
   
+  @SuppressWarnings("unused")
   public ImageNotFoundException(String message, Throwable cause) {
     super(message, cause);
   }

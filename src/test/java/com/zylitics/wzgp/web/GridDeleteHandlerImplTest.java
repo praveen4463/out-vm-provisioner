@@ -1,5 +1,6 @@
 package com.zylitics.wzgp.web;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
@@ -33,7 +34,7 @@ import com.zylitics.wzgp.test.util.ResourceTestUtil;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness=Strictness.LENIENT)
-public class GridDeleteHandlerImplTest {
+class GridDeleteHandlerImplTest {
 
   private static final String ZONE = "us-central0-g";
   
@@ -45,7 +46,6 @@ public class GridDeleteHandlerImplTest {
   @DisplayName("verify handler deletes grid when noRush option is given test")
   void handlerDeletesOnRush() throws Exception {
     String sessionId = "session-1";
-    boolean noRush = true;
     Instance instance = new Instance()
         .setName(GRID_NAME)
         .setStatus("RUNNING")
@@ -71,7 +71,7 @@ public class GridDeleteHandlerImplTest {
     
     GridDeleteHandler handler = getHandler(executor, computeSrv, fingerprintBasedUpdater);
     
-    handler.setNoRush(noRush);
+    handler.setNoRush(true);
     
     handler.setSessionId(sessionId);
     
@@ -169,6 +169,7 @@ public class GridDeleteHandlerImplTest {
     return operation;
   }
   
+  @SuppressWarnings("SameParameterValue")
   private void stubGridStop(ResourceExecutor executor, ComputeService computeSrv
       , boolean shouldSucceed) throws Exception {
     Operation stopOperation = new Operation().setStatus("RUNNING").setName("op-grid-stop");
@@ -178,6 +179,7 @@ public class GridDeleteHandlerImplTest {
         .thenReturn(getOperation(GRID_NAME, ZONE, shouldSucceed));
   }
   
+  @SuppressWarnings("SameParameterValue")
   private void stubGridDelete(ResourceExecutor executor, ComputeService computeSrv
       , boolean shouldSucceed) throws Exception {
     Operation deleteOperation = new Operation().setStatus("RUNNING").setName("op-grid-delete");
@@ -187,6 +189,7 @@ public class GridDeleteHandlerImplTest {
         .thenReturn(getOperation(GRID_NAME, ZONE, shouldSucceed));
   }
   
+  @SuppressWarnings("SameParameterValue")
   private Operation getOperation(String resourceName, String zone, boolean isSuccess) {
     return new Operation()
         .setHttpErrorStatusCode(
@@ -201,7 +204,7 @@ public class GridDeleteHandlerImplTest {
     assertEquals(HttpStatus.OK, response.getStatusCode());
     
     ResponseGridDelete responseBody = response.getBody();
-    
+    assertNotNull(responseBody);
     assertEquals(ZONE, responseBody.getZone());
     assertEquals(ResponseStatus.SUCCESS.name(), responseBody.getStatus());
     assertEquals(HttpStatus.OK.value(), responseBody.getHttpStatusCode());

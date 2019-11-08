@@ -47,7 +47,7 @@ import com.zylitics.wzgp.test.util.ResourceTestUtil;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness=Strictness.STRICT_STUBS)
-public class ComputeServiceTest {
+class ComputeServiceTest {
   
   private static final BuildProperty BUILD_PROP =
       new DummyRequestGridCreate().get().getBuildProperties();
@@ -61,7 +61,7 @@ public class ComputeServiceTest {
   private static final APICoreProperties API_CORE_PROPS = new DummyAPICoreProperties();
   
   @TestFactory
-  Stream<DynamicTest> computeServiceTest() throws Exception {
+  Stream<DynamicTest> computeServiceTest() {
     String project = API_CORE_PROPS.getProjectId();
     GridDefault gridDefault = API_CORE_PROPS.getGridDefault();
     
@@ -69,8 +69,8 @@ public class ComputeServiceTest {
           dynamicTest("verify instance start provides valid arguments to execute", () -> {
             ResourceExecutor executor = mock(ResourceExecutor.class);
             when(executor.executeWithReattempt(any(Instances.Start.class), eq(BUILD_PROP)))
-                .then(ivocation -> {
-                  Instances.Start start = ivocation.getArgument(0);
+                .then(invocation -> {
+                  Instances.Start start = invocation.getArgument(0);
                   if (!(start.getInstance().equals(INSTANCE_NAME) && start.getZone().equals(ZONE)
                       && start.getProject().equals(project))) {
                     throw new RuntimeException("invalid parameter given to Instances.Start.");
@@ -101,8 +101,8 @@ public class ComputeServiceTest {
           dynamicTest("verify instance delete provides valid arguments to execute", () -> {
             ResourceExecutor executor = mock(ResourceExecutor.class);
             when(executor.executeWithReattempt(any(Instances.Delete.class), eq(BUILD_PROP)))
-                .then(ivocation -> {
-                  Instances.Delete delete = ivocation.getArgument(0);
+                .then(invocation -> {
+                  Instances.Delete delete = invocation.getArgument(0);
                   if (!(delete.getInstance().equals(INSTANCE_NAME) && delete.getZone().equals(ZONE)
                       && delete.getProject().equals(project))) {
                     throw new RuntimeException("invalid parameter given to Instances.Delete.");
@@ -117,8 +117,8 @@ public class ComputeServiceTest {
           dynamicTest("verify instance get provides valid arguments to execute", () -> {
             ResourceExecutor executor = mock(ResourceExecutor.class);
             when(executor.executeWithReattempt(any(Instances.Get.class), eq(BUILD_PROP)))
-                .then(ivocation -> {
-                  Instances.Get get = ivocation.getArgument(0);
+                .then(invocation -> {
+                  Instances.Get get = invocation.getArgument(0);
                   if (!(get.getInstance().equals(INSTANCE_NAME) && get.getZone().equals(ZONE)
                       && get.getProject().equals(project))) {
                     throw new RuntimeException("invalid parameter given to Instances.Get.");
@@ -133,8 +133,8 @@ public class ComputeServiceTest {
           dynamicTest("verify set machine-type provides valid arguments to execute", () -> {
             ResourceExecutor executor = mock(ResourceExecutor.class);
             when(executor.executeWithReattempt(any(Instances.SetMachineType.class), eq(BUILD_PROP)))
-                .then(ivocation -> {
-                  Instances.SetMachineType setMachineType = ivocation.getArgument(0);
+                .then(invocation -> {
+                  Instances.SetMachineType setMachineType = invocation.getArgument(0);
                   InstancesSetMachineTypeRequest request =
                       ((InstancesSetMachineTypeRequest) setMachineType.getJsonContent());
                   String machine = nameFromUrl(request.getMachineType());
@@ -156,8 +156,8 @@ public class ComputeServiceTest {
           dynamicTest("verify set service-account provides valid arguments to execute", () -> {
             ResourceExecutor executor = mock(ResourceExecutor.class);
             when(executor.executeWithReattempt(any(Instances.SetServiceAccount.class)
-                , eq(BUILD_PROP))).then(ivocation -> {
-                  Instances.SetServiceAccount setSrvAcc = ivocation.getArgument(0);
+                , eq(BUILD_PROP))).then(invocation -> {
+                  Instances.SetServiceAccount setSrvAcc = invocation.getArgument(0);
                   InstancesSetServiceAccountRequest request =
                       ((InstancesSetServiceAccountRequest) setSrvAcc.getJsonContent());
                   String srvAccEmail = request.getEmail();
@@ -180,8 +180,8 @@ public class ComputeServiceTest {
             ResourceExecutor executor = mock(ResourceExecutor.class);
             String currentLabelFingerprint = "Lmgff445ddj455hdjff";
             when(executor.executeWithReattempt(any(Instances.SetLabels.class)
-                , eq(BUILD_PROP))).then(ivocation -> {
-                  Instances.SetLabels setLabels = ivocation.getArgument(0);
+                , eq(BUILD_PROP))).then(invocation -> {
+                  Instances.SetLabels setLabels = invocation.getArgument(0);
                   InstancesSetLabelsRequest request =
                       ((InstancesSetLabelsRequest) setLabels.getJsonContent());
                   Map<String, String> labels = request.getLabels();
@@ -205,8 +205,8 @@ public class ComputeServiceTest {
             ResourceExecutor executor = mock(ResourceExecutor.class);
             String currentFingerprint = "Lmgff445ddj455hdjff";
             when(executor.executeWithReattempt(any(Instances.SetMetadata.class), eq(BUILD_PROP)))
-                .then(ivocation -> {
-                  Instances.SetMetadata setMetadata = ivocation.getArgument(0);
+                .then(invocation -> {
+                  Instances.SetMetadata setMetadata = invocation.getArgument(0);
                   Metadata metadata = ((Metadata) setMetadata.getJsonContent());
                   if (!(setMetadata.getInstance().equals(INSTANCE_NAME) 
                       && setMetadata.getZone().equals(ZONE)
@@ -228,8 +228,8 @@ public class ComputeServiceTest {
             String family = "win2008-base";
             ResourceExecutor executor = mock(ResourceExecutor.class);
             when(executor.executeWithReattempt(any(Images.GetFromFamily.class), eq(BUILD_PROP)))
-                .then(ivocation -> {
-                  Images.GetFromFamily getFromFamily = ivocation.getArgument(0);
+                .then(invocation -> {
+                  Images.GetFromFamily getFromFamily = invocation.getArgument(0);
                   if (!(getFromFamily.getProject().equals(project)
                       && getFromFamily.getFamily().equals(family))) {
                     throw new RuntimeException("invalid parameter given to Images.GetFromFamily.");
@@ -246,8 +246,8 @@ public class ComputeServiceTest {
             long maxResult = 1;
             ResourceExecutor executor = mock(ResourceExecutor.class);
             when(executor.executeWithReattempt(any(Images.List.class), eq(BUILD_PROP)))
-                .then(ivocation -> {
-                  Images.List list = ivocation.getArgument(0);
+                .then(invocation -> {
+                  Images.List list = invocation.getArgument(0);
                   if (!(list.getProject().equals(project)
                       && list.getFilter().equals(filter)
                       && list.getMaxResults().equals(maxResult))) {
@@ -265,8 +265,8 @@ public class ComputeServiceTest {
             long maxResult = 1;
             ResourceExecutor executor = mock(ResourceExecutor.class);
             when(executor.executeWithReattempt(any(Instances.List.class), eq(BUILD_PROP)))
-                .then(ivocation -> {
-                  Instances.List list = ivocation.getArgument(0);
+                .then(invocation -> {
+                  Instances.List list = invocation.getArgument(0);
                   if (!(list.getProject().equals(project)
                       && list.getZone().equals(ZONE)
                       && list.getFilter().equals(filter)
@@ -285,8 +285,8 @@ public class ComputeServiceTest {
             String diskName = "disk-1";
             ResourceExecutor executor = mock(ResourceExecutor.class);
             when(executor.executeWithReattempt(any(Disks.Get.class), eq(BUILD_PROP)))
-                .then(ivocation -> {
-                  Disks.Get getDisk = ivocation.getArgument(0);
+                .then(invocation -> {
+                  Disks.Get getDisk = invocation.getArgument(0);
                   if (!(getDisk.getProject().equals(project)
                       && getDisk.getZone().equals(ZONE)
                       && getDisk.getDisk().equals(diskName))) {
@@ -301,6 +301,7 @@ public class ComputeServiceTest {
         );
   }
   
+  @SuppressWarnings("SameParameterValue")
   private Operation getOperation(String resourceName) {
     return new Operation().setTargetLink(ResourceTestUtil.getOperationTargetLink(resourceName
         , ZONE));

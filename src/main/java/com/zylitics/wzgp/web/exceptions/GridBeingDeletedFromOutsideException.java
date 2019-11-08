@@ -8,10 +8,12 @@ public class GridBeingDeletedFromOutsideException extends RuntimeException {
     super();
   }
   
+  @SuppressWarnings("unused")
   public GridBeingDeletedFromOutsideException(String message) {
     super(message);
   }
   
+  @SuppressWarnings("unused")
   public GridBeingDeletedFromOutsideException(String message, Throwable cause) {
     super(message, cause);
   }

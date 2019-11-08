@@ -60,7 +60,7 @@ import com.zylitics.wzgp.test.util.ResourceTestUtil;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness=Strictness.STRICT_STUBS)
-public class ResourceExecutorImplTest {
+class ResourceExecutorImplTest {
 
   private static final BuildProperty BUILD_PROP =
       new DummyRequestGridCreate().get().getBuildProperties();
@@ -379,6 +379,7 @@ public class ResourceExecutorImplTest {
         .outerInstance(MOCK_INSTANCES));
   }
   
+  @SuppressWarnings("SameParameterValue")
   private Instances.Get getMockGetInstance(String zone, String instanceName) {
     return mock(Instances.Get.class, withSettings()
         .useConstructor(API_CORE_PROPS.getProjectId(), zone, instanceName)

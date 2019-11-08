@@ -25,7 +25,7 @@ import com.zylitics.wzgp.web.exceptions.GridStartHandlerFailureException;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness=Strictness.STRICT_STUBS)
-public class GridControllerTest {
+class GridControllerTest {
   
   private static final String ZONE = "us-central0-g";
   
@@ -67,7 +67,6 @@ public class GridControllerTest {
   @Test
   @DisplayName("verify grid creates with no-rush given")
   void gridCreatesWithNoRush() throws Exception {
-    boolean noRush = true;
     GridGenerateHandler generateHandler = mock(GridGenerateHandler.class);
     RequestGridCreate request = mock(RequestGridCreate.class);
     
@@ -76,7 +75,7 @@ public class GridControllerTest {
     
     GridController controller = getGridController(generateHandlerFactory);
     
-    controller.create(request, ZONE, noRush, null);
+    controller.create(request, ZONE, true, null);
     
     verify(generateHandler, never()).setSourceImageFamily(anyString());
     
@@ -140,7 +139,6 @@ public class GridControllerTest {
   @DisplayName("verify grid delete handler invokes")
   void gridDeleteHandlerInvoke() throws Exception {
     String sessionId = "session-1";
-    boolean noRush = false;
     GridDeleteHandler deleteHandler = mock(GridDeleteHandler.class);
     
     GridDeleteHandler.Factory deleteHandlerFactory =
@@ -148,11 +146,11 @@ public class GridControllerTest {
     
     GridController controller = getGridController(deleteHandlerFactory);
     
-    controller.delete(ZONE, GRID_NAME, noRush, sessionId);
+    controller.delete(ZONE, GRID_NAME, false, sessionId);
     
     verify(deleteHandler).setSessionId(sessionId);
     
-    verify(deleteHandler).setNoRush(noRush);
+    verify(deleteHandler).setNoRush(false);
     
     verify(deleteHandler).handle();  // its ok to return nothing from controller's create, we've
     //already tested GridDeleteHandlerImpl separately to make sure the response is correct.

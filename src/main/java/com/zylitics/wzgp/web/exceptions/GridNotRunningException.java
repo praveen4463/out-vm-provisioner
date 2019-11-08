@@ -20,6 +20,7 @@ public class GridNotRunningException extends RuntimeException {
     super(message);
   }
   
+  @SuppressWarnings("unused")
   public GridNotRunningException(String message, Throwable cause) {
     super(message, cause);
   }

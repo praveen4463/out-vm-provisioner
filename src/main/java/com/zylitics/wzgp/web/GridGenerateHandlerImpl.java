@@ -120,7 +120,7 @@ public class GridGenerateHandlerImpl extends AbstractGridCreateHandler
     // label buildId to the created grid instance
     lockGridInstance(gridInstance);
     // verify the grid is running and there's nothing wrong
-    if (!isRunning(gridInstance)) {
+    if (isNotRunning(gridInstance)) {
       // shouldn't happen
       throw new GridNotRunningException(
           String.format("Grid instance found not running even after the operation"

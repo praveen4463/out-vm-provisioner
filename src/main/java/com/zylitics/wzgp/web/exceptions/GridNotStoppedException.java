@@ -8,6 +8,7 @@ public class GridNotStoppedException extends RuntimeException {
     super(message);
   }
   
+  @SuppressWarnings("unused")
   public GridNotStoppedException(String message, Throwable cause) {
     super(message, cause);
   }

@@ -48,7 +48,7 @@ public class FingerprintBasedUpdater {
    * @param labels Only labels that needs to be added/updated
    * @param buildProp Optional {@link BuildProperty} object
    * @return an {@link Operation} of the update process
-   * @throws Exception
+   * @throws Exception If there is a problem updating
    */
   public Operation updateLabels(Instance instance, Map<String, String> labels
       , @Nullable BuildProperty buildProp) throws Exception {
@@ -65,10 +65,8 @@ public class FingerprintBasedUpdater {
     }
     mergedLabels.putAll(labels);
     
-    Operation operation = computeSrv.setLabels(instance.getName(), mergedLabels, zoneName
+    return computeSrv.setLabels(instance.getName(), mergedLabels, zoneName
         , instance.getLabelFingerprint(), buildProp);
-    
-    return operation;
   }
   
   /**
@@ -79,7 +77,7 @@ public class FingerprintBasedUpdater {
    * @param metadata Only metadata that needs to be added/updated
    * @param buildProp Optional {@link BuildProperty} object
    * @return an {@link Operation} of the update process
-   * @throws Exception
+   * @throws Exception If there is a problem updating
    */
   public Operation updateMetadata(Instance instance, Map<String, String> metadata
       , @Nullable BuildProperty buildProp) throws Exception {
@@ -97,10 +95,8 @@ public class FingerprintBasedUpdater {
     }
     mergedMetadata.putAll(metadata);
     
-    Operation operation = computeSrv.setMetadata(instance.getName(), mergedMetadata, zoneName
+    return computeSrv.setMetadata(instance.getName(), mergedMetadata, zoneName
         , gcpMetadata.getFingerprint(), buildProp);
-    
-    return operation;
   }
   
   public Operation deleteAllMetadata(Instance instance, @Nullable BuildProperty buildProp)
@@ -113,9 +109,7 @@ public class FingerprintBasedUpdater {
     
     Map<String, String> emptyMetadata = ImmutableMap.of();
     
-    Operation operation = computeSrv.setMetadata(instance.getName(), emptyMetadata, zoneName
+    return computeSrv.setMetadata(instance.getName(), emptyMetadata, zoneName
         , gcpMetadata.getFingerprint(), buildProp);
-    
-    return operation;
   }
 }

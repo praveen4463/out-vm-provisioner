@@ -69,8 +69,7 @@ public class GridGenerator {
     // first try creating with the zone given by requester, and re-attempt on random zones if
     // this fails.
     Compute.Instances.Insert insertInstance = buildNewGrid(zone);
-    return executor.executeWithZonalReattempt(insertInstance
-        , randomZone -> buildNewGrid(randomZone), buildProp);
+    return executor.executeWithZonalReattempt(insertInstance, this::buildNewGrid, buildProp);
   }
   
   private Compute.Instances.Insert buildNewGrid(String gridZone) {
