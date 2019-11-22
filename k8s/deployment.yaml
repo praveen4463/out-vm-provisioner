@@ -1,12 +1,13 @@
 # Before running:
-    # 1. create secret for user 'prod-test' by using reference use reference https://kukubernetes.github.io/ingress-nginx/examples/auth/basic/
-         # The secret should be named (could be any) 'prod-test-basic-auth'.
-         # The password that we choose/generate for the user can be generated using utilities like openssl, should be
-         # atleast 15 chars long, and be written in file at ~/.zl-default-k8s-cluster/secrets/prod-test-basic-auth/pwd
-         # pointed by env KUBE_INGRESS_USER_PROD_TEST_PWD. This password will be read by applications authenticating
-         # to the ingress (using authentication header's username:password value).
-         # So, first generated a password, save it to the specified file, set the env to point there. Use htpasswd, use
-         # the username and this password to create a 'auth' file. Once all done, delete 'auth' file.
+    # 1. create secret for user 'prod-test' by using reference use reference,
+         # https://kubernetes.github.io/ingress-nginx/examples/auth/basic/
+         # The secret should be named 'zl-wzgp-prod-test-auth'. The password will be stored in cloud
+         # storage (same name as secret name) after encrypting using cloud kms.
+         # Applications will download and decrypt the secret for
+         # authenticating to the ingress (using authentication header's username:password value).
+         # So, first generated a rand password, copy it somewhere and use htpasswd to
+         # create a 'auth' file. Once all done, delete 'auth' file, encrypt password
+         # before putting into bucket.
 
 # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#deployment-v1-apps
 # !! Take care before an update is sent, read here how updates work
@@ -25,8 +26,9 @@ spec:
   replicas: 1
   revisionHistoryLimit: 1
   selector:
-    # Only pods matching this set of labels will be selected for this deployment. This helps during update. If no pods
-    # are found matching, they're created, otherwise they're deleted and new created.
+    # Only pods matching this set of labels will be selected for this deployment. This helps during
+    # update. If no pods are found matching, they're created, otherwise they're deleted and new
+    # created.
     matchLabels:
       app.kubernetes.io/name: *APP
   template:
@@ -55,20 +57,22 @@ spec:
           ports:
             - name: &CONTAINER_PORT container-port
               containerPort: 8080
-          # TODO: test whether probes are working correctly within nginx-ingress, also see if we require targeting
-          # service rather than pods from ingress https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#service-upstream
+          # TODO: test whether probes are working correctly within nginx-ingress, also see if we
+          # require targeting
+          # service rather than pods from ingress
+          # https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#service-upstream
           livenessProbe:
             httpGet:
               path: &HEALTH /actuator/health
               port: *CONTAINER_PORT
-            # once we can use startupProbe, lower initialDelay together with period and threshold to something like
-            # 3, 3, 3 because liveness won't start until startup is finished, for now we need to stop running it
-            # before app is started.
+            # once we can use startupProbe, lower initialDelay together with period and threshold to
+            # something like 3, 3, 3 because liveness won't start until startup is finished, for now
+            # we need to stop running it before app is started.
             initialDelaySeconds: 30
             periodSeconds: 5
             failureThreshold: 5
-          # currently we're ok with the default diskspace implementation of health endpoint as it works only after the
-          # app is started, we can put more precise logic later if required.
+          # currently we're ok with the default diskspace implementation of health endpoint as it
+          # works only after the app is started, we can put more precise logic later if required.
           readinessProbe:
             httpGet:
               path: *HEALTH
@@ -95,13 +99,14 @@ spec:
   selector:
     app.kubernetes.io/name: zl-wzgp
 ---
-# This is an ingress resource, we can create a separate ingress resources that target the same ingress controller
-# instance. The annotations you provide here applies to the set of rules mentioned for this ingress resource.
+# This is an ingress resource, we can create a separate ingress resources that target the same
+# ingress controller instance. The annotations you provide here applies to the set of rules
+# mentioned for this ingress resource.
 # https://kubernetes.io/docs/concepts/services-networking/ingress/#the-ingress-resource
-# Multiple ingress resources makes sense when you want different annotations for different resources, for example a
-# web socket resource might require a higher timeout values than a normal http resource.
-# We've kept certificate separate from ingress resources, cert-manager won't look into our ingress resources to create
-# a certificate, thus we can mention several ingress resources.
+# Multiple ingress resources makes sense when you want different annotations for different
+# resources, for example a web socket resource might require a higher timeout values than a normal
+# http resource. We've kept certificate separate from ingress resources, cert-manager won't look
+# into our ingress resources to create a certificate, thus we can mention several ingress resources.
 apiVersion: extensions/v1beta1 # version of kubernetes ingress controller
 kind: Ingress
 metadata:
@@ -110,18 +115,21 @@ metadata:
     kubernetes.io/ingress.class: "nginx"
     # auth is applied only for outside access that's done by tests.
     nginx.ingress.kubernetes.io/auth-type: basic
-    nginx.ingress.kubernetes.io/auth-secret: prod-test-basic-auth
+    nginx.ingress.kubernetes.io/auth-secret: zl-wzgp-prod-test-auth
     nginx.ingress.kubernetes.io/auth-realm: 'Authentication Required - prod-test'
-    # following timeouts signifies, when nginx at node sends request to a pod, it expects a response within 'read'
-    # timeout, also it expects to send another request to same pod within 'send' timeout during a connection. if it
-    # won't hear from server or won't hear from client, connection will be closed.
+    # following timeouts signifies, when nginx at node sends request to a pod, it expects a response
+    # within 'read' timeout, also it expects to send another request to same pod within 'send'
+    # timeout during a connection. if it won't hear from server or won't hear from client,
+    # connection will be closed.
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
-    # TODO: remove this on production, allows http access. https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#server-side-https-enforcement-through-redirect
+    # TODO: remove this on production, allows http access.
+    # https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#server-side-https-enforcement-through-redirect
     # https://github.com/kubernetes/ingress-nginx/issues/1567
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
-  tls: # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#ingresstls-v1beta1-extensions
+  # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#ingresstls-v1beta1-extensions
+  tls:
     - secretName: zl-k8s-univ-cert
   rules:
     # we can add a default backend later on, that server requests that don't match any path.
@@ -132,7 +140,8 @@ spec:
             backend:
               serviceName: zl-wzgp-service
               servicePort: 80
-    # we'll keep this ingress host rule, whenever we'll push a test deployment, this will activate, otherwise a 503.
+    # we'll keep this ingress host rule, whenever we'll push a test deployment, this will activate,
+    # otherwise a 503.
     - host: wzgp-test.api.zylitics.io
       http:
         paths:

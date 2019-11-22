@@ -4,23 +4,24 @@ import java.util.Random;
 
 public class Randoms {
   
-  private final static String CHAR_SET = "0123456789abcdefghizklmnopqrstuvwxyz";
+  private final String charSet;
   
   private final Random random;
   
-  private Randoms(Random random) {
+  public Randoms(String charSet, Random random) {
+    this.charSet = charSet;
     this.random = random;
   }
   
-  public Randoms() {
-    this(new Random());
+  public Randoms(String charSet) {
+    this(charSet, new Random());
   }
   
   public String generateRandom(int length) {
     StringBuilder sb = new StringBuilder(length);
-    int charSetLength = CHAR_SET.length();
+    int charSetLength = charSet.length();
     for (int i = 0; i < length; i++) {
-      sb.append(CHAR_SET.charAt(random.nextInt(charSetLength)));
+      sb.append(charSet.charAt(random.nextInt(charSetLength)));
     }
     return sb.toString();
   }

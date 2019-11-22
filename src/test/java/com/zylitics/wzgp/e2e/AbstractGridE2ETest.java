@@ -58,6 +58,8 @@ abstract class AbstractGridE2ETest {
   
   private static final Logger LOG = LoggerFactory.getLogger(AbstractGridE2ETest.class);
   
+  private final static String RANDOM_CHAR_SET = "0123456789abcdefghizklmnopqrstuvwxyz";
+  
   private static final String API_BASE_PATH = "/{version}/zones/{zone}/grids";
   
   private static final String ZONE_PROP = "zl.wzgp.e2e.zone";
@@ -474,7 +476,7 @@ abstract class AbstractGridE2ETest {
    * @return sessionId, sent to api to set as {@link ResourceUtil#METADATA_CURRENT_TEST_SESSIONID}
    */
   private String deleteGridWithApi(String gridName, String gridZone, boolean noRush) {
-    String sessionId = "session-" + new Randoms().generateRandom(10);
+    String sessionId = "session-" + new Randoms(RANDOM_CHAR_SET).generateRandom(10);
     
     ResponseGridDelete response = client.delete()
         .uri(uriBuilder -> uriBuilder.path(API_BASE_PATH)
@@ -495,7 +497,7 @@ abstract class AbstractGridE2ETest {
   }
   
   private String getNewBuildId() {
-    return "build-" + new Randoms().generateRandom(10);
+    return "build-" + new Randoms(RANDOM_CHAR_SET).generateRandom(10);
   }
   
   // Contains all the metadata entries from application default and custom, if we increase any

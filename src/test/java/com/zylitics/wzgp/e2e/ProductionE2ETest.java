@@ -1,16 +1,14 @@
 package com.zylitics.wzgp.e2e;
 
-import java.io.*;
 import java.time.Duration;
-import java.util.Base64;
 
+import com.zylitics.wzgp.test.util.AuthUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.core.env.Environment;
-import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
@@ -41,20 +39,27 @@ import com.zylitics.wzgp.web.FingerprintBasedUpdater;
  */
 @Tag("production-e2e")
 @SpringBootTest(webEnvironment=WebEnvironment.NONE)
-@ActiveProfiles("e2e") // !!! When you need to test something that is activate on production profile, change the profile
+@ActiveProfiles("e2e")
+// !!! When you need to test something that is activate on production profile, change the profile
 // through system property and supply it in test, for example testing stackdriver logging.
 @SuppressWarnings("unused")
 class ProductionE2ETest extends AbstractGridE2ETest {
   
   private static final String PRODUCTION_API_ROOT_URL_PROP = "zl.wzgp.productionRootURL";
+  
   private static final String PRODUCTION_API_VERSION_PROP = "zl.wzgp.productionVersion";
   
   private static final String PRODUCTION_API_ROOT_URL =
      Preconditions.checkNotNull(System.getProperty(PRODUCTION_API_ROOT_URL_PROP)
          , PRODUCTION_API_ROOT_URL_PROP + " system property is missing");
+  
   private static final String PRODUCTION_API_VERSION =
       Preconditions.checkNotNull(System.getProperty(PRODUCTION_API_VERSION_PROP)
           , PRODUCTION_API_VERSION_PROP + " system property is missing");
+  
+  private static final String WZGP_AUTH_USER = "prod-test";
+  
+  private static final String WZGP_AUTH_SECRET_CLOUD_FILE = "zl-wzgp-prod-test-auth.encrypt";
   
   @Autowired
   private Environment env;
@@ -70,18 +75,15 @@ class ProductionE2ETest extends AbstractGridE2ETest {
 
   @BeforeEach
   void setup() throws Exception {
-    // authentication for the production service
-    String authUser = "prod-test";
-    String authUserPwdEnvVar = "KUBE_INGRESS_USER_PROD_TEST_PWD";
-    Preconditions.checkNotNull(System.getenv(authUserPwdEnvVar), authUserPwdEnvVar + " env variable is missing.");
+    String secret;
     
-    String pwd;
-    try (BufferedReader input = new BufferedReader(new FileReader(System.getenv(authUserPwdEnvVar)))) {
-      pwd = input.readLine(); // just read the first line
+    try (SecretsManager secretsManager = SecretsManager.Factory.getDefault().create()) {
+      secret = secretsManager.getSecretAsPlainText(WZGP_AUTH_SECRET_CLOUD_FILE);
     }
-    String encodedCred = Base64.getEncoder().encodeToString((authUser + ":" + pwd).getBytes());
+    
     client = WebTestClient.bindToServer().baseUrl(PRODUCTION_API_ROOT_URL)
-        .defaultHeader(HttpHeaders.AUTHORIZATION, "Basic " + encodedCred)
+        .defaultHeader(AuthUtil.AUTHORIZATION,
+            AuthUtil.getBasicAuthHeaderValue(WZGP_AUTH_USER, secret))
         .responseTimeout(Duration.ofMinutes(10)).build();
     apiVersion = PRODUCTION_API_VERSION;
     super.env = env;

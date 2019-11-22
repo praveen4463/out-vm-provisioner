@@ -64,6 +64,8 @@ class GridStartHandlerImplTest {
   
   private static final Logger LOG = LoggerFactory.getLogger(GridStartHandlerImplTest.class);
   
+  private final static String RANDOM_CHAR_SET = "0123456789abcdefghizklmnopqrstuvwxyz";
+  
   private static final String ZONE = "us-central0-g";
   
   private static final APICoreProperties API_CORE_PROPS = new DummyAPICoreProperties();
@@ -451,7 +453,7 @@ class GridStartHandlerImplTest {
   }
   
   private String getNewBuildId() {
-    return "build-" + new Randoms().generateRandom(10);
+    return "build-" + new Randoms(RANDOM_CHAR_SET).generateRandom(10);
   }
   
   @SuppressWarnings("unchecked")

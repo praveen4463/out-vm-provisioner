@@ -33,6 +33,8 @@ import com.zylitics.wzgp.util.Randoms;
 
 public class GridGenerator {
   
+  private final static String INSTANCE_NAME_CHAR_SET = "0123456789abcdefghizklmnopqrstuvwxyz";
+  
   private final Compute compute;
   private final APICoreProperties apiCoreProps; 
   private final ResourceExecutor executor;
@@ -57,7 +59,7 @@ public class GridGenerator {
     Assert.notNull(sourceImage, "'sourceImage' can't be null.");
     this.sourceImage = sourceImage;
     
-    String randomChars = new Randoms().generateRandom(10);
+    String randomChars = new Randoms(INSTANCE_NAME_CHAR_SET).generateRandom(10);
     instanceName = String.join("-", sourceImage.getFamily(), randomChars, "vm");
   }
   
