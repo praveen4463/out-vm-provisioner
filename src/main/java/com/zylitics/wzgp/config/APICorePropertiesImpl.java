@@ -47,7 +47,7 @@ public class APICorePropertiesImpl implements APICoreProperties {
   private String gceApiUrl;
   
   @Min(60000)
-  private long gceTimeoutMillis;
+  private Long gceTimeoutMillis;
   
   @NotEmpty
   private Set<String> gceZonalReattemptErrors;
@@ -57,7 +57,7 @@ public class APICorePropertiesImpl implements APICoreProperties {
   
   // Instantiating here so that a setter isn't required.
   @Valid
-  private GridDefaults gridDefaults = new GridDefaults();
+  private final GridDefaults gridDefaults = new GridDefaults();
   
   @Override
   public String getProjectId() {
@@ -87,8 +87,7 @@ public class APICorePropertiesImpl implements APICoreProperties {
   }
   
   public void setGceTimeoutMillis(long gceTimeoutMillis) {
-    //noinspection ConstantConditions
-    if (this.gceTimeoutMillis == 0L) {
+    if (this.gceTimeoutMillis == null) {
       this.gceTimeoutMillis = gceTimeoutMillis;
     }
   }
@@ -166,7 +165,7 @@ public class APICorePropertiesImpl implements APICoreProperties {
     
     @Min(1)
     @Max(500)
-    private int maxStoppedInstanceInSearch;
+    private Integer maxStoppedInstanceInSearch;
     
     @Override
     public String getMachineType() {
@@ -273,8 +272,7 @@ public class APICorePropertiesImpl implements APICoreProperties {
     }
     
     public void setMaxStoppedInstanceInSearch(int maxStoppedInstanceInSearch) {
-      //noinspection ConstantConditions
-      if (this.maxStoppedInstanceInSearch == 0) {
+      if (this.maxStoppedInstanceInSearch == null) {
         this.maxStoppedInstanceInSearch = maxStoppedInstanceInSearch;
       }
     }

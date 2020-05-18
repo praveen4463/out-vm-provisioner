@@ -293,7 +293,7 @@ abstract class AbstractGridE2ETest {
   @Test
   @DisplayName("verify no-rush and on-demand parallel requests can get a grid")
   void onDemandAndNewGridParallelRequestTest() throws Exception {
-    gridParallelAcceessTest(2, 2, 4);
+    gridParallelAccessTest(2, 2, 4);
   }
   
   // TODO: This test is disabled until we've full capacity in all zones. Currently we don't have
@@ -305,7 +305,7 @@ abstract class AbstractGridE2ETest {
   @Test
   @DisplayName("verify all on-demand parallel requests can get a stopped grid")
   void onDemandParallelRequestTest() throws Exception {
-    gridParallelAcceessTest(5, 0, 5);
+    gridParallelAccessTest(5, 0, 5);
   }
   
   /**
@@ -322,7 +322,7 @@ abstract class AbstractGridE2ETest {
    *        larger or equal to totalStoppedInstances.
    * @throws Exception If there are problems executing
    */
-  private void gridParallelAcceessTest(int totalStoppedInstances, int totalNoRushInstances
+  private void gridParallelAccessTest(int totalStoppedInstances, int totalNoRushInstances
       , int totalOnDemandInstances)
       throws Exception {
     assertTrue("totalOnDemandInstances should be larger or equal to totalStoppedInstances so that"

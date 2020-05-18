@@ -1,4 +1,9 @@
 Windows Zylitics Grid Provisioner (wzgp) is a Restful api at zylitics that can create windows grid servers at GCP.
+Note: The term 'Grid' is used extensively in this application because at the time of writing a Grid
+was supposed to be used in Zylitics, later on I decided to ditch the grid and put webdriver together
+with the application on same machine so that there is no need of a hub-node structure. This app will
+work in the same way it was provisioning a machine that will host zl-btbr, later we can refactor it
+and update the term 'Grid' to 'Runner'. For now, leaving it as is.
 
 There are three types of endpoints one can use:
 1. https://wzgp-test.api.zylitics.io: used exclusively for production testing of this api and is completely internal to

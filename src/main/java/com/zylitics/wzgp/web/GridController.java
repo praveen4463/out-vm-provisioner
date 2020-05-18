@@ -72,9 +72,8 @@ public class GridController {
   private final GridStartHandler.Factory gridStartHandlerFactory;
   private final GridDeleteHandler.Factory gridDeleteHandlerFactory;
   
-  // All these dependencies are singleton and that's why we'll provide these to all domain objects
-  // rather than letting them generate. Domain objects are created per request and don't need to
-  // worry about thread safety.
+  // All these dependencies are singleton and that's why we'll provide these to all objects
+  // rather than letting them generate.
   @Autowired
   GridController(Compute compute
       , APICoreProperties apiCoreProps

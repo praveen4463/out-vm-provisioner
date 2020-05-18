@@ -24,11 +24,7 @@ api-core:
     - us-west2-b
     - us-west2-c
   grid-defaults:
-    # we might require atleast 4 CPUs as there are lot of always-running threads for keeping grid
-    # healthy, for example shot capturing thread, shot save thread, websocket client thread,
-    # elasticsearch bulk processor thread, matcher thread at registry. The pricing would be $0.408/h
-    # We can initially try to run with 2 CPUs and see if that work before moving to 4.
-    machine-type: n1-standard-2
+    machine-type: n1-standard-4
     network: zl-default-vpc
     service-account: zl-selenium-grid@zl-win-nodes.iam.gserviceaccount.com
     tags: # these tags are applicable to generated grid for all purposes.

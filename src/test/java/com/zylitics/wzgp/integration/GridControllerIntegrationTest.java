@@ -1,15 +1,11 @@
 package com.zylitics.wzgp.integration;
 
 import static org.junit.Assert.assertFalse;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -151,12 +147,12 @@ class GridControllerIntegrationTest {
           post("/{version}/zones/{zone}/grids", env.getProperty(APP_VER_KEY), ZONE)
               .param("noRush", "true")
               .param("sourceImageFamily", sourceImageFamily)
-              .accept(MediaType.APPLICATION_JSON_UTF8)
-              .contentType(MediaType.APPLICATION_JSON_UTF8)
+              .accept(MediaType.APPLICATION_JSON)
+              .contentType(MediaType.APPLICATION_JSON)
               .content(createReq.write(requestSent).getJson().getBytes(StandardCharsets.UTF_8))
         )
         .andExpect(status().isCreated())
-        .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.gridName").value(GRID_NAME))
         .andExpect(jsonPath("$.zone").value(ZONE))
         .andExpect(jsonPath("$.status").value(ResponseStatus.SUCCESS.name()));
@@ -180,16 +176,16 @@ class GridControllerIntegrationTest {
           post("/{version}/zones/{zone}/grids", env.getProperty(APP_VER_KEY), ZONE)
               .param("noRush", "true")
               .param("sourceImageFamily", sourceImageFamily)
-              .accept(MediaType.APPLICATION_JSON_UTF8)
-              .contentType(MediaType.APPLICATION_JSON_UTF8)
+              .accept(MediaType.APPLICATION_JSON)
+              .contentType(MediaType.APPLICATION_JSON)
               .content(createReq.write(requestSent).getJson().getBytes(StandardCharsets.UTF_8))
         )
         .andExpect(status().isBadRequest())
-        .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.status").value(ResponseStatus.FAILURE.name()));
     
-    verifyZeroInteractions(GENERATE_HANDLER_FACTORY);
-    verifyZeroInteractions(GENERATE_HANDLER);
+    verifyNoInteractions(GENERATE_HANDLER_FACTORY);
+    verifyNoInteractions(GENERATE_HANDLER);
   }
   
   @Test
@@ -208,10 +204,10 @@ class GridControllerIntegrationTest {
               , GRID_NAME)
               .param("noRush", "true")
               .param("sessionId", sessionId)
-              .accept(MediaType.APPLICATION_JSON_UTF8)
+              .accept(MediaType.APPLICATION_JSON)
         )
         .andExpect(status().isOk())
-        .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(jsonPath("$.zone").value(ZONE))
         .andExpect(jsonPath("$.status").value(ResponseStatus.SUCCESS.name()));
     
