@@ -5,7 +5,7 @@ import static com.zylitics.wzgp.resource.util.ResourceUtil.nameFromUrl;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -250,12 +250,12 @@ class GridGeneratorTest {
     }
     
     @Override
-    public Boolean getPreemptible() {
+    public Boolean isPreemptible() {
       return PREEMPTIBLE;
     }
   
     @Override
-    public Boolean getCreateExternalIP() {
+    public Boolean isCreateExternalIP() {
       return CREATE_EXTERNAL_IP;
     }
   

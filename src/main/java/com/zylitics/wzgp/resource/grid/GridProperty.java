@@ -13,9 +13,9 @@ public interface GridProperty {
   
   String getServiceAccount();
   
-  Boolean getPreemptible();
+  Boolean isPreemptible();
   
-  Boolean getCreateExternalIP();
+  Boolean isCreateExternalIP();
   
   Map<String, String> getCustomLabels();
   

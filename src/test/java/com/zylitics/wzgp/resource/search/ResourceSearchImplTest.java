@@ -137,6 +137,6 @@ class ResourceSearchImplTest {
         " OR " +
         String.format("(labels.browser6 = \"%s\")", SEARCH_PARAMS.getBrowser()) +
         " AND " +
-        String.format("(labels.shots = \"%s\")", SEARCH_PARAMS.getShots());
+        String.format("(labels.shots = \"%s\")", SEARCH_PARAMS.isShots());
   }
 }

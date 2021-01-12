@@ -1,7 +1,6 @@
 package com.zylitics.wzgp.e2e;
 
-import static org.junit.Assert.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static com.zylitics.wzgp.resource.util.ResourceUtil.nameFromUrl;
 
 import java.util.ArrayList;
@@ -116,9 +115,9 @@ abstract class AbstractGridE2ETest {
     // only when the class is instantiated. 
     if (!imageLabelsVerified) {
       Image image = computeSrv.getImageFromFamily(SOURCE_IMAGE_FAMILY, null);
-      assertTrue("This image family " + SOURCE_IMAGE_FAMILY + " doesn't contain labels"
-          + " that match required search parameters"
-          , image.getLabels().entrySet().containsAll(FIXED_SEARCH_PARAMS.entrySet()));
+      assertTrue(image.getLabels().entrySet().containsAll(FIXED_SEARCH_PARAMS.entrySet()),
+          "This image family " + SOURCE_IMAGE_FAMILY + " doesn't contain labels"
+              + " that match required search parameters");
       imageLabelsVerified = true;
     }
   }
@@ -325,9 +324,9 @@ abstract class AbstractGridE2ETest {
   private void gridParallelAccessTest(int totalStoppedInstances, int totalNoRushInstances
       , int totalOnDemandInstances)
       throws Exception {
-    assertTrue("totalOnDemandInstances should be larger or equal to totalStoppedInstances so that"
-        + " we could verify all stopped instances were used by the test"
-        , totalOnDemandInstances >= totalStoppedInstances);
+    assertTrue(totalOnDemandInstances >= totalStoppedInstances,
+        "totalOnDemandInstances should be larger or equal to totalStoppedInstances so that"
+            + " we could verify all stopped instances were used by the test");
     
     LOG.info("Creating {} stopped grid(s)", totalStoppedInstances);
     

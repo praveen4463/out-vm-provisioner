@@ -88,8 +88,8 @@ public class GridGenerator {
     String network = gridDefault.getNetwork();
     String serviceAccountEmail =
         Optional.ofNullable(gridProp.getServiceAccount()).orElse(gridDefault.getServiceAccount());
-    boolean preemptible = gridProp.getPreemptible();
-    boolean createExternalIP = gridProp.getCreateExternalIP();
+    boolean preemptible = gridProp.isPreemptible();
+    boolean createExternalIP = gridProp.isCreateExternalIP();
     
     // ************************************************************************
     

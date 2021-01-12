@@ -101,7 +101,7 @@ public class ResourceSearchImpl implements ResourceSearch {
         .addConditionalExpr(OR)
         .addCondition("labels.browser6", browser)
         .addConditionalExpr(AND)
-        .addCondition("labels.shots", String.valueOf(searchParam.getShots()))
+        .addCondition("labels.shots", String.valueOf(searchParam.isShots()))
         .build();
   }
   

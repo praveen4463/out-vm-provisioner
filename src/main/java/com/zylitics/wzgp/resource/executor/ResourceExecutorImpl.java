@@ -83,7 +83,7 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
     try {
       V out = objToExecute.execute();
       if (out == null) {
-        LOG.error("Got null while inoking execute on {} {}" 
+        LOG.error("Got null while invoking execute on {} {}"
             , objToExecute.toString()
             , addToException(buildProp));
       }

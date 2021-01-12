@@ -27,12 +27,12 @@ import com.zylitics.wzgp.resource.search.ResourceSearchParam;
 public class RequestGridCreate {
   
   @Valid
-  private BuildProperties buildProperties = new BuildProperties();
+  private final BuildProperties buildProperties = new BuildProperties();
   
-  private ResourceSearchParams resourceSearchParams = new ResourceSearchParams();
+  private final ResourceSearchParams resourceSearchParams = new ResourceSearchParams();
   
   @Valid
-  private GridProperties gridProperties = new GridProperties();
+  private final GridProperties gridProperties = new GridProperties();
   
   public BuildProperties getBuildProperties() {
     return buildProperties;
@@ -133,8 +133,8 @@ public class RequestGridCreate {
     }
     
     @Override
-    public Boolean getShots() {
-      return shots == null ? false : shots;
+    public Boolean isShots() {
+      return shots != null && shots;
     }
     
     public void setShots(Boolean shots) {
@@ -271,8 +271,8 @@ public class RequestGridCreate {
     }
     
     @Override
-    public Boolean getPreemptible() {
-      return preemptible == null ? false : preemptible;
+    public Boolean isPreemptible() {
+      return preemptible != null && preemptible;
     }
     
     public void setPreemptible(Boolean preemptible) {
@@ -282,8 +282,8 @@ public class RequestGridCreate {
     }
   
     @Override
-    public Boolean getCreateExternalIP() {
-      return createExternalIP == null ? false : createExternalIP;
+    public Boolean isCreateExternalIP() {
+      return createExternalIP != null && createExternalIP;
     }
   
     public void setCreateExternalIP(Boolean createExternalIP) {
@@ -394,10 +394,9 @@ public class RequestGridCreate {
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + ((buildProperties == null) ? 0 : buildProperties.hashCode());
-    result = prime * result + ((gridProperties == null) ? 0 : gridProperties.hashCode());
-    result = prime * result
-        + ((resourceSearchParams == null) ? 0 : resourceSearchParams.hashCode());
+    result = prime * result + buildProperties.hashCode();
+    result = prime * result + gridProperties.hashCode();
+    result = prime * result + resourceSearchParams.hashCode();
     return result;
   }
 
@@ -413,22 +412,12 @@ public class RequestGridCreate {
       return false;
     }
     RequestGridCreate other = (RequestGridCreate) obj;
-    if (buildProperties == null) {
-      if (other.buildProperties != null) {
-        return false;
-      }
-    } else if (!buildProperties.equals(other.buildProperties)) {
+    if (!buildProperties.equals(other.buildProperties)) {
       return false;
     }
-    if (gridProperties == null) {
-      if (other.gridProperties != null) {
-        return false;
-      }
-    } else if (!gridProperties.equals(other.gridProperties)) {
+    if (!gridProperties.equals(other.gridProperties)) {
       return false;
     }
-    if (resourceSearchParams == null) {
-      return other.resourceSearchParams == null;
-    } else return resourceSearchParams.equals(other.resourceSearchParams);
+    return resourceSearchParams.equals(other.resourceSearchParams);
   }
 }
