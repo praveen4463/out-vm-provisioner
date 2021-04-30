@@ -6,35 +6,11 @@
   # 2. ingress-nginx https://kubernetes.github.io/ingress-nginx/deploy/
   # 3. cert-manager https://docs.cert-manager.io/en/latest/getting-started/install/kubernetes.html
 
-# https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/static/provider/cloud-generic.yaml
+# https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.45.0/deploy/static/provider/cloud/deploy.yaml
 # The same service that we've installed during the controller installation, to acquire a static ip
 # for controller. Check for any changes, or if there may be changes several times, probably just
 # patch service during installation and assign an IP.
 # https://github.com/kubernetes/ingress-nginx/tree/master/docs/examples/static-ip
-apiVersion: v1
-kind: Service
-metadata:
-  name: ingress-nginx
-  namespace: ingress-nginx
-  labels:
-    app.kubernetes.io/name: ingress-nginx
-    app.kubernetes.io/part-of: ingress-nginx
-spec:
-  externalTrafficPolicy: Local
-  type: LoadBalancer
-  # This IP should be a reserved IP address.
-  loadBalancerIP: 35.230.120.18
-  selector:
-    app.kubernetes.io/name: ingress-nginx
-    app.kubernetes.io/part-of: ingress-nginx
-  ports:
-    - name: http
-      port: 80
-      targetPort: http
-    - name: https
-      port: 443
-      targetPort: https
----
 apiVersion: v1
 data:
   keep-alive: "600"
@@ -45,7 +21,7 @@ metadata:
 ---
 # reference: https://docs.cert-manager.io/en/latest/tutorials/acme/quick-start/index.html
 # version from https://github.com/jetstack/cert-manager/releases
-apiVersion: cert-manager.io/v1alpha2
+apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
   name: letsencrypt-staging
@@ -68,7 +44,7 @@ spec:
 ---
 # https://docs.cert-manager.io/en/latest/tutorials/acme/quick-start/index.html
 # version from https://github.com/jetstack/cert-manager/releases
-apiVersion: cert-manager.io/v1alpha2
+apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
   name: letsencrypt-prod
@@ -83,10 +59,13 @@ spec:
           ingress:
             class: nginx
 ---
-apiVersion: cert-manager.io/v1alpha2
+apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: zl-k8s-univ-cert
+  annotations:
+    cert-manager.io/issue-temporary-certificate: "true"
+    acme.cert-manager.io/http01-edit-in-place: "true"
 spec:
   secretName: zl-k8s-univ-cert
   # we're giving a list of hosts that will have the same certificate that will be stored in
@@ -96,15 +75,7 @@ spec:
   dnsNames:
     - wzgp.api.zylitics.io
     - wzgp-test.api.zylitics.io
-    - app.zylitics.io
-  acme:
-    config:
-      - http01:
-          ingressClass: nginx
-        domains:
-          - wzgp.api.zylitics.io
-          - wzgp-test.api.zylitics.io
-          - app.zylitics.io
+    - front.api.zylitics.io
   issuerRef:
     # when you delete cluster and
     # create a new, cert-manager sends a new certificate req to letsencrypt, if the issuer is prod,
@@ -114,6 +85,6 @@ spec:
     # cert can be issued correctly and isn't a valid CA so you can't use https. While debugging, its
     #  better to access app under http. The limit is imposed per host.
     # https://letsencrypt.org/docs/rate-limits/
-    name: letsencrypt-staging
+    name: letsencrypt-prod
     kind: ClusterIssuer
 ---

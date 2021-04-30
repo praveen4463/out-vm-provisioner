@@ -9,22 +9,22 @@
          # create a 'auth' file. Once all done, delete 'auth' file, encrypt password
          # before putting into bucket.
 
-# https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#deployment-v1-apps
+# https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#deployment-v1-apps
 # !! Take care before an update is sent, read here how updates work
 #    https://kubernetes.io/docs/tasks/manage-kubernetes-objects/declarative-config/
+# Recommended labels: https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: zl-wgzp-deployment
   labels: &LABELS # will be assigned to deployment object
     app.kubernetes.io/name: &APP zl-wzgp
-    app.kubernetes.io/version: &VERSION 0.1.1
+    app.kubernetes.io/version: &VERSION 0.2.0
     environment: &ENVIRONMENT production
-# https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#deploymentspec-v1-apps
+# https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#deploymentspec-v1-apps
 spec:
-  # TODO: change it to at least 3 in production.
   replicas: 1
-  revisionHistoryLimit: 1
+  revisionHistoryLimit: 0
   selector:
     # Only pods matching this set of labels will be selected for this deployment. This helps during
     # update. If no pods are found matching, they're created, otherwise they're deleted and new
@@ -35,62 +35,60 @@ spec:
     metadata:
       # will be assigned to pods
       labels: *LABELS
-    # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#podspec-v1-core
+    # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#podspec-v1-core
     spec:
       # each pod contains two containers, the API and ESP proxy
       containers:
         - name: esp
           image: gcr.io/endpoints-release/endpoints-runtime:1
+          imagePullPolicy: Always
           # TODO: test this service endpoint by calling service within cluster.
           args: [
             "--http_port=4000",
             "--backend=127.0.0.1:8080",
-            "--service=wzgp.api.internal.zylitics.io",
+            "--service=wzgp.api.zylitics.io",
             "--rollout_strategy=managed",
           ]
           ports:
             - containerPort: 4000
         - name: *APP
-          image: us.gcr.io/zl-win-nodes/zl-wzgp:0.1.1
-          # TODO: remove this once going to production.
-          imagePullPolicy: Always
+          image: us.gcr.io/zl-infra-main/zl-wzgp:0.2.0
+          imagePullPolicy: IfNotPresent
           ports:
             - name: &CONTAINER_PORT container-port
               containerPort: 8080
           # TODO: test whether probes are working correctly within nginx-ingress, also see if we
-          # require targeting
-          # service rather than pods from ingress
-          # https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#service-upstream
+          #  require targeting
+          #  service rather than pods from ingress
+          #  https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#service-upstream
+          # Probes: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+          # https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes
           livenessProbe:
             httpGet:
               path: &HEALTH /actuator/health
               port: *CONTAINER_PORT
-            # once we can use startupProbe, lower initialDelay together with period and threshold to
-            # something like 3, 3, 3 because liveness won't start until startup is finished, for now
-            # we need to stop running it before app is started.
-            initialDelaySeconds: 30
             periodSeconds: 5
-            failureThreshold: 5
+            failureThreshold: 1
           # currently we're ok with the default diskspace implementation of health endpoint as it
           # works only after the app is started, we can put more precise logic later if required.
-          readinessProbe:
+          startupProbe:
             httpGet:
               path: *HEALTH
               port: *CONTAINER_PORT
-            initialDelaySeconds: 3
             periodSeconds: 3
-            failureThreshold: 20
+            failureThreshold: 10
+          # For now we don't need a readiness probe, understand when we may require it
           # resources: TODO: mention this once you know how much resources the app usually consume
-          #   https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
-          #   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#resourcerequirements-v1-core
+          #   https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+          #   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#resourcerequirements-v1-core
 ---
-# https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#service-v1-core
+# https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#service-v1-core
 apiVersion: v1
 kind: Service
 metadata:
   name: zl-wzgp-service
 spec:
-  clusterIP: 10.29.4.4
+  clusterIP: 10.29.4.4 # this is setup in cloud dns internal
   ports:
     - protocol: TCP
       port: 80
@@ -107,7 +105,7 @@ spec:
 # resources, for example a web socket resource might require a higher timeout values than a normal
 # http resource. We've kept certificate separate from ingress resources, cert-manager won't look
 # into our ingress resources to create a certificate, thus we can mention several ingress resources.
-apiVersion: extensions/v1beta1 # version of kubernetes ingress controller
+apiVersion: networking.k8s.io/v1 # version of kubernetes ingress controller
 kind: Ingress
 metadata:
   name: wzgp-ingress
@@ -123,30 +121,36 @@ metadata:
     # connection will be closed.
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
-    # TODO: remove this on production, allows http access.
+    # !! don't use in production, allows http access.
     # https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#server-side-https-enforcement-through-redirect
     # https://github.com/kubernetes/ingress-nginx/issues/1567
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    # nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
-  # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#ingresstls-v1beta1-extensions
+  # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#ingresstls-v1beta1-extensions
   tls:
     - secretName: zl-k8s-univ-cert
   rules:
-    # we can add a default backend later on, that server requests that don't match any path.
+    # we can add a default backend later on, that serve requests that don't match any path.
     - host: wzgp.api.zylitics.io
       http:
         paths:
           - path: /
+            pathType: Prefix
             backend:
-              serviceName: zl-wzgp-service
-              servicePort: 80
+              service:
+                name: zl-wzgp-service
+                port:
+                  number: 80
     # we'll keep this ingress host rule, whenever we'll push a test deployment, this will activate,
     # otherwise a 503.
     - host: wzgp-test.api.zylitics.io
       http:
         paths:
           - path: /
+            pathType: Prefix
             backend:
-              serviceName: zl-wzgp-prod-test-service
-              servicePort: 80
+              service:
+                name: zl-wzgp-prod-test-service
+                port:
+                  number: 80
 ---

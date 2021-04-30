@@ -2,6 +2,7 @@ package com.zylitics.wzgp;
 
 import java.util.Collections;
 
+import com.zylitics.wzgp.web.*;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -13,12 +14,6 @@ import com.google.api.services.compute.Compute;
 import com.google.api.services.compute.ComputeScopes;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.zylitics.wzgp.web.GridDeleteHandler;
-import com.zylitics.wzgp.web.GridDeleteHandlerImpl;
-import com.zylitics.wzgp.web.GridGenerateHandler;
-import com.zylitics.wzgp.web.GridGenerateHandlerImpl;
-import com.zylitics.wzgp.web.GridStartHandler;
-import com.zylitics.wzgp.web.GridStartHandlerImpl;
 
 @SpringBootApplication
 public class Launcher {
@@ -47,6 +42,12 @@ public class Launcher {
   @Profile({"production", "e2e"})
   public GridGenerateHandler.Factory gridGenerateHandlerFactory() {
     return new GridGenerateHandlerImpl.Factory();
+  }
+  
+  @Bean
+  @Profile({"production", "e2e"})
+  public GridGetRunningHandler.Factory gridGetRunningHandlerFactory() {
+    return new GridGetRunningHandlerImpl.Factory();
   }
   
   @Bean

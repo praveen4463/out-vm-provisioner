@@ -1,6 +1,7 @@
 package com.zylitics.wzgp.resource.grid;
 
 import java.util.Map;
+import java.util.Set;
 
 /**
  * All implementations must be strictly immutable for all accesses except spring container's.
@@ -20,4 +21,6 @@ public interface GridProperty {
   Map<String, String> getCustomLabels();
   
   Map<String, String> getMetadata();
+  
+  Set<String> getNetworkTags();
 }

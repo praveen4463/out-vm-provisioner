@@ -28,7 +28,11 @@ public class GridDeleteHandlerImpl extends AbstractGridHandler implements GridDe
   private final String gridName;
   
   private @Nullable String sessionId;
+  
   private boolean noRush;
+  
+  private boolean requireRunningVM;
+  
   private Instance gridInstance;
   
   private GridDeleteHandlerImpl(APICoreProperties apiCoreProps
@@ -65,6 +69,13 @@ public class GridDeleteHandlerImpl extends AbstractGridHandler implements GridDe
     if (noRush || labelIsDeletingTrue) {
       return delete(pendingOperations, labelIsDeletingTrue);
     }
+  
+    // if we're not deleting, first unlock this instance, don't wait for completion.
+    unlockGridInstance(gridInstance, false, null);
+    
+    if (requireRunningVM) {
+      return sendResponse();
+    }
     
     return stop(pendingOperations);
   }
@@ -79,6 +90,11 @@ public class GridDeleteHandlerImpl extends AbstractGridHandler implements GridDe
   @Override
   public void setNoRush(boolean noRush) {
     this.noRush = noRush;
+  }
+  
+  @Override
+  public void setRequireRunningVM(boolean requireRunningVM) {
+    this.requireRunningVM = requireRunningVM;
   }
   
   private ResponseEntity<ResponseGridDelete> delete(
@@ -99,11 +115,8 @@ public class GridDeleteHandlerImpl extends AbstractGridHandler implements GridDe
               , gridName
               , operation.toPrettyString()));
     }
-    
-    ResponseGridDelete response = prepareResponse();
-    return ResponseEntity
-        .status(response.getHttpStatusCode())
-        .body(response);
+  
+    return sendResponse();
   }
   
   private ResponseEntity<ResponseGridDelete> stop(
@@ -118,16 +131,20 @@ public class GridDeleteHandlerImpl extends AbstractGridHandler implements GridDe
               , operation.toPrettyString()));
     }
     
-    ResponseGridDelete response = prepareResponse();
-    return ResponseEntity
-        .status(response.getHttpStatusCode())
-        .body(response);
+    return sendResponse();
   }
   
   private void waitForPendingOperations(List<Operation> pendingOperations) throws Exception {
     for (Operation operation : pendingOperations) {
       executor.blockUntilComplete(operation, null);
     }
+  }
+  
+  private ResponseEntity<ResponseGridDelete> sendResponse() {
+    ResponseGridDelete response = prepareResponse();
+    return ResponseEntity
+        .status(response.getHttpStatusCode())
+        .body(response);
   }
   
   private ResponseGridDelete prepareResponse() {

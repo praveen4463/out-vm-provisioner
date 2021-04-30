@@ -41,7 +41,10 @@ public class APICorePropertiesImpl implements APICoreProperties {
   // into instance fields and the field name's get and set accessor are invoked. Thus the accessor
   // names should match with the properties. 
   @NotBlank
-  private String projectId;
+  private String resourceProjectId;
+  
+  @NotBlank
+  private String sharedVpcProjectId;
   
   @NotBlank
   private String gceApiUrl;
@@ -60,13 +63,24 @@ public class APICorePropertiesImpl implements APICoreProperties {
   private final GridDefaults gridDefaults = new GridDefaults();
   
   @Override
-  public String getProjectId() {
-    return projectId;
+  public String getResourceProjectId() {
+    return resourceProjectId;
   }
   
-  public void setProjectId(String projectId) {
-    if (this.projectId == null) {
-      this.projectId = projectId;
+  public void setResourceProjectId(String projectId) {
+    if (this.resourceProjectId == null) {
+      this.resourceProjectId = projectId;
+    }
+  }
+  
+  @Override
+  public String getSharedVpcProjectId() {
+    return sharedVpcProjectId;
+  }
+  
+  public void setSharedVpcProjectId(String sharedVpcProjectId) {
+    if (this.sharedVpcProjectId == null) {
+      this.sharedVpcProjectId = sharedVpcProjectId;
     }
   }
   
@@ -165,7 +179,7 @@ public class APICorePropertiesImpl implements APICoreProperties {
     
     @Min(1)
     @Max(500)
-    private Integer maxStoppedInstanceInSearch;
+    private Integer maxInstanceInSearch;
     
     @Override
     public String getMachineType() {
@@ -175,17 +189,6 @@ public class APICorePropertiesImpl implements APICoreProperties {
     public void setMachineType(String machineType) {
       if (this.machineType == null) {
         this.machineType = machineType;
-      }
-    }
-    
-    @Override
-    public String getNetwork() {
-      return network;
-    }
-    
-    public void setNetwork(String network) {
-      if (this.network == null) {
-        this.network = network;
       }
     }
     
@@ -265,15 +268,15 @@ public class APICorePropertiesImpl implements APICoreProperties {
         this.imageSearchParams = ImmutableMap.copyOf(imageSearchParams);
       }
     }
-    
+  
     @Override
-    public int getMaxStoppedInstanceInSearch() {
-      return maxStoppedInstanceInSearch;
+    public int getMaxInstanceInSearch() {
+      return maxInstanceInSearch;
     }
-    
-    public void setMaxStoppedInstanceInSearch(int maxStoppedInstanceInSearch) {
-      if (this.maxStoppedInstanceInSearch == null) {
-        this.maxStoppedInstanceInSearch = maxStoppedInstanceInSearch;
+  
+    public void setMaxInstanceInSearch(int maxInstanceInSearch) {
+      if (this.maxInstanceInSearch == null) {
+        this.maxInstanceInSearch = maxInstanceInSearch;
       }
     }
   }

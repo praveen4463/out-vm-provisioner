@@ -375,14 +375,14 @@ class ResourceExecutorImplTest {
   
   private Instances.Insert getMockInsertInstance(String zone, Instance instance) {
     return mock(Instances.Insert.class, withSettings()
-        .useConstructor(API_CORE_PROPS.getProjectId(), zone, instance)
+        .useConstructor(API_CORE_PROPS.getResourceProjectId(), zone, instance)
         .outerInstance(MOCK_INSTANCES));
   }
   
   @SuppressWarnings("SameParameterValue")
   private Instances.Get getMockGetInstance(String zone, String instanceName) {
     return mock(Instances.Get.class, withSettings()
-        .useConstructor(API_CORE_PROPS.getProjectId(), zone, instanceName)
+        .useConstructor(API_CORE_PROPS.getResourceProjectId(), zone, instanceName)
         .outerInstance(MOCK_INSTANCES));
   }
 }

@@ -76,7 +76,13 @@ public class GridGenerator {
   
   private Compute.Instances.Insert buildNewGrid(String gridZone) {
     GridDefault gridDefault = apiCoreProps.getGridDefault();
-    Set<String> tags = gridDefault.getTags();
+    String sharedVpcProjectId = apiCoreProps.getSharedVpcProjectId();
+    Set<String> tags;
+    if (gridProp.getNetworkTags() != null && gridProp.getNetworkTags().size() > 0) {
+      tags = gridProp.getNetworkTags();
+    } else {
+      tags = gridDefault.getTags();
+    }
     Map<String, String> labels = buildGridLabels(sourceImage
         , gridDefault.getLabels()
         , gridProp.getCustomLabels()
@@ -85,7 +91,6 @@ public class GridGenerator {
     
     String machineType =
         Optional.ofNullable(gridProp.getMachineType()).orElse(gridDefault.getMachineType());
-    String network = gridDefault.getNetwork();
     String serviceAccountEmail =
         Optional.ofNullable(gridProp.getServiceAccount()).orElse(gridDefault.getServiceAccount());
     boolean preemptible = gridProp.isPreemptible();
@@ -103,8 +108,7 @@ public class GridGenerator {
     
     // Attach network interface
     NetworkInterface nif = new NetworkInterface();
-    nif.setNetwork(String.format("global/networks/%s", network));
-    nif.setSubnetwork(ResourceUtil.getSubnetURLFromZone(gridZone));
+    nif.setSubnetwork(ResourceUtil.getSubnetURLFromZone(sharedVpcProjectId, gridZone));
     if (createExternalIP) {
       AccessConfig accessConfig = new AccessConfig();
       accessConfig.setType("ONE_TO_ONE_NAT");
@@ -151,7 +155,7 @@ public class GridGenerator {
     // Finish instance build
     // Won't use ComputeService here.
     try {
-      return compute.instances().insert(apiCoreProps.getProjectId(), gridZone, instance);
+      return compute.instances().insert(apiCoreProps.getResourceProjectId(), gridZone, instance);
     } catch (IOException io) {
       // Wrap, so that compiler won't complain using this method in lambda.
       throw new RuntimeException(io);
@@ -172,7 +176,7 @@ public class GridGenerator {
     // first put default labels specified by server
     Map<String, String> mergedLabels = new HashMap<>(defaultLabels);
     
-    // put after getting labels from image and filter image specific keys.
+    // put after getting labels from image and exclude image specific keys.
     Map<String, String> gridLabelsFromImage = image.getLabels().entrySet().stream()
         .filter(entry -> !imageSpecificLabelKeys.contains(entry.getKey()))
         .collect(Collectors.toMap(Entry::getKey, Entry::getValue));

@@ -56,7 +56,7 @@ class GridControllerTest {
     
     GridController controller = getGridController(generateHandlerFactory);
     
-    controller.create(request, ZONE, false, sourceImageFamily);
+    controller.create(request, ZONE, false, false, sourceImageFamily);
     
     verify(generateHandler).setSourceImageFamily(sourceImageFamily);
     
@@ -75,7 +75,7 @@ class GridControllerTest {
     
     GridController controller = getGridController(generateHandlerFactory);
     
-    controller.create(request, ZONE, true, null);
+    controller.create(request, ZONE, true, false, null);
     
     verify(generateHandler, never()).setSourceImageFamily(anyString());
     
@@ -94,7 +94,7 @@ class GridControllerTest {
     
     GridController controller = getGridController(startHandlerFactory);
     
-    controller.create(request, ZONE, false, null);
+    controller.create(request, ZONE, false, false, null);
     
     verify(startHandler).handle();
   }
@@ -128,7 +128,7 @@ class GridControllerTest {
     
     GridController controller = getGridController(generateHandlerFactory, startHandlerFactory);
     
-    controller.create(request, ZONE, false, null);
+    controller.create(request, ZONE, false, false, null);
     
     verify(startHandler).handle();
     
@@ -146,7 +146,7 @@ class GridControllerTest {
     
     GridController controller = getGridController(deleteHandlerFactory);
     
-    controller.delete(ZONE, GRID_NAME, false, sessionId);
+    controller.delete(ZONE, GRID_NAME, false, false, sessionId);
     
     verify(deleteHandler).setSessionId(sessionId);
     
@@ -159,25 +159,30 @@ class GridControllerTest {
   private GridController getGridController(GridGenerateHandler.Factory gridGenerateHandlerFactory
       , GridStartHandler.Factory gridStartHandlerFactory) {
     return new GridController(COMPUTE, API_CORE_PROPS, EXECUTOR, COMPUTE_SRV, SEARCH
-        , FINGERPRINT_BASED_UPDATER, gridGenerateHandlerFactory, gridStartHandlerFactory
+        , FINGERPRINT_BASED_UPDATER, gridGenerateHandlerFactory
+        , mock(GridGetRunningHandler.Factory.class)
+        , gridStartHandlerFactory
         , mock(GridDeleteHandler.Factory.class));
   }
   
   private GridController getGridController(GridGenerateHandler.Factory gridGenerateHandlerFactory) {
     return new GridController(COMPUTE, API_CORE_PROPS, EXECUTOR, COMPUTE_SRV, SEARCH
         , FINGERPRINT_BASED_UPDATER, gridGenerateHandlerFactory
+        , mock(GridGetRunningHandler.Factory.class)
         , mock(GridStartHandler.Factory.class), mock(GridDeleteHandler.Factory.class));
   }
   
   private GridController getGridController(GridStartHandler.Factory gridStartHandlerFactory) {
     return new GridController(COMPUTE, API_CORE_PROPS, EXECUTOR, COMPUTE_SRV, SEARCH
         , FINGERPRINT_BASED_UPDATER, mock(GridGenerateHandler.Factory.class)
+        , mock(GridGetRunningHandler.Factory.class)
         , gridStartHandlerFactory, mock(GridDeleteHandler.Factory.class));
   }
   
   private GridController getGridController(GridDeleteHandler.Factory gridDeleteHandlerFactory) {
     return new GridController(COMPUTE, API_CORE_PROPS, EXECUTOR, COMPUTE_SRV, SEARCH
         , FINGERPRINT_BASED_UPDATER, mock(GridGenerateHandler.Factory.class)
+        , mock(GridGetRunningHandler.Factory.class)
         , mock(GridStartHandler.Factory.class), gridDeleteHandlerFactory);
   }
   

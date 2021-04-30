@@ -62,7 +62,7 @@ class ComputeServiceTest {
   
   @TestFactory
   Stream<DynamicTest> computeServiceTest() {
-    String project = API_CORE_PROPS.getProjectId();
+    String project = API_CORE_PROPS.getResourceProjectId();
     GridDefault gridDefault = API_CORE_PROPS.getGridDefault();
     
     return Stream.of(

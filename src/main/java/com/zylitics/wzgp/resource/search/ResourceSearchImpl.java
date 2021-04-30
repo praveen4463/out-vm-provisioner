@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 
+import com.zylitics.wzgp.model.InstanceStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
@@ -45,20 +46,27 @@ public class ResourceSearchImpl implements ResourceSearch {
   }
   
   @Override
-  public Optional<Instance> searchStoppedInstance(ResourceSearchParam searchParam, String zone,
-      BuildProperty buildProp) throws Exception {
+  public Optional<Instance> searchInstance(ResourceSearchParam searchParam,
+                                           String zone,
+                                           InstanceStatus instanceStatus,
+                                           BuildProperty buildProp) throws Exception {
     searchParam.validate();
     
-    List<Instance> instances = computeServ.listInstances(buildInstanceFilters(searchParam)
-        , apiCoreProps.getGridDefault().getMaxStoppedInstanceInSearch(), zone, buildProp);
+    List<Instance> instances = computeServ.listInstances(
+        buildInstanceFilters(searchParam, instanceStatus),
+        apiCoreProps.getGridDefault().getMaxInstanceInSearch(),
+        zone,
+        buildProp);
     return instances != null && instances.size() > 0
         ? Optional.of(instances.get(random.nextInt(instances.size())))
         : Optional.empty();
   }
   
-  private String buildInstanceFilters(ResourceSearchParam searchParam) {
+  private String buildInstanceFilters(ResourceSearchParam searchParam,
+                                      InstanceStatus instanceStatus) {
     Map<String, String> mergedSearchParams =
         new HashMap<>(apiCoreProps.getGridDefault().getInstanceSearchParams());
+    mergedSearchParams.put("status", instanceStatus.toString());
     
     if (searchParam.getCustomInstanceSearchParams() != null) {
       mergedSearchParams.putAll(searchParam.getCustomInstanceSearchParams());
@@ -115,7 +123,7 @@ public class ResourceSearchImpl implements ResourceSearch {
       OR
     }
     
-    private StringBuilder builder = new StringBuilder();
+    private final StringBuilder builder = new StringBuilder();
     
     private FilterBuilder addCondition(String key, String value) {
       Assert.hasText(key, "key can't be empty");

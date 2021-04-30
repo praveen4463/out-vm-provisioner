@@ -218,14 +218,13 @@ class GridControllerIntegrationTest {
   @Test
   @DisplayName("verify injected ApiCoreProperties was loaded correctly by container")
   void validateApiCoreProperties() {
-    assertEquals("zl-win-nodes", apiCoreProps.getProjectId());
+    assertEquals("zl-win-nodes", apiCoreProps.getResourceProjectId());
     assertTrue(apiCoreProps.getGceTimeoutMillis() > 0);
     assertTrue(apiCoreProps.getGceZonalReattemptErrors().size() > 0);
     assertTrue(apiCoreProps.getGceReattemptZones().size() > 0);
     
     APICoreProperties.GridDefault gridDefault = apiCoreProps.getGridDefault();
     
-    assertEquals("zl-default-vpc", gridDefault.getNetwork());
     assertFalse(Strings.isNullOrEmpty(gridDefault.getMachineType()));
     assertFalse(Strings.isNullOrEmpty(gridDefault.getServiceAccount()));
     assertTrue(gridDefault.getTags().size() > 0);
@@ -234,7 +233,7 @@ class GridControllerIntegrationTest {
     assertTrue(gridDefault.getImageSpecificLabelsKey().size() > 0);
     assertTrue(gridDefault.getInstanceSearchParams().size() > 0);
     assertTrue(gridDefault.getImageSearchParams().size() > 0);
-    assertTrue(gridDefault.getMaxStoppedInstanceInSearch() > 0);
+    assertTrue(gridDefault.getMaxInstanceInSearch() > 0);
   }
   
   private ResponseGridCreate gridCreateResponse() {

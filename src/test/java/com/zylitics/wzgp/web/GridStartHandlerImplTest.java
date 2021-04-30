@@ -21,6 +21,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import com.zylitics.wzgp.model.InstanceStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -108,8 +109,8 @@ class GridStartHandlerImplTest {
         RequestGridCreate requestCreate = getCreateRequest(buildId);
         BuildProperty buildProp = requestCreate.getBuildProperties();
         
-        when(search.searchStoppedInstance(requestCreate.getResourceSearchParams(), ZONE, buildProp))
-            .thenReturn(Optional.of(gridInstance));
+        when(search.searchInstance(requestCreate.getResourceSearchParams(), ZONE,
+            InstanceStatus.TERMINATED, buildProp)).thenReturn(Optional.of(gridInstance));
         
         when(fingerprintBasedUpdater.updateLabels(gridInstance
             , ImmutableMap.of(ResourceUtil.LABEL_LOCKED_BY_BUILD, buildId), buildProp))
@@ -207,7 +208,8 @@ class GridStartHandlerImplTest {
         // code post the max-re-attempt of other non-acquiring threads. That's why we can't rely on
         // that in this concurrent environment.
         // To efficiently simulate search failure, we'll directly access the FOUND_INSTANCES map.
-        when(search.searchStoppedInstance(requestCreate.getResourceSearchParams(), ZONE, buildProp))
+        when(search.searchInstance(requestCreate.getResourceSearchParams(), ZONE,
+            InstanceStatus.TERMINATED, buildProp))
             .then(inv -> {
               Map<BigInteger, String> foundInstances = getFoundInstances();
               if (foundInstances.size() == 2) {
@@ -316,8 +318,8 @@ class GridStartHandlerImplTest {
     RequestGridCreate requestCreate = getCreateRequest(buildId);
     BuildProperty buildProp = requestCreate.getBuildProperties();
     
-    when(search.searchStoppedInstance(requestCreate.getResourceSearchParams(), ZONE, buildProp))
-        .thenReturn(Optional.of(gridInstance));
+    when(search.searchInstance(requestCreate.getResourceSearchParams(), ZONE,
+        InstanceStatus.TERMINATED, buildProp)).thenReturn(Optional.of(gridInstance));
     
     stubGridStart(gridName, executor, computeSrv, buildProp, false);
 
@@ -352,8 +354,8 @@ class GridStartHandlerImplTest {
     RequestGridCreate requestCreate = getCreateRequest(buildId);
     BuildProperty buildProp = requestCreate.getBuildProperties();
     
-    when(search.searchStoppedInstance(requestCreate.getResourceSearchParams(), ZONE, buildProp))
-        .thenReturn(Optional.of(gridInstance));
+    when(search.searchInstance(requestCreate.getResourceSearchParams(), ZONE,
+        InstanceStatus.TERMINATED,buildProp)).thenReturn(Optional.of(gridInstance));
     
     stubGridStart(gridName, executor, computeSrv, buildProp, true);
     

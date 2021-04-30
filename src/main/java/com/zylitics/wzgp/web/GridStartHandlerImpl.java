@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.zylitics.wzgp.model.InstanceStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -93,14 +94,14 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
       
       String existingBuild = FOUND_INSTANCES.get(gridInstance.getId());
       if (existingBuild != null) {
-        LOG.warn("The found stopped instance {} was reserved by another build {}, attempt #{} {}"
+        LOG.info("The found stopped instance {} was reserved by another build {}, attempt #{} {}"
             , gridInstance.getName(), existingBuild, attempts, addToException());
         continue;
       }
       
       existingBuild = FOUND_INSTANCES.putIfAbsent(gridInstance.getId(), buildProp.getBuildId());
       if (existingBuild != null) {
-        LOG.warn("The found stopped instance {} was acquired by a concurrent request with build"
+        LOG.info("The found stopped instance {} was acquired by a concurrent request with build"
             + " {} as our put failed, attempt #{} {}"
             , gridInstance.getName(), existingBuild, attempts, addToException());
         continue;
@@ -109,6 +110,8 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
       // 'putIfAbsent' was successful, go ahead.
       try {
         onStoppedGridFoundEventHandler(gridInstance);  // lock instance among other things.
+        // Note: if there is a problem in starting grid, let's not reset instance locking label
+        // and investigate the issue and let instance not available for future requests.
         return startGrid(gridInstance);
       } finally {
         // we started the grid instance, lets remove our build from the map, so that once we're done
@@ -127,8 +130,8 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
   }
   
   private Instance searchStoppedInstance() throws Exception {
-    Optional<Instance> instance = search.searchStoppedInstance(request.getResourceSearchParams()
-        , zone, buildProp);
+    Optional<Instance> instance = search.searchInstance(request.getResourceSearchParams()
+        , zone, InstanceStatus.TERMINATED, buildProp);
     
     if (!instance.isPresent()) {
       LOG.warn("No stopped instance found that matches the given search terms, search terms: {} {}"
@@ -162,6 +165,8 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
     
     Operation operation = completedOperation.get();
     if (!ResourceUtil.isOperationSuccess(operation)) {
+      // TODO: if we see this in logs, look into the root cause and decide whether we should delete
+      //  such instances.
       LOG.error("Couldn't start stopped grid instance {}, operation: {} {}"
           , gridInstance.toPrettyString()
           , operation.toPrettyString()
@@ -188,8 +193,8 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
     // ==========verify that we own this instance
     
     // TODO: we can remove this check later sometime if there is no such exception in logs as this
-    // shouldn't happen.
-    // get the current value of lock-by-build label
+    //  shouldn't happen.
+    //  get the current value of lock-by-build label
     String lockedByBuild = gridInstance.getLabels().get(ResourceUtil.LABEL_LOCKED_BY_BUILD);
     // see whether it holds our build.
     if (Strings.isNullOrEmpty(lockedByBuild) || !lockedByBuild.equals(buildProp.getBuildId())) {
@@ -212,6 +217,8 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
       // soon, safer way is to get another fresh instance.
       // If this error is found in logs, such instance should be manually deleted for now. Not
       // reverting the LABEL_LOCKED_BY_BUILD label for now.
+      // TODO: if we see this in logs, make sure we do something so that if instance is not deleted,
+      //  it will be deleted.
       LOG.error("Instance started from stopped state, but is-deleting label is found true, rather"
           + ", than taking a chance with the ongoing deployment, leaving it out. instance: {} {}"
           , gridInstance.toPrettyString()

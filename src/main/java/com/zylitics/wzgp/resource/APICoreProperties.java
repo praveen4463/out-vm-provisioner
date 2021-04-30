@@ -10,7 +10,9 @@ import java.util.Set;
  */
 public interface APICoreProperties {
 
-  String getProjectId();
+  String getResourceProjectId();
+  
+  String getSharedVpcProjectId();
   
   String getGceApiUrl();
   
@@ -26,8 +28,6 @@ public interface APICoreProperties {
     
     String getMachineType();
     
-    String getNetwork();
-    
     String getServiceAccount();
     
     Set<String> getTags();
@@ -42,6 +42,6 @@ public interface APICoreProperties {
     
     Map<String, String> getImageSearchParams();
     
-    int getMaxStoppedInstanceInSearch();
+    int getMaxInstanceInSearch();
   }
 }

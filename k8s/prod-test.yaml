@@ -33,19 +33,20 @@ spec:
       containers:
         - name: esp-prod-test
           image: gcr.io/endpoints-release/endpoints-runtime:1
+          imagePullPolicy: Always
           # we'll let test requests to go to production esp service, otherwise another esp service
           # will need to be created for these test and we don't want that. Requests from tests
           # should be identifiable by seeing request body.
           args: [
             "--http_port=4000",
             "--backend=127.0.0.1:8080",
-            "--service=wzgp.api.internal.zylitics.io",
+            "--service=wzgp.api.zylitics.io",
             "--rollout_strategy=managed",
           ]
           ports:
             - containerPort: 4000
         - name: *APP
-          image: us.gcr.io/zl-win-nodes/zl-wzgp:0.1.1
+          image: us.gcr.io/zl-infra-main/zl-wzgp:0.1.1
           imagePullPolicy: Always
           ports:
             - containerPort: 8080

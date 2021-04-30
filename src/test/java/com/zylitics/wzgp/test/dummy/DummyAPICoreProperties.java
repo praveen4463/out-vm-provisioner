@@ -12,8 +12,13 @@ public class DummyAPICoreProperties implements APICoreProperties {
   private DummyGridDefaults gridDefaults = new DummyGridDefaults();
   
   @Override
-  public String getProjectId() {
+  public String getResourceProjectId() {
     return "zl-dummy-proj";
+  }
+  
+  @Override
+  public String getSharedVpcProjectId() {
+    return "zl-dummy-shared-proj";
   }
   
   @Override
@@ -46,11 +51,6 @@ public class DummyAPICoreProperties implements APICoreProperties {
     @Override
     public String getMachineType() {
       return "n1-standard";
-    }
-    
-    @Override
-    public String getNetwork() {
-      return "default-1";
     }
     
     @Override
@@ -91,9 +91,9 @@ public class DummyAPICoreProperties implements APICoreProperties {
     public Map<String, String> getImageSearchParams() {
       return ImmutableMap.of("labels.platform", "windows");
     }
-    
+  
     @Override
-    public int getMaxStoppedInstanceInSearch() {
+    public int getMaxInstanceInSearch() {
       return 10;
     }
   }

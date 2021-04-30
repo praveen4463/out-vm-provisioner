@@ -166,8 +166,8 @@ abstract class AbstractGridE2ETest {
       assertEquals("RUNNING", grid.getStatus());
       
       // network
-      assertEquals(gridDefault.getNetwork()
-          , nameFromUrl(grid.getNetworkInterfaces().get(0).getNetwork()));
+      assertEquals(ResourceUtil.getSubnetURLFromZone(apiCoreProps.getSharedVpcProjectId(), ZONE),
+          grid.getNetworkInterfaces().get(0).getSubnetwork());
       
       // internal ip
       String internalIP = grid.getNetworkInterfaces().get(0).getNetworkIP();

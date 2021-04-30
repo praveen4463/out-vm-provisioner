@@ -9,8 +9,8 @@ info:
   title: "Windows Zylitics Grid Provisioner"
   # This version no. is just to showing in the console and has no affect on functionality, although it should be
   # updated whenever production version is updated.
-  version: "0.1.1"
-host: "wzgp.api.internal.zylitics.io"
+  version: "0.2.0"
+host: "wzgp.api.zylitics.io"
 basePath: "/beta"
 schemes:
   - "http" # TLS is terminated before hitting ESP, so only http.
@@ -29,6 +29,7 @@ paths:
       parameters:
         - $ref: "#/parameters/zonePathParameter"
         - $ref: "#/parameters/noRushQueryParameter"
+        - $ref: "#/parameters/requireRunningVM"
         - name: sourceImageFamily
           in: query
           type: string
@@ -56,7 +57,7 @@ paths:
                     type: string
                     enum:
                       - win7
-                      - win8.1
+                      - win8_1
                       - win10
                     description: "name of os to find this resource. The format is win{version}"
                   browser:
@@ -74,7 +75,7 @@ paths:
                     description: "json object key-value as string when provided, gets added into the default instance
                       search parameters. If any key matches the default instance search parameters key, it gets replaced
                       by the provided value. It should be in form of fully qualified key-identifier, for example
-                      labels.zl-selenium-grid : true. This is useful when you willing to add more search parameter for a
+                      labels.zl-runner : true. This is useful when you willing to add more search parameter for a
                       custom instance or for testing purposes where the default instance search parameters don’t apply.
                       Remember, currently all the given parameters are joined together with AND condition means instance
                       is searched when all given parameters are matched."
@@ -110,6 +111,10 @@ paths:
                     type: boolean
                     description: "Whether the generated instance have an external ip, can't be set to existing instance"
                     default: false
+                  networkTags:
+                    type: array
+                    items:
+                      type: string
                   customLabels:
                     type: object
                     description: "json object key-value as string type, when creating a new grid server arranges all the
@@ -157,6 +162,7 @@ paths:
           required: true
           type: string
           description: "The name of the grid resource to delete"
+        - $ref: "#/parameters/requireRunningVM"
         - $ref: "#/parameters/noRushQueryParameter"
         - name: sessionId
           in: query
@@ -183,11 +189,18 @@ parameters:
   noRushQueryParameter:
     in: query
     name: noRush
+    required: false
     type: boolean
     description: "indicates that this test doesn't fall in quick test category (such as a recurring test) and hence can
         wait for the resource allocation. This allows us to apply optimisations, it also helps our infrastructure
         management. For example, we can find an image rather than stopped instance, and can create grid using the image
         thus decreasing the need to create more on-demand instances."
+  requireRunningVM:
+    in: query
+    name: requireRunningVM
+    required: false
+    type: boolean
+    description: "indicates that client has requested a running instance"
 
 definitions:
   gridCreateSuccessResponse:

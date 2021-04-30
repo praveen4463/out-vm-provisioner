@@ -42,7 +42,7 @@ public class ComputeService {
       , APICoreProperties apiCoreProps) {
     this.compute = compute;
     this.executor = executor;
-    this.project = apiCoreProps.getProjectId();
+    this.project = apiCoreProps.getResourceProjectId();
   }
   
   public Operation startInstance(String instanceName

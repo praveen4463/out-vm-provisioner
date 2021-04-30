@@ -6,6 +6,7 @@ import javax.annotation.Nullable;
 
 import com.google.api.services.compute.model.Image;
 import com.google.api.services.compute.model.Instance;
+import com.zylitics.wzgp.model.InstanceStatus;
 import com.zylitics.wzgp.resource.BuildProperty;
 
 public interface ResourceSearch {
@@ -13,7 +14,7 @@ public interface ResourceSearch {
   /**
    * 
    * @param searchParam {@link ResourceSearchParam} object
-   * @param zone zone where to seach
+   * @param zone zone where to search
    * @param buildProp {@link BuildProperty} object
    * @return A randomly selected {@link Instance} from the list of fetched instances given
    *         availability, else an empty {@link Optional}. The random selection process choose an
@@ -21,8 +22,10 @@ public interface ResourceSearch {
    *         requests don't find the same instance upon search. 
    * @throws Exception If there are problems searching
    */
-  Optional<Instance> searchStoppedInstance(ResourceSearchParam searchParam
-      , String zone, @Nullable BuildProperty buildProp) throws Exception;
+  Optional<Instance> searchInstance(ResourceSearchParam searchParam,
+                                    String zone,
+                                    InstanceStatus instanceStatus,
+                                    @Nullable BuildProperty buildProp) throws Exception;
   
   /**
    * 

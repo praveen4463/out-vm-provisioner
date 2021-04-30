@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.zylitics.wzgp.model.InstanceStatus;
 import org.springframework.util.Assert;
 
 import com.google.api.client.util.Strings;
@@ -46,7 +47,7 @@ public class GridStarter {
   }
   
   public CompletedOperation start() throws Exception {
-    if (!gridInstance.getStatus().equals("TERMINATED")) {
+    if (!gridInstance.getStatus().equals(InstanceStatus.TERMINATED.toString())) {
       // shouldn't happen but still check.
       throw new RuntimeException(
           String.format("The given grid instance: %s, isn't in terminated state. Can't proceed. %s"

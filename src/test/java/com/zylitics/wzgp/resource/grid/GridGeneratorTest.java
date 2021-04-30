@@ -57,8 +57,6 @@ class GridGeneratorTest {
   
   private static final String SERVICE_ACCOUNT = "service-account-email-1";
   
-  private static final String NETWORK = "netowork-1";
-  
   private static final boolean PREEMPTIBLE = false;
   
   // The default false condition is tested in e2e test.
@@ -132,15 +130,17 @@ class GridGeneratorTest {
           
           Instances.Insert insertInstanceProvided = invocation.getArgument(0);
           
-          verifyGridConfiguration((Instance) insertInstanceProvided.getJsonContent()
-              , primaryZoneRegion);
+          verifyGridConfiguration(apiCorePropsSpy.getSharedVpcProjectId(),
+              (Instance) insertInstanceProvided.getJsonContent(),
+              primaryZoneRegion);
           
           Function<String, Instances.Insert> insertInstanceFactory = invocation.getArgument(1);
           
           Instances.Insert insertInstanceGenerated = insertInstanceFactory.apply(randomZone);
           
-          verifyGridConfiguration((Instance) insertInstanceGenerated.getJsonContent()
-              , randomZoneRegion);
+          verifyGridConfiguration(apiCorePropsSpy.getSharedVpcProjectId(),
+              (Instance) insertInstanceGenerated.getJsonContent(),
+              randomZoneRegion);
           
           Operation operation = new Operation();
           operation.setStatus("DONE");
@@ -156,16 +156,14 @@ class GridGeneratorTest {
     assertEquals("DONE", generator.create(primaryZone).get().getStatus());
   }
   
-  private void verifyGridConfiguration(Instance instance, String region) {
+  private void verifyGridConfiguration(String sharedVpcProjectId, Instance instance, String region) {
     assertTrue(instance.getName().matches(IMAGE_FAMILY + "-" + "[a-z0-9]{10}-vm"));
     
     assertEquals(MACHINE_TYPE, nameFromUrl(instance.getMachineType()));
     
-    assertEquals(NETWORK
-        , nameFromUrl(instance.getNetworkInterfaces().get(0).getNetwork()));
-    
     // match URI instead cause we need to verify the region as well.
-    String subnetURL = String.format("regions/%s/subnetworks/%s", region, "subnet-" + region);
+    String subnetURL = String.format("projects/%s/regions/%s/subnetworks/%s",
+        sharedVpcProjectId, region, "subnet-" + region);
     assertEquals(subnetURL, instance.getNetworkInterfaces().get(0).getSubnetwork());
     
     assertEquals(IMAGE_FAMILY
@@ -189,11 +187,6 @@ class GridGeneratorTest {
     @Override
     public String getMachineType() {
       return MACHINE_TYPE;
-    }
-    
-    @Override
-    public String getNetwork() {
-      return NETWORK;
     }
     
     @Override
@@ -230,9 +223,9 @@ class GridGeneratorTest {
     public Map<String, String> getImageSearchParams() {
       return null;
     }
-    
+  
     @Override
-    public int getMaxStoppedInstanceInSearch() {
+    public int getMaxInstanceInSearch() {
       return 10;
     }
   }
@@ -267,6 +260,11 @@ class GridGeneratorTest {
     @Override
     public Map<String, String> getMetadata() {
       return REQUEST_METADATA;
+    }
+  
+    @Override
+    public Set<String> getNetworkTags() {
+      return null;
     }
   }
 }

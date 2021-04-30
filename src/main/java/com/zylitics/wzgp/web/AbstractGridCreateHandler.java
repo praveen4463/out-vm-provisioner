@@ -1,5 +1,6 @@
 package com.zylitics.wzgp.web;
 
+import static com.zylitics.wzgp.resource.util.ResourceUtil.LABEL_LOCKED_BY_BUILD_DEFAULT_VALUE;
 import static com.zylitics.wzgp.resource.util.ResourceUtil.nameFromUrl;
 
 import com.google.api.services.compute.model.NetworkInterface;
@@ -56,9 +57,11 @@ abstract class AbstractGridCreateHandler extends AbstractGridHandler {
   }
   
   void lockGridInstance(Instance gridInstance) throws Exception {
-    // TODO: we may later apply a check that a lock-by-build label can be applied only if the value
-    // is "none". If its anything else, the label must not be set. This means one can set its
-    // buildId only when the current value is "none".
+    String lockedByBuild = gridInstance.getLabels().get(ResourceUtil.LABEL_LOCKED_BY_BUILD);
+    if (!lockedByBuild.equals(LABEL_LOCKED_BY_BUILD_DEFAULT_VALUE)) {
+      throw new RuntimeException("Couldn't lock instance, it's locked by: " + lockedByBuild +
+          ", instance: " + gridInstance.toPrettyString() + " " + addToException());
+    }
     Operation operation = fingerprintBasedUpdater.updateLabels(gridInstance
         , ImmutableMap.of(ResourceUtil.LABEL_LOCKED_BY_BUILD, buildProp.getBuildId()), buildProp);
     executor.blockUntilComplete(operation, buildProp);

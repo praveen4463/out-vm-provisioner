@@ -15,6 +15,8 @@ public interface GridDeleteHandler {
   
   void setNoRush(boolean noRush);
   
+  void setRequireRunningVM(boolean requireRunningVM);
+  
   interface Factory {
     
     GridDeleteHandler create(APICoreProperties apiCoreProps

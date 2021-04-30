@@ -1,5 +1,7 @@
 package com.zylitics.wzgp.web;
 
+import com.zylitics.wzgp.http.*;
+import com.zylitics.wzgp.web.exceptions.GridGetRunningHandlerFailureException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,11 +20,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.google.api.client.util.Strings;
 import com.google.api.services.compute.Compute;
-import com.zylitics.wzgp.http.ResponseGridError;
-import com.zylitics.wzgp.http.RequestGridCreate;
-import com.zylitics.wzgp.http.ResponseGridCreate;
-import com.zylitics.wzgp.http.ResponseGridDelete;
-import com.zylitics.wzgp.http.ResponseStatus;
 import com.zylitics.wzgp.resource.APICoreProperties;
 import com.zylitics.wzgp.resource.BuildProperty;
 import com.zylitics.wzgp.resource.compute.ComputeService;
@@ -69,6 +66,7 @@ public class GridController {
   private final ResourceSearch search;
   private final FingerprintBasedUpdater fingerprintBasedUpdater;
   private final GridGenerateHandler.Factory gridGenerateHandlerFactory;
+  private final GridGetRunningHandler.Factory gridGetRunningHandlerFactory;
   private final GridStartHandler.Factory gridStartHandlerFactory;
   private final GridDeleteHandler.Factory gridDeleteHandlerFactory;
   
@@ -82,6 +80,7 @@ public class GridController {
       , ResourceSearch search
       , FingerprintBasedUpdater fingerprintBasedUpdater
       , GridGenerateHandler.Factory gridGenerateHandlerFactory
+      , GridGetRunningHandler.Factory gridGetRunningHandlerFactory
       , GridStartHandler.Factory gridStartHandlerFactory
       , GridDeleteHandler.Factory gridDeleteHandlerFactory) {
     this.compute = compute;
@@ -91,16 +90,18 @@ public class GridController {
     this.search = search;
     this.fingerprintBasedUpdater = fingerprintBasedUpdater;
     this.gridGenerateHandlerFactory = gridGenerateHandlerFactory;
+    this.gridGetRunningHandlerFactory = gridGetRunningHandlerFactory;
     this.gridStartHandlerFactory = gridStartHandlerFactory;
     this.gridDeleteHandlerFactory = gridDeleteHandlerFactory;
   }
 
   @PostMapping
   public ResponseEntity<ResponseGridCreate> create(
-      @Validated @RequestBody RequestGridCreate gridCreateReq
-      , @PathVariable String zone
-      , @RequestParam(defaultValue="false") boolean noRush
-      , @RequestParam(required=false) String sourceImageFamily) throws Exception {
+      @Validated @RequestBody RequestGridCreate gridCreateReq,
+      @PathVariable String zone,
+      @RequestParam(required = false) boolean noRush,
+      @RequestParam(required = false) boolean requireRunningVM,
+      @RequestParam(required = false) String sourceImageFamily) throws Exception {
     
     LOG.info("received request: {}", gridCreateReq.toString());
     
@@ -121,7 +122,28 @@ public class GridController {
       return generateHandler.handle();
     }
     
-    // first try to find and start a stopped grid instance.
+    // get a running instance if that's needed
+    if (requireRunningVM) {
+      GridGetRunningHandler getRunningHandler = gridGetRunningHandlerFactory.create(apiCoreProps
+          , executor
+          , computeSrv
+          , search
+          , fingerprintBasedUpdater
+          , zone
+          , gridCreateReq);
+      try {
+        return getRunningHandler.handle();
+      } catch (Throwable failure) {
+        if (!(failure instanceof GridGetRunningHandlerFailureException)) {
+          LOG.error("Get running handler experienced an unexpected exception, trying to" +
+              " find a stopped instance "
+              + addToException(gridCreateReq.getBuildProperties()), failure);
+        }
+        // go on to find a stopped one
+      }
+    }
+    
+    // find a stopped instance and start it.
     GridStartHandler startHandler = gridStartHandlerFactory.create(apiCoreProps
         , executor
         , computeSrv
@@ -131,12 +153,12 @@ public class GridController {
         , gridCreateReq);
     try {
       return startHandler.handle();
-    } catch (Exception failure) {
+    } catch (Throwable failure) {
       if (!(failure instanceof GridStartHandlerFailureException)) {
         LOG.error("start handler experienced an unexpected exception, trying to create fresh grid "
             + addToException(gridCreateReq.getBuildProperties()), failure);
       }
-      LOG.debug("Couldn't get a stopped instance, going to create a fresh one. {}"
+      LOG.debug("Couldn't find a stopped instance, going to create a fresh one. {}"
           , addToException(gridCreateReq.getBuildProperties()));
       // we couldn't get a stopped grid instance, fallback to a fresh one.
       return gridGenerateHandlerFactory.create(compute
@@ -151,10 +173,12 @@ public class GridController {
   }
   
   @DeleteMapping("/{gridName}")
-  public ResponseEntity<ResponseGridDelete> delete(@PathVariable String zone
-      , @PathVariable String gridName
-      , @RequestParam(defaultValue="false") boolean noRush
-      , @RequestParam(required=false) String sessionId) throws Exception {
+  public ResponseEntity<ResponseGridDelete> delete(
+      @PathVariable String zone,
+      @PathVariable String gridName,
+      @RequestParam(required = false) boolean noRush,
+      @RequestParam(required = false) boolean requireRunningVM,
+      @RequestParam(required = false) String sessionId) throws Exception {
     GridDeleteHandler deleteHandler = gridDeleteHandlerFactory.create(apiCoreProps
         , executor
         , computeSrv
@@ -165,6 +189,7 @@ public class GridController {
       deleteHandler.setSessionId(sessionId);
     }
     deleteHandler.setNoRush(noRush);
+    deleteHandler.setRequireRunningVM(requireRunningVM);
     return deleteHandler.handle();
   }
   

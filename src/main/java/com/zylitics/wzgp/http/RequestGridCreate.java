@@ -1,11 +1,13 @@
 package com.zylitics.wzgp.http;
 
 import java.util.Map;
+import java.util.Set;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
 
+import com.google.common.collect.ImmutableSet;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.validation.annotation.Validated;
 
@@ -243,6 +245,8 @@ public class RequestGridCreate {
     private Boolean preemptible;
     private Boolean createExternalIP;
     
+    private Set<String> networkTags;
+    
     private Map<String, String> customLabels;
     
     @NotEmpty
@@ -293,6 +297,17 @@ public class RequestGridCreate {
     }
   
     @Override
+    public Set<String> getNetworkTags() {
+      return networkTags;
+    }
+  
+    public void setNetworkTags(Set<String> networkTags) {
+      if (this.networkTags == null && networkTags != null) {
+        this.networkTags = ImmutableSet.copyOf(networkTags);
+      }
+    }
+  
+    @Override
     public Map<String, String> getCustomLabels() {
       return customLabels;
     }
@@ -323,6 +338,7 @@ public class RequestGridCreate {
           ", createExternalIP=" + createExternalIP +
           ", customLabels=" + customLabels +
           ", metadata=" + metadata +
+          ", networkTags=" + networkTags +
           '}';
     }
   
@@ -333,6 +349,7 @@ public class RequestGridCreate {
       result = prime * result + ((customLabels == null) ? 0 : customLabels.hashCode());
       result = prime * result + ((machineType == null) ? 0 : machineType.hashCode());
       result = prime * result + ((metadata == null) ? 0 : metadata.hashCode());
+      result = prime * result + ((networkTags == null) ? 0 : networkTags.hashCode());
       result = prime * result + (preemptible ? 1231 : 1237);
       result = prime * result + (createExternalIP ? 1231 : 1237);
       result = prime * result + ((serviceAccount == null) ? 0 : serviceAccount.hashCode());
@@ -370,6 +387,13 @@ public class RequestGridCreate {
           return false;
         }
       } else if (!metadata.equals(other.metadata)) {
+        return false;
+      }
+      if (networkTags == null) {
+        if (other.networkTags != null) {
+          return false;
+        }
+      } else if (!networkTags.equals(other.networkTags)) {
         return false;
       }
       if (preemptible != other.preemptible) {

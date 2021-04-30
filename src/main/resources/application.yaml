@@ -1,52 +1,38 @@
 ---
 api-core:
-  project-id: zl-win-nodes
+  resource-project-id: zl-win-nodes # Tells that this project hosts the resources created by this api
+  shared-vpc-project-id: zl-infra-main
   gce-api-url: https://www.googleapis.com/compute/v1/projects
   gce-timeout-millis: 360000
   gce-zonal-reattempt-errors:
     - ZONE_RESOURCE_POOL_EXHAUSTED
     - QUOTA_EXCEEDED
   gce-reattempt-zones: # make sure we exclude the zone coming in with request from this list.
-    - us-central1-a
-    - us-central1-b
     - us-central1-c
-    - us-central1-f
-    - us-east1-b
-    - us-east1-c
-    - us-east1-d
-    - us-east4-a
-    - us-east4-b
-    - us-east4-c
-    - us-west1-a
     - us-west1-b
-    - us-west1-c
-    - us-west2-a
-    - us-west2-b
-    - us-west2-c
   grid-defaults:
-    machine-type: n1-standard-4
-    network: zl-default-vpc
-    service-account: zl-selenium-grid@zl-win-nodes.iam.gserviceaccount.com
+    machine-type: e2-standard-2
+    service-account: zl-runner@zl-win-nodes.iam.gserviceaccount.com
     tags: # these tags are applicable to generated grid for all purposes.
-      - zl-selenium-grid
-      - elasticsearch-client
+      - runner
+      - http-server
     labels: # we should specify only instance specific labels, no labels common with image.
       is-production-instance: true
-      zl-selenium-grid: true
+      zl-runner: true
       locked-by-build: none
       is-deleting: false
     metadata: # specify only metadata that can be given a default.
       time-zone-with-dst: Greenwich Standard Time
     image-specific-labels-key: # Label keys in image those don't belong to a grid.
-      - min-on-demand-test-vm
+      - min-stopped-vm
+      - min-started-vm
     instance-search-params:
       labels.platform: windows
-      status: TERMINATED
       labels.is-production-instance: true
-      labels.zl-selenium-grid: true
+      labels.zl-runner: true
       labels.locked-by-build: none
       labels.is-deleting: false
     image-search-params:
       labels.platform: windows
-    max-stopped-instance-in-search: 10
+    max-instance-in-search: 10
 ---

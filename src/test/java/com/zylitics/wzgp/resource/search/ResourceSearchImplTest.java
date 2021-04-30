@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.zylitics.wzgp.model.InstanceStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -85,7 +86,7 @@ class ResourceSearchImplTest {
     APICoreProperties.GridDefault gridDefault = mock(APICoreProperties.GridDefault.class);
     
     // let's set max stopped instance in search to something and try returning that many.
-    when(gridDefault.getMaxStoppedInstanceInSearch()).thenReturn(maxInstancesInSearch);
+    when(gridDefault.getMaxInstanceInSearch()).thenReturn(maxInstancesInSearch);
     
     when(gridDefault.getInstanceSearchParams()).thenReturn(
         ImmutableMap.of("labels.is-production-instance", "true", "status", "TERMINATED"));
@@ -111,7 +112,8 @@ class ResourceSearchImplTest {
     String lastInstanceName = null;
     boolean success = false;
     for (int i = 0; i < maxTimesInvokeSearch; i++) {
-      Instance instance = search.searchStoppedInstance(searchParams, zone, null).orElse(null);
+      Instance instance = search.searchInstance(searchParams, zone, InstanceStatus.TERMINATED,
+          null).orElse(null);
       assertNotNull(instance);
       if (lastInstanceName != null && !lastInstanceName.equals(instance.getName())) {
         success = true;

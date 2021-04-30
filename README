@@ -14,3 +14,12 @@ There are three types of endpoints one can use:
 
 Authentication:
   All external endpoints require authentication for user 'prod-test'.
+
+Process:
+- build docker image via jib:
+mvn -DskipTest=true compile jib:build
+or
+mvn -X -Djib.serialize=true -Djib.console=plain compile jib:build
+
+- Deploy endpoints config: gcloud endpoints services deploy openapi.yaml
+See https://cloud.google.com/endpoints/docs/openapi/get-started-kubernetes#configuring_the_service_name_and_starting_the_service

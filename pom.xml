@@ -7,19 +7,19 @@
   <artifactId>zl-wzgp</artifactId>
   <!-- TODO: !!! This version is used in these places, kubernetes deployment files, image names in deployment files,
        openapi specification. Once updated, change all those places too. !!! -->
-  <version>0.1.2-SNAPSHOT</version>
+  <version>0.2.0</version>
   <name>zl-wzgp</name>
   <url>http://maven.apache.org</url>
   <properties>
     <compute-api.version>v1-rev20190825-1.30.3</compute-api.version>
     <google-auth-library-oauth2-http.version>0.16.2</google-auth-library-oauth2-http.version>
-    <google-cloud-kms.version>1.40.2</google-cloud-kms.version>
-    <google-cloud-storage.version>1.113.4</google-cloud-storage.version>
-    <jib-maven-plugin.version>2.6.0</jib-maven-plugin.version>
-    <stackdriver-logback.version>0.118.7-alpha</stackdriver-logback.version>
+    <google-cloud-kms.version>1.41.1</google-cloud-kms.version>
+    <google-cloud-storage.version>1.113.14</google-cloud-storage.version>
+    <jib-maven-plugin.version>3.0.0</jib-maven-plugin.version>
+    <stackdriver-logback.version>0.120.4-alpha</stackdriver-logback.version>
     <guava.version>28.0-jre</guava.version>
 
-    <projectId>zl-win-nodes</projectId>
+    <projectId>zl-infra-main</projectId>
     <skipTest>false</skipTest>
   </properties>
   <parent>
@@ -98,10 +98,10 @@
         <artifactId>jib-maven-plugin</artifactId>
         <version>${jib-maven-plugin.version}</version>
         <configuration>
-          <from><!-- we'll use openjdk for linux servers -->
-            <!-- TODO: revert to non-debug image once going to production, using this for busybox to ssh into container -->
-            <image>gcr.io/distroless/java:8-debug</image>
-            <credHelper>gcloud</credHelper>
+          <from>
+            <!-- TODO: this should be a debian package and therefore we don't need another image
+                  to ssh into it. Find it out. -->
+            <image>adoptopenjdk:8-jre</image>
           </from>
           <to>
             <image>us.gcr.io/${projectId}/zl-wzgp:${project.version}</image> <!-- for now just push in US region -->
@@ -123,8 +123,7 @@
               <port>8080</port>
             </ports>
             <labels>
-              <key1>base-distroless</key1>
-              <key2>openjdk-8u222</key2>
+              <key1>base-adoptopenjdk-latest-jre-8</key1>
             </labels>
           </container>
         </configuration>

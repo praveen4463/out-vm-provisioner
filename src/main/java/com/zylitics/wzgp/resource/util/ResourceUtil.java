@@ -13,6 +13,7 @@ import com.google.api.services.compute.model.Operation;
 public class ResourceUtil {
   
   public static final String LABEL_LOCKED_BY_BUILD = "locked-by-build";
+  public static final String LABEL_LOCKED_BY_BUILD_DEFAULT_VALUE = "none";
   public static final String LABEL_IS_DELETING = "is-deleting";
   public static final String LABEL_SOURCE_FAMILY = "source-image-family";
   public static final String LABEL_STOPPED_INSTANCE_CUSTOM_IDENTIFIER =
@@ -55,7 +56,7 @@ public class ResourceUtil {
    * @param zone, a GCP zone
    * @return a zylitics defined subnet of format subnet-{region} 
    */
-  public static String getSubnetURLFromZone(String zone) {
+  public static String getSubnetURLFromZone(String sharedVpcProjectId, String zone) {
     Assert.hasText(zone, "'zone' can't be empty");
     
     String[] bits = zone.split("-");
@@ -63,6 +64,9 @@ public class ResourceUtil {
         + " region from it, zone given: " + zone);
     
     String region = bits[0] + "-" + bits[1];
-    return String.format("regions/%s/subnetworks/%s", region, "subnet-" + region);
+    return String.format("projects/%s/regions/%s/subnetworks/%s",
+        sharedVpcProjectId,
+        region,
+        "subnet-" + region);
   }
 }

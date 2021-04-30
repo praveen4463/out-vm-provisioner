@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 
+import com.google.common.base.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -144,13 +145,27 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
           , addToException(buildProp));
       return new CompletedOperation(operation);
     }
-    // Reaching here means our request failed, check for error codes.
+    
+    // ! Do any other reattempt than zonal here
+
+    if (apiCoreProps.getGceReattemptZones().size() == 1) {
+      LOG.warn("There is only one zone, we can't do zonal reattempt");
+      return new CompletedOperation(operation);
+    }
+  
+    // Try if we should reattempt in another zone.
+    // Reaching here means our request failed, check for error codes to reattempt in another zone.
     for (Operation.Error.Errors err : operation.getError().getErrors()) {
       if (err.getCode() != null
           && apiCoreProps.getGceZonalReattemptErrors().contains(err.getCode())) {
-        return perZoneReattemptHandler(generateObjToExecutePerZone, buildProp);
+        return perZoneReattemptHandler(generateObjToExecutePerZone,
+            buildProp,
+            objToExecute instanceof Compute.Instances.Insert
+                ? ((Compute.Instances.Insert) objToExecute).getZone()
+                : null);
       }
     }
+    
     // Reaching here means before invoking handler, we've to quit because the error codes don't
     // match the ones we already know. Log and return the first Operation.
     LOG.error("After waiting for Operation completion, the returned error codes aren't matched the"
@@ -173,18 +188,22 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
    * @throws Exception If there are problems in reattempting.
    */
   private <T extends ComputeRequest<Operation>> CompletedOperation perZoneReattemptHandler(
-      Function<String, T> generateObjToExecutePerZone
-      , @Nullable BuildProperty buildProp) throws Exception {
+      Function<String, T> generateObjToExecutePerZone,
+      @Nullable BuildProperty buildProp,
+      @Nullable String zoneToExclude) throws Exception {
     Assert.notNull(generateObjToExecutePerZone, "'generateObjToExecutePerZone' can't be null.");
     
     Random random = new Random();
     int attempts = 0;
-    List<String> alternateZones =
-        new ArrayList<>(apiCoreProps.getGceReattemptZones());
+    List<String> alternateZones = new ArrayList<>(apiCoreProps.getGceReattemptZones());
+    if (zoneToExclude != null) {
+      alternateZones.remove(zoneToExclude);
+    }
     int totalAlternateZones = alternateZones.size();
+    Preconditions.checkArgument(totalAlternateZones > 0, "No zone found to reattempt");
     Operation operation = null;
     
-    while (attempts < ZONAL_ISSUES_MAX_REATTEMPTS) {
+    while (attempts < Math.min(ZONAL_ISSUES_MAX_REATTEMPTS, totalAlternateZones)) {
       // increment in beginning so we don't set it at multiple places that are continuing in loop.
       attempts++;
       String randomZone = alternateZones.get(random.nextInt(totalAlternateZones));
@@ -256,7 +275,7 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
       
       // Won't use ComputeService here to prevent a cyclic dependency.
       Compute.ZoneOperations.Get get = compute.zoneOperations().get(
-          apiCoreProps.getProjectId()
+          apiCoreProps.getResourceProjectId()
           , zone
           , operationName);
       operation = executeWithReattempt(get, buildProp);
