@@ -154,9 +154,6 @@ public class APICorePropertiesImpl implements APICoreProperties {
     private String machineType;
     
     @NotBlank
-    private String network;
-    
-    @NotBlank
     private String serviceAccount;
     
     @NotEmpty
