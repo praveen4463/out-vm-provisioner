@@ -7,12 +7,12 @@
   <artifactId>zl-wzgp</artifactId>
   <!-- TODO: !!! This version is used in these places, kubernetes deployment files, image names in deployment files,
        openapi specification. Once updated, change all those places too. !!! -->
-  <version>0.2.1</version>
+  <version>0.2.2</version>
   <name>zl-wzgp</name>
   <url>http://maven.apache.org</url>
   <properties>
-    <compute-api.version>v1-rev20190825-1.30.3</compute-api.version>
-    <google-auth-library-oauth2-http.version>0.16.2</google-auth-library-oauth2-http.version>
+    <compute-api.version>v1-rev20210327-1.31.0</compute-api.version>
+    <google-auth-library-oauth2-http.version>0.25.5</google-auth-library-oauth2-http.version>
     <google-cloud-kms.version>1.41.1</google-cloud-kms.version>
     <google-cloud-storage.version>1.113.14</google-cloud-storage.version>
     <jib-maven-plugin.version>3.0.0</jib-maven-plugin.version>
