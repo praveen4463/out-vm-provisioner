@@ -183,7 +183,9 @@ public class GridGenerator {
     mergedLabels.putAll(gridLabelsFromImage);
     
     // put in custom labels so that it overrides any matching entry.
-    mergedLabels.putAll(customLabels);
+    if (customLabels != null) {
+      mergedLabels.putAll(customLabels);
+    }
     
     // put in labels using image properties.
     
@@ -198,7 +200,9 @@ public class GridGenerator {
     // first put server defined grid defaults.
     Map<String, String> metadata = new HashMap<>(gridDefault.getMetadata());
     // merge user defined grid properties, replacing if there's a match.
-    metadata.putAll(gridProp.getMetadata());
+    if (gridProp.getMetadata() != null) {
+      metadata.putAll(gridProp.getMetadata());
+    }
     return metadata;
   }
 }

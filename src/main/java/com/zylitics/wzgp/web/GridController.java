@@ -235,7 +235,7 @@ public class GridController {
   private String addToException(BuildProperty buildProp) {
     StringBuilder sb = new StringBuilder();
     if (buildProp != null) {
-      sb.append(buildProp.toString());
+      sb.append(buildProp);
     }
     return sb.toString();
   }

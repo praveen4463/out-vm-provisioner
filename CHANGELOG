@@ -7,3 +7,11 @@ v0.1.0
 v0.1.1
 **********
 * Added support for external IP on generated instance, it's an opt-in feature that should be enabled explicitly.
+**********
+v0.2.3
+**********
+* while searching, small casing the search params before using them as label search because labels
+  can't contain upper case
+* fixed logback so that project's root level could be changed
+* In grid generator, when custom labels or metadata aren't given, don't try assigning them
+* updating revision history in deployment to 3

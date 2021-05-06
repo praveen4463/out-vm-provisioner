@@ -93,9 +93,10 @@ public class ResourceSearchImpl implements ResourceSearch {
   }
   
   private String buildFromRequest(ResourceSearchParam searchParam) {
-    String browser = searchParam.getBrowser();
+    String browser = searchParam.getBrowser().toLowerCase(); // lower case because labels don't
+    // accept upper case chars
     return new FilterBuilder()
-        .addCondition("labels.os", searchParam.getOS())
+        .addCondition("labels.os", searchParam.getOS().toLowerCase()) // lower the case for labels
         .addConditionalExpr(AND)
         .addCondition("labels.browser1", browser)
         .addConditionalExpr(OR)

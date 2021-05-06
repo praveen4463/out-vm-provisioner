@@ -19,12 +19,13 @@ metadata:
   name: zl-wgzp-deployment
   labels: &LABELS # will be assigned to deployment object
     app.kubernetes.io/name: &APP zl-wzgp
-    app.kubernetes.io/version: &VERSION 0.2.2
+    app.kubernetes.io/version: &VERSION 0.2.3
     environment: &ENVIRONMENT production
 # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#deploymentspec-v1-apps
 spec:
   replicas: 1
-  revisionHistoryLimit: 0
+  revisionHistoryLimit: 3 # The number of of last deployments we want to keep in the cluster to make them
+  # active later in case of a problem to be able to switch to them.
   selector:
     # Only pods matching this set of labels will be selected for this deployment. This helps during
     # update. If no pods are found matching, they're created, otherwise they're deleted and new
@@ -52,7 +53,7 @@ spec:
           ports:
             - containerPort: 4000
         - name: *APP
-          image: us.gcr.io/zl-infra-main/zl-wzgp:0.2.2
+          image: us.gcr.io/zl-infra-main/zl-wzgp:0.2.3
           imagePullPolicy: IfNotPresent
           ports:
             - name: &CONTAINER_PORT container-port

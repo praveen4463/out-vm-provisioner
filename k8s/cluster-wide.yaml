@@ -3,14 +3,13 @@
   # cluster should be up and running and known to gcloud/kubectl. Following apps should be installed
   # on cluster:
   # 1. Check if loadBalancerIP is already reserved, if not, do it.
-  # 2. ingress-nginx https://kubernetes.github.io/ingress-nginx/deploy/
+  # 2. ingress-nginx, to deploy first save the intended file from following url
+  # https://kubernetes.github.io/ingress-nginx/deploy/, edit it and add loadBalancerIP to the
+  # load balancer service that is assigned using --publish-service args. This way we will assign our
+  # own static ip
   # 3. cert-manager https://docs.cert-manager.io/en/latest/getting-started/install/kubernetes.html
 
-# https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.45.0/deploy/static/provider/cloud/deploy.yaml
-# The same service that we've installed during the controller installation, to acquire a static ip
-# for controller. Check for any changes, or if there may be changes several times, probably just
-# patch service during installation and assign an IP.
-# https://github.com/kubernetes/ingress-nginx/tree/master/docs/examples/static-ip
+# gets into the ingress controller and configures the data
 apiVersion: v1
 data:
   keep-alive: "600"

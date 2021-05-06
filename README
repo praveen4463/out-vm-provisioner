@@ -21,5 +21,6 @@ mvn -DskipTest=true compile jib:build
 or
 mvn -X -Djib.serialize=true -Djib.console=plain compile jib:build
 
-- Deploy endpoints config: gcloud endpoints services deploy openapi.yaml
+- Deploy endpoints config: (!!make sure gcloud points to intended project before running)
+  : gcloud endpoints services deploy openapi.yaml
 See https://cloud.google.com/endpoints/docs/openapi/get-started-kubernetes#configuring_the_service_name_and_starting_the_service

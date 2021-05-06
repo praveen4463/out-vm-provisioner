@@ -13,8 +13,10 @@
       <loggingEventEnhancer>com.zylitics.wzgp.logging.DefaultEnhancer</loggingEventEnhancer>
     </appender>
     <include resource="org/springframework/boot/logging/logback/defaults.xml" />
-
-    <root level="INFO">
+    <logger name="io.grpc.netty" level="ERROR" />
+    <logger name="io.netty" level="ERROR" />
+    <logger name="org.asynchttpclient.netty" level="ERROR" />
+    <root level="${rootLogLevel:-INFO}">
       <appender-ref ref="STACKDRIVER" />
     </root>
   </springProfile>
@@ -23,7 +25,10 @@
   <springProfile name="!production">
     <include resource="org/springframework/boot/logging/logback/defaults.xml" />
     <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
-    <root level="INFO">
+    <logger name="io.grpc.netty" level="ERROR" />
+    <logger name="io.netty" level="ERROR" />
+    <logger name="org.asynchttpclient.netty" level="ERROR" />
+    <root level="${rootLogLevel:-INFO}">
       <appender-ref ref="CONSOLE" />
 	  </root>
   </springProfile>
