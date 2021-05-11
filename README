@@ -15,12 +15,14 @@ There are three types of endpoints one can use:
 Authentication:
   All external endpoints require authentication for user 'prod-test'.
 
-Process:
-- build docker image via jib:
+build docker image via jib:
 mvn -DskipTest=true compile jib:build
 or
 mvn -X -Djib.serialize=true -Djib.console=plain compile jib:build
 
-- Deploy endpoints config: (!!make sure gcloud points to intended project before running)
-  : gcloud endpoints services deploy openapi.yaml
-See https://cloud.google.com/endpoints/docs/openapi/get-started-kubernetes#configuring_the_service_name_and_starting_the_service
+Process:
+1. Build and push new docker image via jib
+2. Apply new k8s deployment
+3. Deploy endpoints config: (!!make sure gcloud points to intended project before running)
+   gcloud endpoints services deploy openapi.yaml --project=zl-infra-main
+   See https://cloud.google.com/endpoints/docs/openapi/get-started-kubernetes#configuring_the_service_name_and_starting_the_service

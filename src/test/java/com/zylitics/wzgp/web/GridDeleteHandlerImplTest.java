@@ -1,6 +1,7 @@
 package com.zylitics.wzgp.web;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
@@ -79,8 +80,8 @@ class GridDeleteHandlerImplTest {
     
     validateResonse(response);
     
-    verify(executor).blockUntilComplete(operationSessionId, null);
-    verify(executor).blockUntilComplete(operationIsDeleting, null);
+    verify(executor).blockUntilComplete(eq(operationSessionId), anyLong(), anyLong(), isNull());
+    verify(executor).blockUntilComplete(eq(operationIsDeleting), anyLong(), anyLong(), isNull());
   }
   
   @Test
@@ -111,7 +112,7 @@ class GridDeleteHandlerImplTest {
     
     validateResonse(response);
     
-    verify(executor).blockUntilComplete(operationSessionId, null);
+    verify(executor).blockUntilComplete(eq(operationSessionId), anyLong(), anyLong(), isNull());
     
     verify(fingerprintBasedUpdater, never()).updateLabels(instance
         , ImmutableMap.of(ResourceUtil.LABEL_IS_DELETING, "true"), null);
@@ -147,7 +148,7 @@ class GridDeleteHandlerImplTest {
     
     validateResonse(response);
     
-    verify(executor).blockUntilComplete(operationSessionId, null);
+    verify(executor).blockUntilComplete(eq(operationSessionId), anyLong(), anyLong(), isNull());
     
     verify(fingerprintBasedUpdater, never()).updateLabels(instance
         , ImmutableMap.of(ResourceUtil.LABEL_IS_DELETING, "true"), null);
@@ -175,7 +176,7 @@ class GridDeleteHandlerImplTest {
     Operation stopOperation = new Operation().setStatus("RUNNING").setName("op-grid-stop");
     when(computeSrv.stopInstance(GRID_NAME, ZONE, null))
         .thenReturn(stopOperation);
-    when(executor.blockUntilComplete(stopOperation, null))
+    when(executor.blockUntilComplete(eq(stopOperation), anyLong(), anyLong(), isNull()))
         .thenReturn(getOperation(GRID_NAME, ZONE, shouldSucceed));
   }
   
@@ -185,7 +186,7 @@ class GridDeleteHandlerImplTest {
     Operation deleteOperation = new Operation().setStatus("RUNNING").setName("op-grid-delete");
     when(computeSrv.deleteInstance(GRID_NAME, ZONE, null))
         .thenReturn(deleteOperation);
-    when(executor.blockUntilComplete(deleteOperation, null))
+    when(executor.blockUntilComplete(eq(deleteOperation), anyLong(), anyLong(), isNull()))
         .thenReturn(getOperation(GRID_NAME, ZONE, shouldSucceed));
   }
   

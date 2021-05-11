@@ -50,21 +50,30 @@ public class FingerprintBasedUpdater {
    * @return an {@link Operation} of the update process
    * @throws Exception If there is a problem updating
    */
-  public Operation updateLabels(Instance instance, Map<String, String> labels
-      , @Nullable BuildProperty buildProp) throws Exception {
+  public Operation updateLabels(Instance instance,
+                                Map<String, String> labels,
+                                @Nullable BuildProperty buildProp) throws Exception {
     Assert.notNull(instance, "'instance' can't be null");
-    Assert.isTrue(labels.size() > 0, "'labels' can't be empty");
     
     String zoneName = ResourceUtil.nameFromUrl(instance.getZone());
     instance = computeSrv.getInstance(instance.getName(), zoneName, buildProp);
-    
+    return updateLabelsGivenFreshlyFetchedInstance(instance, labels, buildProp);
+  }
+  
+  public Operation updateLabelsGivenFreshlyFetchedInstance(Instance instance,
+                                                            Map<String, String> labels,
+                                                            @Nullable BuildProperty buildProp)
+      throws Exception {
+    Assert.notNull(instance, "'instance' can't be null");
+    Assert.isTrue(labels.size() > 0, "'labels' can't be empty");
+    String zoneName = ResourceUtil.nameFromUrl(instance.getZone());
     // first put instance labels, then requested.
     Map<String, String> mergedLabels = new HashMap<>();
     if (instance.getLabels() != null) {
       mergedLabels.putAll(instance.getLabels());
     }
     mergedLabels.putAll(labels);
-    
+  
     return computeSrv.setLabels(instance.getName(), mergedLabels, zoneName
         , instance.getLabelFingerprint(), buildProp);
   }
@@ -79,22 +88,31 @@ public class FingerprintBasedUpdater {
    * @return an {@link Operation} of the update process
    * @throws Exception If there is a problem updating
    */
-  public Operation updateMetadata(Instance instance, Map<String, String> metadata
-      , @Nullable BuildProperty buildProp) throws Exception {
+  public Operation updateMetadata(Instance instance,
+                                  Map<String, String> metadata,
+                                  @Nullable BuildProperty buildProp) throws Exception {
     Assert.notNull(instance, "'instance' can't be null");
-    Assert.isTrue(metadata.size() > 0, "'metadata' can't be empty");
     
     String zoneName = ResourceUtil.nameFromUrl(instance.getZone());
     instance = computeSrv.getInstance(instance.getName(), zoneName, buildProp);
+    return updateMetadataGivenFreshlyFetchedInstance(instance, metadata, buildProp);
+  }
+  
+  public Operation updateMetadataGivenFreshlyFetchedInstance(Instance instance,
+                                                             Map<String, String> metadata,
+                                                             @Nullable BuildProperty buildProp)
+      throws Exception {
+    Assert.notNull(instance, "'instance' can't be null");
+    Assert.isTrue(metadata.size() > 0, "'metadata' can't be empty");
+    String zoneName = ResourceUtil.nameFromUrl(instance.getZone());
     Metadata gcpMetadata = instance.getMetadata();
-    
     // first put instance metadata, then requested.
     Map<String, String> mergedMetadata = new HashMap<>();
     if (gcpMetadata.getItems() != null) {
       gcpMetadata.getItems().forEach(items -> mergedMetadata.put(items.getKey(), items.getValue()));
     }
     mergedMetadata.putAll(metadata);
-    
+  
     return computeSrv.setMetadata(instance.getName(), mergedMetadata, zoneName
         , gcpMetadata.getFingerprint(), buildProp);
   }

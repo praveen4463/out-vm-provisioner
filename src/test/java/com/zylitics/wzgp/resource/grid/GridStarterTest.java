@@ -1,5 +1,7 @@
 package com.zylitics.wzgp.resource.grid;
 
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
@@ -11,8 +13,6 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -107,7 +107,7 @@ class GridStarterTest {
     // stub executor to process wait completion for operations.
     // we'll mark each operation as 'DONE' just the same as executor would do, and can later check
     // that our named operations (kept here in List) are actually completed via starter.
-    when(executor.blockUntilComplete(any(Operation.class), eq(BUILD_PROP)))
+    when(executor.blockUntilComplete(any(Operation.class), anyLong(), anyLong(), eq(BUILD_PROP)))
         .then(invocation -> {
           Operation operation = invocation.getArgument(0);
           operation.setStatus("DONE");
@@ -165,7 +165,7 @@ class GridStarterTest {
     when(computeSrv.startInstance(GRID_NAME, ZONE, BUILD_PROP))
         .thenReturn(getOperation(GRID_NAME, "startInstance"));
     
-    when(executor.blockUntilComplete(any(Operation.class), eq(BUILD_PROP)))
+    when(executor.blockUntilComplete(any(Operation.class), anyLong(), anyLong(), eq(BUILD_PROP)))
         .then(invocation -> {
           Operation operation = invocation.getArgument(0);
           operation.setStatus("DONE");

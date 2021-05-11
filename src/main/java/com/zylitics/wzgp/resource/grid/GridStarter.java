@@ -2,11 +2,13 @@ package com.zylitics.wzgp.resource.grid;
 
 import static com.zylitics.wzgp.resource.util.ResourceUtil.nameFromUrl;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import com.zylitics.wzgp.model.InstanceStatus;
+import com.zylitics.wzgp.resource.util.ResourceUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
 import com.google.api.client.util.Strings;
@@ -20,6 +22,8 @@ import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 import com.zylitics.wzgp.web.FingerprintBasedUpdater;
 
 public class GridStarter {
+  
+  private static final Logger LOG = LoggerFactory.getLogger(GridStarter.class);
   
   private final ResourceExecutor executor;
   private final ComputeService computeSrv;
@@ -54,24 +58,43 @@ public class GridStarter {
           , gridInstance.toPrettyString()
           , addToException()));
     }
+    long start = System.currentTimeMillis();
     // Before starting the grid, we should update the requested properties of it.
-    List<Optional<Operation>> updateOperations = new ArrayList<>(10);
+    // start update of label and metadata and don't wait as they'll update by the time we're starting
+    // instance
+    Map<String, String> labelsToUpdate = new HashMap<>();
+    labelsToUpdate.put(ResourceUtil.LABEL_LOCKED_BY_BUILD, buildProp.getBuildId());
+    if (gridProp.getCustomLabels() != null) {
+      labelsToUpdate.putAll(gridProp.getCustomLabels());
+    }
+    fingerprintBasedUpdater.updateLabelsGivenFreshlyFetchedInstance(
+        gridInstance,
+        labelsToUpdate,
+        buildProp);
+    if (gridProp.getMetadata() != null && gridProp.getMetadata().size() > 0) {
+      fingerprintBasedUpdater.updateMetadataGivenFreshlyFetchedInstance(
+          gridInstance,
+          gridProp.getMetadata(),
+          buildProp);
+    }
+    // Wait for the operations that needs to be completed before machine starts
+    List<Optional<Operation>> updateOperations = new ArrayList<>(5);
     updateOperations.add(machineTypeUpdateHandler());
     updateOperations.add(serviceAccountUpdateHandler());
-    updateOperations.add(customLabelsUpdateHandler());
-    updateOperations.add(metadataUpdateHandler());
-    // We've started all the updates at ones sequentially, they will most likely complete near
-    // together and THERE MAY NOT BE ANY COMPLETION ORDER, MEANS A METADATA UPDATE CAN HAPPEN BEFORE
-    // LABEL UPDATE, but we'll verify completion of all of them before beginning start.
     for (Optional<Operation> optOperation : updateOperations) {
       if (optOperation.isPresent()) {
-        executor.blockUntilComplete(optOperation.get(), buildProp);
+        executor.blockUntilComplete(optOperation.get(), 500, 10000, buildProp);
       }
     }
-    
-    // All updated, now start grid.
-    Operation start = startInstanceHandler();
-    return new CompletedOperation(executor.blockUntilComplete(start, buildProp));
+    LOG.debug("took {}secs waiting for update op before starting instance",
+        TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - start));
+    // start grid.
+    start = System.currentTimeMillis();
+    Operation startOp = startInstanceHandler();
+    startOp = executor.blockUntilComplete(startOp, 1000, 180 * 1000, buildProp);
+    LOG.debug("took {}secs waiting for instance to start",
+        TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - start));
+    return new CompletedOperation(startOp);
   }
   
   private Operation startInstanceHandler() throws Exception {
@@ -126,30 +149,10 @@ public class GridStarter {
     return Optional.empty();
   }
   
-  private Optional<Operation> customLabelsUpdateHandler() throws Exception {
-    if (gridProp.getCustomLabels() == null || gridProp.getCustomLabels().size() == 0) {
-      return Optional.empty();
-    }
-    
-    return Optional.ofNullable(fingerprintBasedUpdater.updateLabels(gridInstance
-        , gridProp.getCustomLabels()
-        , buildProp));
-  }
-  
-  private Optional<Operation> metadataUpdateHandler() throws Exception {
-    if (gridProp.getMetadata() == null || gridProp.getMetadata().size() == 0) {
-      return Optional.empty();
-    }
-    
-    return Optional.ofNullable(fingerprintBasedUpdater.updateMetadata(gridInstance
-        , gridProp.getMetadata()
-        , buildProp));
-  }
-  
   private String addToException() {
     StringBuilder sb = new StringBuilder();
     if (buildProp != null) {
-      sb.append(buildProp.toString());
+      sb.append(buildProp);
     }
     return sb.toString();
   }

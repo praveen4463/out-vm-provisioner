@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -85,7 +86,7 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
       V out = objToExecute.execute();
       if (out == null) {
         LOG.error("Got null while invoking execute on {} {}"
-            , objToExecute.toString()
+            , objToExecute
             , addToException(buildProp));
       }
       return out;
@@ -96,12 +97,12 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
       StringBuilder objectInfo = new StringBuilder();
       Object jsonContent = objToExecute.getJsonContent();
       if(jsonContent != null) {
-        objectInfo.append(jsonContent.toString());
+        objectInfo.append(jsonContent);
       }
-      objectInfo.append(objToExecute.toString());
+      objectInfo.append(objToExecute);
       LOG.error("An IOException occurred while invoking execute on {}. From inner"
           + " HttpResponseException: Status code= {}, Status message= {} {}"
-          , objectInfo.toString()
+          , objectInfo
           , httpExp.getStatusCode()
           , httpExp.getStatusMessage()
           , addToException(buildProp));
@@ -127,13 +128,15 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
       , Function<String, T> generateObjToExecutePerZone
       , @Nullable BuildProperty buildProp) throws Exception {
     Assert.notNull(objToExecute, "'objToExecute' can't be null.");
-    
+  
+    long start = System.currentTimeMillis();
     // first execute the input object to get an Operation. Use method that will re-attempt in case
     // getting just the 'Operation' raises exceptions.
     Operation operation = executeWithReattempt(objToExecute, buildProp);
     // Now we've the Operation, let's wait for it's completion and see how it goes.
-    operation = blockUntilComplete(operation, buildProp);
-    
+    operation = blockUntilComplete(operation, 2000, 300 * 1000, buildProp);
+    LOG.debug("took {}secs waiting for new grid creation before reattempt",
+        TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - start));
     if (ResourceUtil.isOperationSuccess(operation)) {
       return new CompletedOperation(operation);
     }
@@ -153,6 +156,7 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
       return new CompletedOperation(operation);
     }
   
+    LOG.debug("Going to perform zonal reattempts");
     // Try if we should reattempt in another zone.
     // Reaching here means our request failed, check for error codes to reattempt in another zone.
     for (Operation.Error.Errors err : operation.getError().getErrors()) {
@@ -192,7 +196,7 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
       @Nullable BuildProperty buildProp,
       @Nullable String zoneToExclude) throws Exception {
     Assert.notNull(generateObjToExecutePerZone, "'generateObjToExecutePerZone' can't be null.");
-    
+    LOG.debug("excluded zone {}", zoneToExclude);
     Random random = new Random();
     int attempts = 0;
     List<String> alternateZones = new ArrayList<>(apiCoreProps.getGceReattemptZones());
@@ -202,15 +206,19 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
     int totalAlternateZones = alternateZones.size();
     Preconditions.checkArgument(totalAlternateZones > 0, "No zone found to reattempt");
     Operation operation = null;
+    int allowedReattempts = Math.min(ZONAL_ISSUES_MAX_REATTEMPTS, totalAlternateZones);
     
-    while (attempts < Math.min(ZONAL_ISSUES_MAX_REATTEMPTS, totalAlternateZones)) {
+    while (attempts < allowedReattempts) {
       // increment in beginning so we don't set it at multiple places that are continuing in loop.
       attempts++;
       String randomZone = alternateZones.get(random.nextInt(totalAlternateZones));
+      LOG.debug("reattempting in zone {}, attempt: {}", randomZone, attempts);
+      long start = System.currentTimeMillis();
       T objToExecute = generateObjToExecutePerZone.apply(randomZone);
       operation = executeWithReattempt(objToExecute, buildProp);
-      operation = blockUntilComplete(operation, buildProp);
-      
+      operation = blockUntilComplete(operation, 2000, 300 * 1000, buildProp);
+      LOG.debug("took {}secs reattempting in zone {}",
+          TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - start), randomZone);
       if (ResourceUtil.isOperationSuccess(operation)) {
         LOG.debug("Operation {} succeeded on attempt #{}"
             , operation.toPrettyString()
@@ -245,17 +253,20 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
   }
   
   @Override
-  public Operation blockUntilComplete(Operation operation
-      , @Nullable BuildProperty buildProp) throws Exception {
-    long pollInterval = 10 * 1000;
-    return blockUntilComplete(operation, pollInterval, Clock.systemUTC(), buildProp);
+  public Operation blockUntilComplete(Operation operation,
+                                      long pollIntervalMillis,
+                                      long timeoutMillis,
+                                      @Nullable BuildProperty buildProp) throws Exception {
+    return blockUntilComplete(operation, pollIntervalMillis, timeoutMillis, Clock.systemUTC(),
+        buildProp);
   }
   
   @VisibleForTesting
-  public Operation blockUntilComplete(Operation operation
-      , long pollInterval
-      , Clock clock
-      , @Nullable BuildProperty buildProp) throws Exception {
+  public Operation blockUntilComplete(Operation operation,
+                                      long pollInterval,
+                                      long timeoutMillis,
+                                      Clock clock,
+                                      @Nullable BuildProperty buildProp) throws Exception {
     Assert.notNull(operation, "Operation can't be null");
     
     Instant start = clock.instant();
@@ -265,7 +276,7 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
     
     while (!status.equals("DONE")) {
       Thread.sleep(pollInterval);
-      Instant elapsed = clock.instant().minusMillis(apiCoreProps.getGceTimeoutMillis());
+      Instant elapsed = clock.instant().minusMillis(timeoutMillis);
       if (elapsed.isAfter(start)) {
         throw new TimeoutException(String.format("Timed out waiting for Operation to complete."
             + " Operation: %s %s"
@@ -287,7 +298,7 @@ public class ResourceExecutorImpl implements ResourceExecutor, ResourceReattempt
   private String addToException(BuildProperty buildProp) {
     StringBuilder sb = new StringBuilder();
     if (buildProp != null) {
-      sb.append(buildProp.toString());
+      sb.append(buildProp);
     }
     return sb.toString();
   }

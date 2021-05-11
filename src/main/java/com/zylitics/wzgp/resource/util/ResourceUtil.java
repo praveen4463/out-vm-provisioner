@@ -13,7 +13,6 @@ import com.google.api.services.compute.model.Operation;
 public class ResourceUtil {
   
   public static final String LABEL_LOCKED_BY_BUILD = "locked-by-build";
-  public static final String LABEL_LOCKED_BY_BUILD_DEFAULT_VALUE = "none";
   public static final String LABEL_IS_DELETING = "is-deleting";
   public static final String LABEL_SOURCE_FAMILY = "source-image-family";
   public static final String LABEL_STOPPED_INSTANCE_CUSTOM_IDENTIFIER =

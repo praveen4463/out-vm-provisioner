@@ -1,9 +1,9 @@
 package com.zylitics.wzgp.web;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.mockito.ArgumentMatchers.any;
 
 import java.math.BigInteger;
 import java.util.Map;
@@ -210,7 +210,7 @@ class GridGenerateHandlerImplTest {
     Operation lockGridOperation = new Operation().setStatus("RUNNING");
     when(fingerprintBasedUpdater.updateLabels(gridInstance, lockGridLabel, BUILD_PROP))
         .thenReturn(lockGridOperation);
-    when(executor.blockUntilComplete(lockGridOperation, BUILD_PROP))
+    when(executor.blockUntilComplete(eq(lockGridOperation), anyLong(), anyLong(), BUILD_PROP))
         .then(inv -> {
           lockGridOperation.setStatus("DONE");
           return lockGridOperation;

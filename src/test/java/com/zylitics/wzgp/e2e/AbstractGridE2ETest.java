@@ -77,7 +77,7 @@ abstract class AbstractGridE2ETest {
   //fixed search parameters and their predefined values for stopped instance. we'll verify
   // the image we're using contains these as label key-value. 
   private static final Map<String, String> FIXED_SEARCH_PARAMS = ImmutableMap.of(
-      "os", "win7",
+      "os", "win8_1",
       "browser1", "chrome",
       "shots", "true"
     );
@@ -115,11 +115,62 @@ abstract class AbstractGridE2ETest {
     // only when the class is instantiated. 
     if (!imageLabelsVerified) {
       Image image = computeSrv.getImageFromFamily(SOURCE_IMAGE_FAMILY, null);
+      assertNotNull(image);
+      assertNotNull(image.getLabels());
+      LOG.debug("labels are {}", image.getLabels().toString());
       assertTrue(image.getLabels().entrySet().containsAll(FIXED_SEARCH_PARAMS.entrySet()),
           "This image family " + SOURCE_IMAGE_FAMILY + " doesn't contain labels"
               + " that match required search parameters");
       imageLabelsVerified = true;
     }
+  }
+  
+  @Test
+  void markVMAsAvailable() throws Exception {
+    String name = "";
+    String zone = "";
+    ResponseGridDelete response = client.delete()
+        .uri(uriBuilder -> uriBuilder.path(API_BASE_PATH)
+            .pathSegment("{gridName}")
+            .queryParam("requireRunningVM", "true")
+            .build(apiVersion, zone, name))
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus().isOk()
+        .expectHeader().contentType(MediaType.APPLICATION_JSON)
+        .expectBody(ResponseGridDelete.class)
+        .returnResult().getResponseBody();
+  
+    assertNotNull(response);
+    assertEquals(ResponseStatus.SUCCESS.name(), response.getStatus());
+  }
+  
+  @Test
+  void getRunningInstance() {
+    String buildId = getNewBuildId();
+    LOG.info("Going to get a running vm, buildId {}", buildId);
+    RequestGridCreate request = new RequestGridCreate();
+    request.getBuildProperties().setBuildId(buildId);
+    GridProperties gridProps = request.getGridProperties();
+    gridProps.setMetadata(ImmutableMap.of(
+        "no-start-shut-script", "1",
+        "time-zone-with-dst", "Alaskan Standard Time_dstoff",
+        "build-id", buildId
+    ));
+    gridProps.setCustomLabels(ImmutableMap.of(
+        "build-id", buildId
+    ));
+    ResourceSearchParams searchParams = request.getResourceSearchParams();
+    searchParams.setOS("win10");
+    searchParams.setBrowser("firefox");
+    searchParams.setShots(true);
+    long start = System.currentTimeMillis();
+    ResponseGridCreate response = getSuccessfulCreateResponse(request, false, false, true);
+    LOG.debug("took {}secs waiting for to get a running instance",
+        TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - start));
+    LOG.debug("instance is {}, zone is {}", response.getGridName(), response.getZone());
+    assertEquals("", response.getGridName());
+    assertEquals(ZONE, response.getZone());
   }
   
   @Test
@@ -138,7 +189,8 @@ abstract class AbstractGridE2ETest {
     RequestGridCreate requestCreate = getCreateRequest(buildIdCreate, machineType, null
         , customLabels, metadata, false);
     
-    ResponseGridCreate responseCreate = getSuccessfulCreateResponse(requestCreate, true, true);
+    ResponseGridCreate responseCreate = getSuccessfulCreateResponse(requestCreate, true, true,
+        false);
     
     String generatedGridName = responseCreate.getGridName();
     String generatedGridZone = responseCreate.getZone();
@@ -251,7 +303,8 @@ abstract class AbstractGridE2ETest {
       RequestGridCreate requestStart = getCreateRequest(buildIdStart, machineTypeStart
           , serviceAccountStart, gridStartCustomLabels, gridStartMetadata, true);
       
-      ResponseGridCreate responseStart = getSuccessfulCreateResponse(requestStart, false, false);
+      ResponseGridCreate responseStart = getSuccessfulCreateResponse(requestStart, false, false,
+          false);
       
       assertEquals(generatedGridName, responseStart.getGridName());
       assertEquals(generatedGridZone, responseStart.getZone());
@@ -402,7 +455,7 @@ abstract class AbstractGridE2ETest {
       RequestGridCreate request = getCreateRequest(buildId, machineType, null
           , ImmutableMap.of(ResourceUtil.LABEL_IS_PRODUCTION_INSTANCE, "false"), metadata, true);
       
-      ResponseGridCreate response = getSuccessfulCreateResponse(request, noRush, false);
+      ResponseGridCreate response = getSuccessfulCreateResponse(request, noRush, false, false);
       
       String generatedGridName = response.getGridName();
       String generatedGridZone = response.getZone();
@@ -443,7 +496,7 @@ abstract class AbstractGridE2ETest {
     RequestGridCreate request =
         getCreateRequest(buildId, machineType, null, customLabels, metadata, false);
     
-    ResponseGridCreate response = getSuccessfulCreateResponse(request, true, true);
+    ResponseGridCreate response = getSuccessfulCreateResponse(request, true, true, false);
     
     String generatedGridName = response.getGridName();
     String generatedGridZone = response.getZone();
@@ -483,10 +536,10 @@ abstract class AbstractGridE2ETest {
             .queryParam("noRush", noRush)
             .queryParam("sessionId", sessionId)
             .build(apiVersion, gridZone, gridName))
-        .accept(MediaType.APPLICATION_JSON_UTF8)
+        .accept(MediaType.APPLICATION_JSON)
         .exchange()
         .expectStatus().isOk()
-        .expectHeader().contentType(MediaType.APPLICATION_JSON_UTF8)
+        .expectHeader().contentType(MediaType.APPLICATION_JSON)
         .expectBody(ResponseGridDelete.class)
         .returnResult().getResponseBody();
     
@@ -565,7 +618,7 @@ abstract class AbstractGridE2ETest {
   }
   
   private ResponseGridCreate getSuccessfulCreateResponse(RequestGridCreate request, boolean noRush
-      , boolean addSourceImageFamily) {
+      , boolean addSourceImageFamily, boolean requireRunningVM) {
     ResponseGridCreate response = client.post()
         .uri(uriBuilder -> {
           UriBuilder builder = uriBuilder.path(API_BASE_PATH)
@@ -573,14 +626,15 @@ abstract class AbstractGridE2ETest {
           if (addSourceImageFamily) {
             builder.queryParam("sourceImageFamily", SOURCE_IMAGE_FAMILY);
           }
+          builder.queryParam("requireRunningVM", requireRunningVM);
           return builder.build(apiVersion, ZONE);
         })
-        .accept(MediaType.APPLICATION_JSON_UTF8)
-        .contentType(MediaType.APPLICATION_JSON_UTF8)
-        .syncBody(request)
+        .accept(MediaType.APPLICATION_JSON)
+        .contentType(MediaType.APPLICATION_JSON)
+        .bodyValue(request)
         .exchange()
         .expectStatus().is2xxSuccessful()
-        .expectHeader().contentType(MediaType.APPLICATION_JSON_UTF8)
+        .expectHeader().contentType(MediaType.APPLICATION_JSON)
         .expectBody(ResponseGridCreate.class)
         .returnResult().getResponseBody();
     

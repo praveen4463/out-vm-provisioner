@@ -6,6 +6,7 @@ import java.math.BigInteger;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import com.zylitics.wzgp.model.InstanceStatus;
 import org.slf4j.Logger;
@@ -89,29 +90,31 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
     
     while (attempts < SEARCH_MAX_REATTEMPTS) {
       attempts++;
-      
+  
+      LOG.debug("grid start handler, going to find stopped instances in zone{}, attempt #{}",
+          zone, attempts);
+  
+      long start = System.currentTimeMillis();
       Instance gridInstance = searchStoppedInstance();
-      
-      String existingBuild = FOUND_INSTANCES.get(gridInstance.getId());
+      LOG.debug("took {}secs finding stopped instances",
+          TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - start));
+  
+      String existingBuild = FOUND_INSTANCES.putIfAbsent(gridInstance.getId(),
+          buildProp.getBuildId());
       if (existingBuild != null) {
-        LOG.info("The found stopped instance {} was reserved by another build {}, attempt #{} {}"
-            , gridInstance.getName(), existingBuild, attempts, addToException());
-        continue;
-      }
-      
-      existingBuild = FOUND_INSTANCES.putIfAbsent(gridInstance.getId(), buildProp.getBuildId());
-      if (existingBuild != null) {
-        LOG.info("The found stopped instance {} was acquired by a concurrent request with build"
-            + " {} as our put failed, attempt #{} {}"
-            , gridInstance.getName(), existingBuild, attempts, addToException());
+        LOG.info("The found stopped instance {} was acquired by a concurrent request with build" +
+                " {} as our put failed, attempt #{} {}",
+            gridInstance.getName(), existingBuild, attempts, addToException());
         continue;
       }
       
       // 'putIfAbsent' was successful, go ahead.
+      // LOG the searched instance against build info so that if any error occurs during startup
+      // even if we don't know what instance was found against the build seeing the logs, there is
+      // this information available.
+      LOG.info("Build {} acquired stopped instance {} and going to start it", addToException(),
+          gridInstance.getName());
       try {
-        onStoppedGridFoundEventHandler(gridInstance);  // lock instance among other things.
-        // Note: if there is a problem in starting grid, let's not reset instance locking label
-        // and investigate the issue and let instance not available for future requests.
         return startGrid(gridInstance);
       } finally {
         // we started the grid instance, lets remove our build from the map, so that once we're done
@@ -143,16 +146,6 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
     return instance.get();
   }
   
-  private void onStoppedGridFoundEventHandler(Instance gridInstance) throws Exception {
-    // LOG the searched instance against build info so that if any error occurs during startup
-    // even if we don't know what instance was found against the build seeing the logs, there is
-    // this information available.
-    LOG.info("Build {} acquired stopped instance {} and going to start it", addToException()
-        , gridInstance.toPrettyString());
-    
-    lockGridInstance(gridInstance);
-  }
-  
   private ResponseEntity<ResponseGridCreate> startGrid(Instance gridInstance) throws Exception {
     GridStarter starter = new GridStarter(executor
         , computeSrv
@@ -160,9 +153,8 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
         , buildProp
         , request.getGridProperties()
         , gridInstance);
-    
+  
     CompletedOperation completedOperation = starter.start();
-    
     Operation operation = completedOperation.get();
     if (!ResourceUtil.isOperationSuccess(operation)) {
       // TODO: if we see this in logs, look into the root cause and decide whether we should delete
@@ -174,11 +166,14 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
       throw new GridStartHandlerFailureException(
           "Couldn't start stopped grid instance", new GridNotStartedException());  // give up
     }
-    
+  
+    long start = System.currentTimeMillis();
     // fetch fresh to see updated values made by starter.
     gridInstance = computeSrv.getInstance(gridInstance.getName()
         , nameFromUrl(gridInstance.getZone())
         , buildProp);
+    LOG.debug("took {}secs fetching fresh after starting a found stopped instance",
+        TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - start));
     LOG.debug("started a grid instance {}:{} {}", gridInstance.getName(), gridInstance.getZone()
         , addToException());
     onGridStartEventHandler(gridInstance);
@@ -195,6 +190,7 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
     // TODO: we can remove this check later sometime if there is no such exception in logs as this
     //  shouldn't happen.
     //  get the current value of lock-by-build label
+    long start = System.currentTimeMillis();
     String lockedByBuild = gridInstance.getLabels().get(ResourceUtil.LABEL_LOCKED_BY_BUILD);
     // see whether it holds our build.
     if (Strings.isNullOrEmpty(lockedByBuild) || !lockedByBuild.equals(buildProp.getBuildId())) {
@@ -238,6 +234,8 @@ public class GridStartHandlerImpl extends AbstractGridCreateHandler implements G
       throw new GridStartHandlerFailureException(
           "Grid instance found not running after start completed.", new GridNotRunningException());
     }
+    LOG.debug("took {}secs in onGridStartEventHandler of started instance",
+        TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - start));
   }
   
   public static class Factory implements GridStartHandler.Factory {

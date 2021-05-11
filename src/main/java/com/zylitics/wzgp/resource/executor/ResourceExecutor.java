@@ -48,13 +48,29 @@ public interface ResourceExecutor {
       , @Nullable BuildProperty buildProp) throws Exception;
   
   /**
-   * Wait until {@code Operation} is completed.
+   * Block execution until an {@code Operation} is completed by repeatedly polling the status of
+   * operation with compute api.
    * @param operation the Operation returned by the original request
+   * @param pollIntervalMillis Polling interval in milliseconds. This has to be given very carefully
+   *                           depending on the estimated time the operation may take to complete.
+   *                           If this is too large, this method may block unnecessarily to longer
+   *                           time even though the operation may have completed earlier.
+   *                           It's important to choose a pooling interval that doesn't block
+   *                           for longer periods in between pools. For instance, given 2 seconds time
+   *                           for an op and would complete in 2 sec 100 millisecond, the second
+   *                           poll may block the thread for 1sec 900 millis even though the op is
+   *                           done.
+   *                           On the other hand, if it's too low for an operation that may take long
+   *                           time, more computing power and network bandwidth could be wasted in
+   *                           repeated polling.
+   * @param timeoutMillis Timeout duration in milliseconds for this operation's status polling
    * @param buildProp mainly used to append the build information with any logged exception.
    * @return Operation
    * @throws TimeoutException if we timed out waiting for the operation to complete
    * @throws Exception if we had trouble connecting
    */
-  Operation blockUntilComplete(Operation operation
-      , @Nullable BuildProperty buildProp) throws Exception;
+  Operation blockUntilComplete(Operation operation,
+                               long pollIntervalMillis,
+                               long timeoutMillis,
+                               @Nullable BuildProperty buildProp) throws Exception;
 }

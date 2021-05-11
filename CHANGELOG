@@ -15,3 +15,14 @@ v0.2.3
 * fixed logback so that project's root level could be changed
 * In grid generator, when custom labels or metadata aren't given, don't try assigning them
 * updating revision history in deployment to 3
+**********
+v0.3.0
+**********
+* Fixes in all type of handlers for speed improvements.
+* There was a bug in executor that it was having a poll time of 10 sec for all type of operation
+  status polling even if it is just a label update. This poll time delayed every operation. The
+  timeout was also same for all operation. This is now changed and every resource decide it's
+  own poll and timeout value.
+* Tests are broken and not yet fixed. I am thinking not to fix them as I will rewrite the whole
+  api soon. For now i will just fix all the integration tests asap.
+* added profiling to all the processes

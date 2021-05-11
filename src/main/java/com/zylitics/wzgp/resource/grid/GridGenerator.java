@@ -83,9 +83,14 @@ public class GridGenerator {
     } else {
       tags = gridDefault.getTags();
     }
+    Map<String, String> customLabels = new HashMap<>();
+    customLabels.put(ResourceUtil.LABEL_LOCKED_BY_BUILD, buildProp.getBuildId());
+    if (gridProp.getCustomLabels() != null) {
+      customLabels.putAll(gridProp.getCustomLabels());
+    }
     Map<String, String> labels = buildGridLabels(sourceImage
         , gridDefault.getLabels()
-        , gridProp.getCustomLabels()
+        , customLabels
         , gridDefault.getImageSpecificLabelsKey());
     Map<String, String> metadata = mergedMetadata();
     

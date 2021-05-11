@@ -2,6 +2,7 @@ package com.zylitics.wzgp.e2e;
 
 import java.time.Duration;
 
+import com.google.common.base.Charsets;
 import com.zylitics.wzgp.test.util.AuthUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -9,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.core.env.Environment;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
@@ -82,8 +84,9 @@ class ProductionE2ETest extends AbstractGridE2ETest {
     }
     
     client = WebTestClient.bindToServer().baseUrl(PRODUCTION_API_ROOT_URL)
-        .defaultHeader(AuthUtil.AUTHORIZATION,
-            AuthUtil.getBasicAuthHeaderValue(WZGP_AUTH_USER, secret))
+        .defaultHeaders(httpHeaders ->
+            httpHeaders.setBasicAuth(HttpHeaders.encodeBasicAuth(WZGP_AUTH_USER,
+                secret, Charsets.UTF_8)))
         .responseTimeout(Duration.ofMinutes(10)).build();
     apiVersion = PRODUCTION_API_VERSION;
     super.env = env;

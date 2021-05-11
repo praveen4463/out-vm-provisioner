@@ -3,6 +3,7 @@ package com.zylitics.wzgp.web;
 import static com.zylitics.wzgp.resource.util.ResourceUtil.nameFromUrl;
 
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +26,6 @@ import com.zylitics.wzgp.resource.grid.GridGenerator;
 import com.zylitics.wzgp.resource.search.ResourceSearch;
 import com.zylitics.wzgp.resource.util.ResourceUtil;
 import com.zylitics.wzgp.web.exceptions.GridNotCreatedException;
-import com.zylitics.wzgp.web.exceptions.GridNotRunningException;
 import com.zylitics.wzgp.web.exceptions.ImageNotFoundException;
 
 public class GridGenerateHandlerImpl extends AbstractGridCreateHandler
@@ -75,6 +75,7 @@ public class GridGenerateHandlerImpl extends AbstractGridCreateHandler
   }
   
   private Image searchImage() throws Exception {
+    long start = System.currentTimeMillis();
     Optional<Image> image = search.searchImage(request.getResourceSearchParams(), buildProp);
     if (!image.isPresent()) {
       throw new ImageNotFoundException(
@@ -82,6 +83,8 @@ public class GridGenerateHandlerImpl extends AbstractGridCreateHandler
           , request.getResourceSearchParams().toString()
           , addToException()));
     }
+    LOG.debug("took {}secs finding an image",
+        TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - start));
     return image.get();
   }
   
@@ -92,6 +95,7 @@ public class GridGenerateHandlerImpl extends AbstractGridCreateHandler
         , buildProp
         , request.getGridProperties()
         , image);
+    long start = System.currentTimeMillis();
     CompletedOperation completedOperation = generator.create(zone);
     Operation operation = completedOperation.get();
     if (!ResourceUtil.isOperationSuccess(operation)) {
@@ -101,6 +105,9 @@ public class GridGenerateHandlerImpl extends AbstractGridCreateHandler
           , operation.toPrettyString()
           , addToException()));
     }
+    LOG.debug("took {}secs creating new grid",
+        TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - start));
+    start = System.currentTimeMillis();
     // get the created grid instance
     Instance gridInstance = computeSrv.getInstance(
         nameFromUrl(operation.getTargetLink())
@@ -108,26 +115,12 @@ public class GridGenerateHandlerImpl extends AbstractGridCreateHandler
         , buildProp);
     LOG.debug("generated a new grid {}:{} {}", gridInstance.getName(), gridInstance.getZone()
         , addToException());
-    onGridGeneratedEventHandler(gridInstance);
-    
+    LOG.debug("took {}secs fetching new grid",
+        TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - start));
     ResponseGridCreate response = prepareResponse(gridInstance, HttpStatus.CREATED);
     return ResponseEntity
         .status(response.getHttpStatusCode())
         .body(response);
-  }
-  
-  private void onGridGeneratedEventHandler(Instance gridInstance) throws Exception {
-    // label buildId to the created grid instance
-    lockGridInstance(gridInstance);
-    // verify the grid is running and there's nothing wrong
-    if (isNotRunning(gridInstance)) {
-      // shouldn't happen
-      throw new GridNotRunningException(
-          String.format("Grid instance found not running even after the operation"
-          + " completed. grid instance: %s %s"
-              , gridInstance.toPrettyString()
-              , addToException()));
-    }
   }
   
   public static class Factory implements GridGenerateHandler.Factory {

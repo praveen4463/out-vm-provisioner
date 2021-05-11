@@ -124,6 +124,7 @@ public class GridController {
     
     // get a running instance if that's needed
     if (requireRunningVM) {
+      LOG.debug("trying to get a running instance");
       GridGetRunningHandler getRunningHandler = gridGetRunningHandlerFactory.create(apiCoreProps
           , executor
           , computeSrv
@@ -142,7 +143,8 @@ public class GridController {
         // go on to find a stopped one
       }
     }
-    
+  
+    LOG.debug("trying to get a stopped instance");
     // find a stopped instance and start it.
     GridStartHandler startHandler = gridStartHandlerFactory.create(apiCoreProps
         , executor

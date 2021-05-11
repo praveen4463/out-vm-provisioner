@@ -5,9 +5,9 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.zylitics</groupId>
   <artifactId>zl-wzgp</artifactId>
-  <!-- TODO: !!! This version is used in these places, kubernetes deployment files, image names in deployment files,
-       openapi specification. Once updated, change all those places too. !!! -->
-  <version>0.2.3</version>
+  <!-- Note: !!! This version is used in these places, kubernetes deployment files, image names in deployment files,
+        openapi specification. Once updated, change all those places too. !!! -->
+  <version>0.3.0-SNAPSHOT</version>
   <name>zl-wzgp</name>
   <url>http://maven.apache.org</url>
   <properties>

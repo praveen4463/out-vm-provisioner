@@ -309,7 +309,7 @@ class ResourceExecutorImplTest {
                 .when(executor).executeWithReattempt(any(ZoneOperations.Get.class), eq(BUILD_PROP));
             
             Operation completedOperation = executor.blockUntilComplete(
-                getOpForStatusCheck("PENDING"), 0, fixedClock, BUILD_PROP);
+                getOpForStatusCheck("PENDING"), 0, 0, fixedClock, BUILD_PROP);
             assertEquals("DONE", completedOperation.getStatus());
           }),
           
@@ -334,7 +334,7 @@ class ResourceExecutorImplTest {
                 .when(executor).executeWithReattempt(any(ZoneOperations.Get.class), eq(BUILD_PROP));
             
             assertThrows(TimeoutException.class, () -> executor.blockUntilComplete(
-                getOpForStatusCheck("PENDING"), 0, flexiClock, BUILD_PROP));
+                getOpForStatusCheck("PENDING"), 0, 0, flexiClock, BUILD_PROP));
           })
         );
   }

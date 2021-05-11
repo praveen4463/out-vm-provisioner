@@ -1,6 +1,5 @@
 package com.zylitics.wzgp.web;
 
-import static com.zylitics.wzgp.resource.util.ResourceUtil.LABEL_LOCKED_BY_BUILD_DEFAULT_VALUE;
 import static com.zylitics.wzgp.resource.util.ResourceUtil.nameFromUrl;
 
 import com.google.api.services.compute.model.NetworkInterface;
@@ -8,8 +7,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.util.Assert;
 
 import com.google.api.services.compute.model.Instance;
-import com.google.api.services.compute.model.Operation;
-import com.google.common.collect.ImmutableMap;
 import com.zylitics.wzgp.http.RequestGridCreate;
 import com.zylitics.wzgp.http.ResponseGridCreate;
 import com.zylitics.wzgp.http.ResponseStatus;
@@ -18,10 +15,9 @@ import com.zylitics.wzgp.resource.BuildProperty;
 import com.zylitics.wzgp.resource.compute.ComputeService;
 import com.zylitics.wzgp.resource.executor.ResourceExecutor;
 import com.zylitics.wzgp.resource.search.ResourceSearch;
-import com.zylitics.wzgp.resource.util.ResourceUtil;
 
 abstract class AbstractGridCreateHandler extends AbstractGridHandler {
-
+  
   final ResourceSearch search;
   final RequestGridCreate request;
   final BuildProperty buildProp;
@@ -56,17 +52,6 @@ abstract class AbstractGridCreateHandler extends AbstractGridHandler {
     return response;
   }
   
-  void lockGridInstance(Instance gridInstance) throws Exception {
-    String lockedByBuild = gridInstance.getLabels().get(ResourceUtil.LABEL_LOCKED_BY_BUILD);
-    if (!lockedByBuild.equals(LABEL_LOCKED_BY_BUILD_DEFAULT_VALUE)) {
-      throw new RuntimeException("Couldn't lock instance, it's locked by: " + lockedByBuild +
-          ", instance: " + gridInstance.toPrettyString() + " " + addToException());
-    }
-    Operation operation = fingerprintBasedUpdater.updateLabels(gridInstance
-        , ImmutableMap.of(ResourceUtil.LABEL_LOCKED_BY_BUILD, buildProp.getBuildId()), buildProp);
-    executor.blockUntilComplete(operation, buildProp);
-  }
-  
   boolean isNotRunning(Instance gridInstance) {
     return !gridInstance.getStatus().equals("RUNNING");
   }
@@ -74,7 +59,7 @@ abstract class AbstractGridCreateHandler extends AbstractGridHandler {
   String addToException() {
     StringBuilder sb = new StringBuilder();
     if (buildProp != null) {
-      sb.append(buildProp.toString());
+      sb.append(buildProp);
     }
     return sb.toString();
   }

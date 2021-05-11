@@ -2,6 +2,7 @@ package com.zylitics.wzgp.web;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
@@ -402,7 +403,7 @@ class GridStartHandlerImplTest {
     Operation startOperation = new Operation().setStatus("RUNNING");
     when(computeSrv.startInstance(gridName, ZONE, buildProp))
         .thenReturn(startOperation);
-    when(executor.blockUntilComplete(startOperation, buildProp))
+    when(executor.blockUntilComplete(eq(startOperation), anyLong(), anyLong(), buildProp))
         .thenReturn(getOperation(gridName, ZONE, shouldSucceed));
   }
   
