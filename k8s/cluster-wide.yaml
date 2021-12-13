@@ -87,3 +87,30 @@ spec:
     name: letsencrypt-prod
     kind: ClusterIssuer
 ---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: zl-k8s-out-cert
+  annotations:
+    cert-manager.io/issue-temporary-certificate: "true"
+    acme.cert-manager.io/http01-edit-in-place: "true"
+spec:
+  secretName: zl-k8s-out-cert
+  # we're giving a list of hosts that will have the same certificate that will be stored in
+  # following secret. all hosts here should be pointing to the same load-balancer-ip.
+  # add more hosts here, if we send the same hosts more than 5 times on prod env to let's encrypt,
+  # you will be blocked for a week, so take care using prod env.
+  dnsNames:
+    - api.outomated.com
+  issuerRef:
+    # when you delete cluster and
+    # create a new, cert-manager sends a new certificate req to letsencrypt, if the issuer is prod,
+    # this can be done only 5 times a week unless the hostnames in the list are different or its a
+    # renewal (happens only when the last issued certificate has reached expiry date otherwise its
+    # treated as duplicate which limits to 5). Remember that staging env is just to test whether
+    # cert can be issued correctly and isn't a valid CA so you can't use https. While debugging, its
+    #  better to access app under http. The limit is imposed per host.
+    # https://letsencrypt.org/docs/rate-limits/
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+---
