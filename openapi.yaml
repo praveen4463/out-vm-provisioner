@@ -9,7 +9,7 @@ info:
   title: "Windows Zylitics Grid Provisioner"
   # This version no. is just to showing in the console and has no affect on functionality, although it should be
   # updated whenever production version is updated.
-  version: "0.3.0"
+  version: "0.3.1"
 host: "wzgp.api.zylitics.io"
 basePath: "/beta"
 schemes:

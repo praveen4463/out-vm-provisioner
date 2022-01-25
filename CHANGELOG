@@ -26,3 +26,11 @@ v0.3.0
 * Tests are broken and not yet fixed. I am thinking not to fix them as I will rewrite the whole
   api soon. For now i will just fix all the integration tests asap.
 * added profiling to all the processes
+**********
+v0.3.1
+**********
+* On vm creation, either create new or find a running. Finding and starting stop instances is removed
+  because there is no value in keeping stopped instance. They take almost the same time to start as
+  a new one and also since CPU's are released when stopped, if there is no capacity in the zone, even
+  a stopped VM will not start.
+* On deletion, either delete or just free up VM. No stop.

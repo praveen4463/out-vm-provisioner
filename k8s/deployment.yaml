@@ -19,7 +19,7 @@ metadata:
   name: zl-wgzp-deployment
   labels: &LABELS # will be assigned to deployment object
     app.kubernetes.io/name: &APP zl-wzgp
-    app.kubernetes.io/version: &VERSION 0.3.0
+    app.kubernetes.io/version: &VERSION 0.3.1
     environment: &ENVIRONMENT production
 # https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#deploymentspec-v1-apps
 spec:
@@ -53,7 +53,7 @@ spec:
           ports:
             - containerPort: 4000
         - name: *APP
-          image: us.gcr.io/zl-infra-main/zl-wzgp:0.3.0
+          image: us.gcr.io/zl-infra-main/zl-wzgp:0.3.1
           imagePullPolicy: IfNotPresent
           ports:
             - name: &CONTAINER_PORT container-port

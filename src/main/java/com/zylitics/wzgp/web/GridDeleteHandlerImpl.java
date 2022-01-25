@@ -49,7 +49,7 @@ public class GridDeleteHandlerImpl extends AbstractGridHandler implements GridDe
     boolean labelIsDeletingTrue =
         Boolean.parseBoolean(gridInstance.getLabels().get(ResourceUtil.LABEL_IS_DELETING));
     
-    if (noRush || labelIsDeletingTrue) {
+    if (noRush || labelIsDeletingTrue || !requireRunningVM) {
       return delete(labelIsDeletingTrue);
     }
   
@@ -57,12 +57,8 @@ public class GridDeleteHandlerImpl extends AbstractGridHandler implements GridDe
     fingerprintBasedUpdater.updateLabelsGivenFreshlyFetchedInstance(gridInstance,
         ImmutableMap.of(ResourceUtil.LABEL_LOCKED_BY_BUILD, "none"),
         null);
-    
-    if (requireRunningVM) {
-      return sendResponse();
-    }
-    
-    return stop();
+  
+    return sendResponse();
   }
   
   @Override
@@ -102,6 +98,7 @@ public class GridDeleteHandlerImpl extends AbstractGridHandler implements GridDe
     return sendResponse();
   }
   
+  @SuppressWarnings("unused")
   private ResponseEntity<ResponseGridDelete> stop() throws Exception {
     Operation operation = computeSrv.stopInstance(gridName, zone, null);
     operation = executor.blockUntilComplete(operation, 1000, 300 * 1000, null);

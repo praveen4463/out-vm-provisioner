@@ -105,7 +105,7 @@ public class GridController {
     
     LOG.info("received request: {}", gridCreateReq.toString());
     
-    if (!Strings.isNullOrEmpty(sourceImageFamily) || noRush) {
+    if (!Strings.isNullOrEmpty(sourceImageFamily) || noRush || !requireRunningVM) {
       LOG.debug("Going to create a new instance, noRush: {}, sourceImageFamily: {} {}", noRush
           , sourceImageFamily, addToException(gridCreateReq.getBuildProperties()));
       GridGenerateHandler generateHandler = gridGenerateHandlerFactory.create(compute
@@ -122,31 +122,9 @@ public class GridController {
       return generateHandler.handle();
     }
     
-    // get a running instance if that's needed
-    if (requireRunningVM) {
-      LOG.debug("trying to get a running instance");
-      GridGetRunningHandler getRunningHandler = gridGetRunningHandlerFactory.create(apiCoreProps
-          , executor
-          , computeSrv
-          , search
-          , fingerprintBasedUpdater
-          , zone
-          , gridCreateReq);
-      try {
-        return getRunningHandler.handle();
-      } catch (Throwable failure) {
-        if (!(failure instanceof GridGetRunningHandlerFailureException)) {
-          LOG.error("Get running handler experienced an unexpected exception, trying to" +
-              " find a stopped instance "
-              + addToException(gridCreateReq.getBuildProperties()), failure);
-        }
-        // go on to find a stopped one
-      }
-    }
-  
-    LOG.debug("trying to get a stopped instance");
-    // find a stopped instance and start it.
-    GridStartHandler startHandler = gridStartHandlerFactory.create(apiCoreProps
+    // get a running instance
+    LOG.debug("trying to get a running instance");
+    GridGetRunningHandler getRunningHandler = gridGetRunningHandlerFactory.create(apiCoreProps
         , executor
         , computeSrv
         , search
@@ -154,15 +132,15 @@ public class GridController {
         , zone
         , gridCreateReq);
     try {
-      return startHandler.handle();
+      return getRunningHandler.handle();
     } catch (Throwable failure) {
-      if (!(failure instanceof GridStartHandlerFailureException)) {
-        LOG.error("start handler experienced an unexpected exception, trying to create fresh grid "
+      if (!(failure instanceof GridGetRunningHandlerFailureException)) {
+        LOG.error("Get running handler experienced an unexpected exception, trying to" +
+            " create new instance "
             + addToException(gridCreateReq.getBuildProperties()), failure);
       }
-      LOG.debug("Couldn't find a stopped instance, going to create a fresh one. {}"
+      LOG.debug("Couldn't find a running instance, going to create a new one. {}"
           , addToException(gridCreateReq.getBuildProperties()));
-      // we couldn't get a stopped grid instance, fallback to a fresh one.
       return gridGenerateHandlerFactory.create(compute
           , apiCoreProps
           , executor
